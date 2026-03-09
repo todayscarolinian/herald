@@ -9,15 +9,15 @@
 
 ## 📋 Table of Contents
 
-- [Overview] (#overview)
-- [Architecture] (#architecture)
-- [Apps & Packages] (#apps--packages)
-- [Tech Stack] (#tech-stack)
-- [Getting Started] (#getting-started)
-- [Development] (#development)
-- [Deployment] (#deployment)
-- [Environment Variables] (#environment-variables)
-- [Contributing] (#contributing)
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Apps & Packages](#-apps--packages)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Development](#-development)
+- [Deployment](#-deployment)
+- [Environment Variables](#-environment-variables)
+- [Contributing](#-contributing)
 
 ## 🎯 Overview
 
