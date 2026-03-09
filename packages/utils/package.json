@@ -1,0 +1,25 @@
+{
+    "name": "@herald/utils",
+    "type": "module",
+    "scripts": {
+        "dev": "tsc --watch",
+        "build": "tsc"
+    },
+    "exports": {
+        "./constants": {
+            "types": "./src/constants.ts",
+            "default": "./dist/constants.js"
+        },
+        "./validation": {
+            "types": "./src/validation.ts",
+            "default": "./dist/validation.js"
+        }
+    },
+    "devDependencies": {
+        "@repo/typescript-config": "*",
+        "typescript": "latest"
+    },
+    "dependencies": {
+        "zod": "^4.3.6"
+    }
+}
