@@ -4,7 +4,11 @@
     "private": true,
     "scripts": {
         "build": "turbo run build",
+        "build:auth": "turbo run build --filter=auth",
+        "build:core": "turbo run build --filter=core",
         "dev": "turbo run dev",
+        "dev:auth": "turbo run dev --filter=auth",
+        "dev:core": "turbo run dev --filter=core",
         "lint": "turbo run lint",
         "format": "prettier --write \"**/*.{ts,tsx,md}\"",
         "typecheck": "turbo run check-types",
