@@ -107,6 +107,9 @@ This monorepo uses [Turborepo](https://turbo.build/) and contains the following 
 
 ### Packages (Shared)
 
+- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+
 > **Note:** Add shared packages here as the monorepo grows
 >
 > Examples:

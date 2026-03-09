@@ -1,0 +1,13 @@
+# Default reviewers for all pull requests
+
+- @todayscarolinian
+- @elderfieldzeus
+
+# Herald Core → assign Core Project Lead
+
+/apps/core/ @alphas12
+
+# Herald Auth → assign Auth Project Lead
+
+/apps/auth/ @alessaaandraaa
+/apps/auth/ @formesean
