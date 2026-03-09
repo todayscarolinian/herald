@@ -9,15 +9,15 @@
 
 ## 📋 Table of Contents
 
-- [Overview] (#overview)
-- [Architecture] (#architecture)
-- [Apps & Packages] (#apps--packages)
-- [Tech Stack] (#tech-stack)
-- [Getting Started] (#getting-started)
-- [Development] (#development)
-- [Deployment] (#deployment)
-- [Environment Variables] (#environment-variables)
-- [Contributing] (#contributing)
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Apps & Packages](#-apps--packages)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Development](#-development)
+- [Deployment](#-deployment)
+- [Environment Variables](#-environment-variables)
+- [Contributing](#-contributing)
 
 ## 🎯 Overview
 
@@ -106,6 +106,9 @@ This monorepo uses [Turborepo](https://turbo.build/) and contains the following 
   - Deployed at: `auth.todayscarolinian.com`
 
 ### Packages (Shared)
+
+- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
 > **Note:** Add shared packages here as the monorepo grows
 >
