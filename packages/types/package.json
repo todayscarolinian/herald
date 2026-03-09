@@ -1,0 +1,23 @@
+{
+    "name": "@herald/types",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "check-types": "tsc --noEmit"
+    },
+    "exports": {
+        "./auth": {
+            "types": "./src/auth.ts",
+            "default": "./dist/auth.js"
+        },
+        "./user": {
+            "types": "./src/user.ts",
+            "default": "./dist/user.js"
+        }
+    },
+    "devDependencies": {
+        "@repo/typescript-config": "*",
+        "typescript": "latest"
+    }
+}
