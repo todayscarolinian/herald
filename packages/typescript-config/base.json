@@ -24,6 +24,8 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
-        "allowUnusedLabels": false
+        "allowUnusedLabels": false,
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true
     }
 }
