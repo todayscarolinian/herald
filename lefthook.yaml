@@ -1,5 +1,10 @@
 # lefthook.yml
 
+pre-push:
+  commands:
+    validate-branch-name:
+      run: node scripts/validate-branch-name/index.js
+
 commit-msg:
   commands:
     validate-commit-message:

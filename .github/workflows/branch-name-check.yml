@@ -1,0 +1,24 @@
+name: Validate Branch Name
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  branch-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate branch name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          if [[ ! "$BRANCH_NAME" =~ ^(AUTH|CORE|INTEG)-[0-9]+$ ]] && [[ "$BRANCH_NAME" != "main" ]] && [[ "$BRANCH_NAME" != "develop" ]]; then
+            echo "❌ Invalid branch name: $BRANCH_NAME"
+            echo "Must follow pattern: <PREFIX>-<ID>"
+            echo "Valid prefixes: AUTH, CORE, INTEG"
+            exit 1
+          fi
+          echo "✅ Branch name valid: $BRANCH_NAME"
