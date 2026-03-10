@@ -1,0 +1,19 @@
+{
+  "name": "@herald/auth",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "srvx"
+  },
+  "dependencies": {
+    "@herald/types": "*",
+        "@herald/utils": "*",
+        "hono": "^4.12.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "srvx": "^0.8.7",
+    "typescript": "^5.8.3",
+    "@repo/typescript-config": "*"
+  }
+}
