@@ -4,7 +4,7 @@ import globals from 'globals';
 export default [
     ...config,
     {
-        files: ['scripts/**/*.js'],
+        files: ['scripts/**/*.js', '.github/scripts/**/*.js'],
         languageOptions: {
             globals: {
                 ...globals.node,

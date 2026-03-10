@@ -1,0 +1,90 @@
+name: Validate PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          node .github/scripts/validate-pr-title.js
+        
+      - name: Comment on PR (if validation fails)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const branchName = context.payload.pull_request.head.ref;
+            
+            const body = `## ❌ PR Title Validation Failed
+            
+            Your PR title does not follow the required format.
+            
+            **Required format:** \`[<branch_name>] <description>\`
+            
+            **Current title:** \`${{ github.event.pull_request.title }}\`
+            
+            **Current branch:** \`${branchName}\`
+            
+            **Expected format for your branch:**
+            \`\`\`
+            [${branchName}] <your description here>
+            \`\`\`
+            
+            ### Examples
+            - ✅ \`[AUTH-123] Add JWT token validation\`
+            - ✅ \`[CORE-456] Refactor database connection pool\`
+            - ✅ \`[INTEG-789] Integrate Stripe payment gateway\`
+            - ✅ \`[WEEK-1] Sprint 1 weekly deliverables\`
+            - ❌ \`Add JWT token validation\` (missing branch name)
+            - ❌ \`AUTH-123 Add JWT token validation\` (missing brackets)
+            - ❌ \`[auth-123] Add JWT token validation\` (wrong branch name)
+            
+            Please update your PR title to match the required format.`;
+            
+            // Check if we already commented
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR Title Validation Failed')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body
+              });
+            }
