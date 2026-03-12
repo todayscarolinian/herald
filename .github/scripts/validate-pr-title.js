@@ -58,10 +58,9 @@ function validatePRTitle(prTitle, branchName) {
 
     const [, titleBranchName, description] = match;
 
-    const isWeekFormat = /^WEEK-\d+$/.test(titleBranchName);
 
     // Validate branch name matches
-    if (!isWeekFormat && titleBranchName !== branchName) {
+    if (titleBranchName !== branchName) {
         errors.push(`Branch name in PR title does not match actual branch name`);
         errors.push('');
         errors.push(`PR title has: [${titleBranchName}]`);
@@ -109,7 +108,7 @@ function validatePRTitle(prTitle, branchName) {
         }
     }
 
-    return { valid: true, errors: [], branchName: titleBranchName, description: trimmedDescription, isWeekFormat };
+    return { valid: true, errors: [], description: trimmedDescription };
 }
 
 function main() {
@@ -117,7 +116,7 @@ function main() {
     console.log(`PR Title: "${PR_TITLE}"`);
     console.log(`Branch:   "${BRANCH_NAME}"\n`);
 
-    const { valid, errors, description, isWeekFormat, branchName: titleBranchName } = validatePRTitle(PR_TITLE, BRANCH_NAME);
+    const { valid, errors, description } = validatePRTitle(PR_TITLE, BRANCH_NAME);
 
     if (!valid) {
         console.error('❌ PR title validation failed:\n');
@@ -127,12 +126,8 @@ function main() {
     }
 
     console.log('✅ PR title is valid!');
-    if (isWeekFormat) {
-        console.log(`   Sprint: [${titleBranchName}]`);
-        console.log(`   Source branch: ${BRANCH_NAME}`);
-    } else {
-        console.log(`   Branch: [${BRANCH_NAME}]`);
-    }
+
+    console.log(`   Branch: [${BRANCH_NAME}]`);
     console.log(`   Description: ${description}`);
     console.log('');
     process.exit(0);

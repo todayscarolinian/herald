@@ -13,6 +13,7 @@ const PREFIXES = {
     AUTH: 'Herald Authentication module',
     CORE: 'Herald Core module',
     INTEG: 'Integration work across modules',
+    WEEK: 'Weekly sprint branches (e.g., WEEK-1, WEEK-2, etc.)',
 };
 
 function getCurrentBranch() {
@@ -48,6 +49,7 @@ function validateBranchName(branchName) {
         errors.push('  AUTH-123   - Authentication feature');
         errors.push('  CORE-456   - Core functionality');
         errors.push('  INTEG-789  - Integration work');
+        errors.push('  WEEK-1     - Sprint 1 deliverables');
         errors.push('');
         errors.push('Allowed exceptions:');
         ALLOWED_BRANCHES.forEach(branch => {
