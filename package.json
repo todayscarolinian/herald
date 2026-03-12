@@ -1,0 +1,32 @@
+{
+    "name": "herald",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "build": "turbo run build",
+        "build:auth": "turbo run build --filter=auth",
+        "build:core": "turbo run build --filter=core",
+        "dev": "turbo run dev",
+        "dev:auth": "turbo run dev --filter=auth",
+        "dev:core": "turbo run dev --filter=core",
+        "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+        "typecheck": "turbo run check-types",
+        "prepare": "npx lefthook install"
+    },
+    "devDependencies": {
+        "lefthook": "^2.1.3",
+        "lint-staged": "^16.3.2",
+        "prettier": "^3.7.4",
+        "turbo": "^2.8.14",
+        "typescript": "5.9.2"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "packageManager": "npm@11.7.0",
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ]
+}

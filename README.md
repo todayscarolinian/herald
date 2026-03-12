@@ -39,6 +39,37 @@ Herald is Today's Carolinian's authentication system that provides:
 
 ## 🏗️ Architecture
 
+### TurboRepo Monorepo Structure
+
+```
+herald/ (root)
+├── apps/
+│   ├── core/              # Next.js 16+ Frontend (herald.todayscarolinian.com)
+│   │   ├── app/           # Next.js App Router
+│   │   ├── components/    # UI components (shadcn/ui)
+│   │   ├── lib/           # Client utilities
+│   │   └── public/        # Static assets
+│   │
+│   └── auth/              # Hono.js Auth API (auth.todayscarolinian.com)
+│       ├── src/
+│       │   ├── routes/    # API endpoints
+│       │   ├── lib/       # BetterAuth config
+│       │   └── middleware/# Rate limiting, CORS
+│       └── index.ts
+│
+├── packages/              # Shared workspace packages
+│   ├── eslint-config/     # Shared ESLint configs
+│   ├── typescript-config/ # Shared tsconfig.json files
+│   ├── types/             # Shared TypeScript types
+│   └── utils/             # Shared utility functions
+│
+├── turbo.json             # Turborepo pipeline config
+├── package.json           # Root workspace config
+└── README.md              # This file
+```
+
+### System Architecture
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      User Browser 🌐                        │
@@ -63,11 +94,11 @@ Herald is Today's Carolinian's authentication system that provides:
                    │
          ┌─────────┴──────────┬────────────┐
          ▼                    ▼            ▼
-    ┌──────────┐        ┌─────────┐   ┌────────┐
+    ┌──────────┐        ┌──────────┐   ┌────────┐
     │Firestore │        │BetterAuth│   │Resend  │
-    │(Users &  │        │         │   │(Email) │
-    │App Data) │        │         │   │        │
-    └──────────┘        └─────────┘   └────────┘
+    │(Users &  │        │          │   │(Email) │
+    │App Data) │        │          │   │        │
+    └──────────┘        └──────────┘   └────────┘
 ```
 
 ### Session Flow
@@ -107,13 +138,12 @@ This monorepo uses [Turborepo](https://turbo.build/) and contains the following 
 
 ### Packages (Shared)
 
+- `@herald/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@herald/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- `@herald/types` - Shared TypeScript types
+- `@herald/utils` - Shared utility functions
+
 > **Note:** Add shared packages here as the monorepo grows
->
-> Examples:
->
-> - `@herald/types` - Shared TypeScript types
-> - `@herald/config` - Shared configuration (ESLint, TypeScript, Tailwind)
-> - `@herald/utils` - Shared utility functions
 
 ## 🛠️ Tech Stack
 
@@ -147,7 +177,7 @@ This monorepo uses [Turborepo](https://turbo.build/) and contains the following 
 
 ### Prerequisites
 
-- Node.js 18+ (recommend using [nvm](https://github.com/nvm-sh/nvm))
+- Node.js 20+ (recommend using [nvm](https://github.com/nvm-sh/nvm))
 - Firebase project (Development & Production)
 - Resend account & API key
 - Vercel KV (Redis) database
@@ -185,11 +215,11 @@ Fill in the required values (see [Environment Variables](#-environment-variables
 
 ```bash
 # Start all apps
-npm dev
+npm run dev
 
 # Or start individual apps
-npm --filter core dev      # Herald UI on http://localhost:3000
-npm --filter auth dev # Auth service on http://localhost:3001
+npm run dev:core      # Herald Core on http://localhost:3000
+npm run dev:auth      # Herald Auth on http://localhost:3001
 ```
 
 ## 💻 Development
@@ -215,27 +245,60 @@ herald-auth/
 └── package.json                # Root package.json
 ```
 
-### Common Commands
+### Available Scripts
+
+#### Development Commands
 
 ```bash
-# Development
-npm dev                        # Start all apps in dev mode
-npm --filter core dev          # Start Herald UI only
-npm --filter auth dev          # Start Auth service only
+# Start all apps in development mode (uses Turborepo)
+npm run dev
+# Runs: turbo dev --parallel
+# Starts apps/core (port 3000) and apps/auth (port 3001) concurrently
 
-# Building
-npm build                      # Build all apps
-npm --filter core build        # Build Herald UI only
-npm --filter auth build        # Build Auth service only
+# Start individual apps
+npm run dev:core          # Start Herald UI only (http://localhost:3000)
+npm run dev:auth          # Start Auth service only (http://localhost:3001)
+```
 
-# Linting & Formatting
-npm lint                       # Lint all code
-npm format                     # Format all code
+#### Build Commands
 
-# Add Dependencies
-npm --filter core add <package>      # Add to Herald
-npm --filter auth add <package>      # Add to Herald Auth
-npm add -w <package>                 # Add to workspace root
+```bash
+# Build all apps for production (uses Turborepo cache)
+npm run build
+# Runs: turbo build
+# Builds in optimal order based on dependency graph
+
+# Build individual apps
+npm run build:core        # Build Herald UI only
+npm run build:auth        # Build Auth service only
+```
+
+#### Code Quality Commands
+
+```bash
+# Lint all code using ESLint
+npm run lint
+# Runs: turbo lint
+# Uses @herald/eslint-config for consistent rules
+
+# Format all code using Prettier
+npm run format
+# Runs: prettier --write "**/*.{ts,tsx,md,json}"
+
+# Type-check all TypeScript
+npm run typecheck
+# Runs: turbo type-check (if configured)
+```
+
+#### Testing Commands
+
+```bash
+# Run all tests
+npm run test
+# Runs: turbo test
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ### Database Setup (Firestore)
@@ -245,6 +308,78 @@ Herald uses Firestore with the following collections:
 - **`users`** - User profiles (id, email, name, position, profilePicture, createdAt, updatedAt)
 - **`sessions`** - Session tokens (managed by BetterAuth)
 - **`auditLogs`** - Admin action logs (who, what, when)
+
+## 📦 Adding New Packages
+
+### Adding a New Shared Package
+
+1. **Create the package directory:**
+
+```bash
+mkdir -p packages/my-package
+cd packages/my-package
+```
+
+2. **Initialize with `package.json`:**
+
+```json
+{
+  "name": "@herald/my-package",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@herald/eslint-config": "*",
+    "@herald/typescript-config": "*",
+    "typescript": "^5.3.3"
+  }
+}
+```
+
+3. **Create `tsconfig.json`:**
+
+```json
+{
+  "extends": "@herald/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+4. **Create source files:**
+
+```bash
+mkdir src
+echo 'export const hello = () => "Hello from my-package";' > src/index.ts
+```
+
+5. **Use the package in an app:**
+
+```typescript
+// In apps/core/app/page.tsx
+import { hello } from '@herald/my-package'
+
+console.log(hello())
+```
+
+### Best Practices for Shared Packages
+
+- ✅ Use `@herald/*` namespace for internal packages
+- ✅ Keep packages focused and single-purpose
+- ✅ Export TypeScript source (`.ts`) for better DX
+- ✅ Include proper `exports` field in `package.json`
+- ✅ Use workspace protocol (`*`) for internal dependencies
 
 ### Authentication Flow
 
@@ -420,10 +555,10 @@ Herald implements multiple security layers:
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```shell
-feat(core): add bulk user import via CSV
-fix(auth): resolve session expiration bug
-docs(readme): update deployment instructions
-refactor(core): reorganize authentication middleware
+feat: add bulk user import via CSV
+fix: resolve session expiration bug
+docs: update deployment instructions
+refactor: reorganize authentication middleware
 ```
 
 ### Pull Request Process
@@ -436,14 +571,185 @@ refactor(core): reorganize authentication middleware
 6. Wait for review and approval
 7. Squash and merge
 
+## Common Troubleshooting
+
+### Installation Issues
+
+**Problem:** `npm install` fails with peer dependency errors
+
+```bash
+# Solution: Use --legacy-peer-deps flag
+npm install --legacy-peer-deps
+
+# Or add to .npmrc
+echo "legacy-peer-deps=true" >> .npmrc
+```
+
+**Problem:** `EACCES` permission errors on macOS/Linux
+
+```bash
+# Solution: Fix npm permissions or use nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 18
+nvm use 18
+```
+
+### Development Server Issues
+
+**Problem:** Port 3000 or 3001 already in use
+
+```bash
+# Solution 1: Kill the process using the port (Windows)
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+
+# Solution 2: Use different ports
+npm --filter core dev -- --port 3002
+```
+
+**Problem:** Changes not reflecting in browser
+
+```bash
+# Solution: Clear Next.js cache and restart
+rm -rf apps/core/.next
+npm --filter core dev
+```
+
+**Problem:** "Module not found" errors for shared packages
+
+```bash
+# Solution: Rebuild and reinstall dependencies
+npm clean
+rm -rf node_modules
+npm install
+npm build
+```
+
+### Environment Variable Issues
+
+**Problem:** Environment variables not loading
+
+```bash
+# Check .env.local exists in correct location
+ls apps/core/.env.local
+ls apps/auth/.env.local
+
+# Ensure NEXT_PUBLIC_ prefix for client-side variables in Next.js
+# ✅ NEXT_PUBLIC_API_URL=...
+# ❌ API_URL=...
+
+# Restart dev server after changing .env files
+```
+
+### Firebase Issues
+
+**Problem:** "Firebase not initialized" errors
+
+```bash
+# Verify environment variables are set
+echo $FIREBASE_PROJECT_ID
+echo $FIREBASE_PRIVATE_KEY
+
+# Ensure private key is properly formatted (with \n for newlines)
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+```
+
+**Problem:** Firestore permission denied errors
+
+```bash
+# Check Firestore rules in Firebase Console
+# Development rules (for testing only):
+match /{document=**} {
+  allow read, write: if request.auth != null;
+}
+```
+
+### Build Issues
+
+**Problem:** TypeScript errors during build
+
+```bash
+# Run type-check to see all errors
+npm run typecheck
+
+# Fix or temporarily skip (not recommended for production)
+echo "SKIP_TYPE_CHECK=true" >> apps/core/.env.local
+```
+
+**Problem:** Build succeeds locally but fails on Vercel
+
+```bash
+# Ensure environment variables are set in Vercel dashboard
+# Check build logs for specific errors
+# Verify Node.js version matches (use .nvmrc file)
+echo "18" > .nvmrc
+```
+
+### Session/Authentication Issues
+
+**Problem:** Users not staying logged in
+
+```bash
+# Check cookie domain matches
+# For localhost: domain should be undefined or 'localhost'
+# For production: domain should be '.todayscarolinian.com'
+
+# Verify SESSION_MAX_AGE is set correctly
+echo $SESSION_MAX_AGE  # Should be 432000 (5 days)
+```
+
+**Problem:** "Invalid token" errors
+
+```bash
+# Clear browser cookies and try again
+# Verify BETTER_AUTH_SECRET matches between deployments
+# Check that auth service is accessible
+curl https://auth.todayscarolinian.com/health
+```
+
+### Turborepo Issues
+
+**Problem:** Turborepo cache causing stale builds
+
+```bash
+# Clear Turborepo cache
+rm -rf .turbo
+npm build
+
+# Disable cache for debugging
+npm build -- --no-cache
+```
+
+**Problem:** Tasks not running in correct order
+
+```bash
+# Check turbo.json for correct dependsOn configuration
+# Shared packages should build before apps
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"]  # ^ means dependencies first
+    }
+  }
+}
+```
+
+### Getting Help
+
+1. **Check logs:** Look at terminal output and browser console
+2. **Verify environment:** Ensure all `.env.local` files are configured
+3. **Search issues:** Check GitHub issues for similar problems
+4. **Ask the team:** Send a message to the Herald Development group chat on Messenger
+5. **Documentation:** Review official docs for Next.js, Hono, BetterAuth
+
 ## 📚 Additional Resources
 
-- [System Overview](https://www.notion.so/1-System-Overview-312b953516bc812082ade2f2a7861483)
-- [Software Design Document (SDD)](https://www.notion.so/312b953516bc81aca1c0fc310708b241)
+- [System Overview](https://fine-vision-100.notion.site/1-System-Overview-312b953516bc812082ade2f2a7861483)
+- [Software Design Document (SDD)](https://fine-vision-100.notion.site/Herald-Software-Design-Document-SDD-MVP-312b953516bc81aca1c0fc310708b241?pvs=74)
 - [BetterAuth Documentation](https://www.better-auth.com/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Hono Documentation](https://hono.dev/)
-- [Turborepo Documentation](https://turbo.build/repo/docs)
+- [Turborepo Documentation](https://turborepo.dev/docs)
 
 ## 📄 License
 
