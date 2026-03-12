@@ -3,7 +3,7 @@
 import { execSync } from 'child_process';
 
 // Branch name pattern: <PREFIX>-<NUMBER>
-const BRANCH_PATTERN = /^(AUTH|CORE|INTEG)-\d+$/;
+const BRANCH_PATTERN = /^(AUTH|CORE|INTEG|WEEK)-\d+$/;
 
 // Allowed branch names that don't follow the pattern
 const ALLOWED_BRANCHES = ['main', 'develop'];
