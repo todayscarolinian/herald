@@ -3,7 +3,7 @@ name: Typescript Check
 on: [pull_request]
 
 jobs:
-  lint-and-build:
+  typecheck:
     runs-on: ubuntu-latest
 
     steps:
