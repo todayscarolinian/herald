@@ -4,7 +4,7 @@ export class SessionService {
     // BetterAuth handles session caching automatically
     await auth.api.getSession({
       headers: {
-        cookie: `better-auth.session_token=${token}`,
+        cookie: `herald_session.session_token=${token}`,
       },
     })
   }

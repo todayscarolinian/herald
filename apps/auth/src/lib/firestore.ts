@@ -1,7 +1,6 @@
 import 'dotenv/config'
 
-import { betterAuth } from 'better-auth'
-import { firestoreAdapter, initFirestore } from 'better-auth-firestore'
+import { initFirestore } from 'better-auth-firestore'
 import { cert } from 'firebase-admin/app'
 export const firestore = initFirestore({
   credential: cert({
@@ -11,17 +10,4 @@ export const firestore = initFirestore({
   }),
   projectId: process.env.FIREBASE_PROJECT_ID!,
   name: 'better-auth',
-})
-
-export const auth = betterAuth({
-  database: firestoreAdapter({
-    firestore,
-    namingStrategy: 'default',
-    collections: {
-      // users: "users",
-      // sessions: "sessions",
-      // accounts: "accounts",
-      // verificationTokens: "verificationTokens",
-    },
-  }),
 })

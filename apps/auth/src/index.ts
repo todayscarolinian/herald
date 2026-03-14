@@ -18,18 +18,8 @@ app.use('*', corsMiddleware)
 // Routes
 app.route('/', routes)
 
-const welcomeStrings = [
-  'Hello Hono!',
-  'To learn more about Hono on Vercel, visit https://vercel.com/docs/frameworks/backend/hono',
-]
-
 app.on(['POST', 'GET'], '/*', (c) => {
   return auth.handler(c.req.raw)
-})
-
-app.get('/', (c) => {
-  console.log(`🚀 Herald Auth running on http://localhost:${port}`)
-  return c.text(welcomeStrings.join('\n\n'))
 })
 
 serve({
