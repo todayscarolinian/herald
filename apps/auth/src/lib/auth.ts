@@ -2,6 +2,7 @@ import type { UserProfile } from '@herald/types/user'
 import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
+import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { firestore } from './firestore.ts'
@@ -69,4 +70,5 @@ export const auth = betterAuth({
       }
     },
   },
+  plugins: [openAPI()],
 })
