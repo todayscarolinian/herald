@@ -18,7 +18,10 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-  emailAndPassword: { enabled: true },
+    emailAndPassword: {
+        enabled: true,
+      
+   },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {
@@ -54,6 +57,9 @@ export const auth = betterAuth({
       firstName: { type: 'string' },
       lastName: { type: 'string' },
       middleName: { type: 'string', required: false },
+      positions: { type: 'string[]', defaultValue: [], required: false, input: false },
+      disabled: { type: 'boolean', defaultValue: false, required: false, input: false },
+      mustChangePassword: { type: 'boolean', defaultValue: false, required: true, input: false },
     },
   },
   callbacks: {
