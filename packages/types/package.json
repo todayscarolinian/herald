@@ -7,13 +7,9 @@
         "check-types": "tsc --noEmit"
     },
     "exports": {
-        "./auth": {
-            "types": "./src/auth.ts",
-            "default": "./dist/auth.js"
-        },
-        "./user": {
-            "types": "./src/user.ts",
-            "default": "./dist/user.js"
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./dist/index.js"
         }
     },
     "devDependencies": {

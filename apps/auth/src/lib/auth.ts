@@ -1,4 +1,4 @@
-import type { UserProfile } from '@herald/types/user'
+import type { UserProfile } from '@herald/types'
 import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
