@@ -1,6 +1,9 @@
 import { cors } from 'hono/cors'
 
-const origin = process.env.ALLOWED_ORIGINS || 'http://localhost:3000'
+const origin = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((value) => value.trim())
+
 const corsMiddleware = cors({
   origin,
   allowHeaders: ['Content-Type', 'Authorization'],

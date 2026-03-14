@@ -5,6 +5,11 @@ import { Session } from 'better-auth'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { firestore } from './firestore.ts'
+
+const trustedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((value) => value.trim())
+
 export const auth = betterAuth({
   socialProviders: {
     google: {
@@ -20,13 +25,7 @@ export const auth = betterAuth({
       domain: 'todayscarolinian.com',
     },
   },
-  trustedOrigins: [
-    'https://todayscarolinian.com',
-    'https://archives.todayscarolinian.com',
-    'https://uscdays.todayscarolinian.com',
-    'https://herald.todayscarolinian.com',
-    'https://auth.todayscarolinian.com',
-  ],
+  trustedOrigins,
   session: {
     cookieCache: {
       enabled: true,
