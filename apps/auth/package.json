@@ -1,0 +1,27 @@
+{
+  "name": "@herald/auth",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@herald/types": "*",
+    "@herald/utils": "*",
+    "@hono/node-server": "^1.19.11",
+    "better-auth": "^1.5.4",
+    "better-auth-firestore": "^1.1.2",
+    "dotenv": "^16.0.3",
+    "firebase": "^12.10.0",
+    "firebase-admin": "^13.7.0",
+    "hono": "^4.12.7",
+    "resend": "^6.9.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.3"
+  }
+}
