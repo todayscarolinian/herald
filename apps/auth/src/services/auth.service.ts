@@ -1,10 +1,13 @@
+import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
+
 import { auth } from '../lib/auth.js'
+
 export class SessionService {
   async verifySession(token: string) {
     // BetterAuth handles session caching automatically
     const session = await auth.api.getSession({
       headers: {
-        cookie: `herald_session.session_token=${token}`,
+        cookie: `${SESSION_COOKIE_NAME}.session_token=${token}`,
       },
     })
 

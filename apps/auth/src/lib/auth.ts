@@ -1,4 +1,5 @@
 import type { UserProfile } from '@herald/types/user'
+import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { firestoreAdapter } from 'better-auth-firestore'
@@ -12,7 +13,7 @@ export const auth = betterAuth({
     },
   },
   emailAndPassword: { enabled: true },
-  cookiePrefix: 'herald_session',
+  cookiePrefix: SESSION_COOKIE_NAME,
   advanced: {
     crossSubDomainCookies: {
       enabled: true,
@@ -42,7 +43,7 @@ export const auth = betterAuth({
       users: 'users',
       sessions: 'sessions',
       accounts: 'accounts',
-      verificationTokens: 'verificationTokens',
+      verificationTokens: 'verification_tokens',
     },
   }),
   user: {
