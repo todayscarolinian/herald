@@ -11,7 +11,7 @@ const getAuthBaseUrl = () => {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
-  return process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:3001'
+  return process.env.NEXT_PUBLIC_AUTH_API_URL || ''
 }
 
 const baseUrl = getAuthBaseUrl()

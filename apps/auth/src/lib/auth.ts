@@ -7,7 +7,7 @@ import { firestoreAdapter } from 'better-auth-firestore'
 
 import { firestore } from './firestore.ts'
 
-const trustedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+const trustedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map((value) => value.trim())
 
