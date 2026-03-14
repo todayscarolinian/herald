@@ -1,5 +1,5 @@
 import type { UserProfile } from '@herald/types'
-import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
+import { SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'

@@ -1,4 +1,4 @@
-import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
+import { SESSION_COOKIE_NAME } from '@herald/utils'
 
 import { auth } from '../lib/auth.js'
 

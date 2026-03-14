@@ -6,13 +6,9 @@
         "build": "tsc"
     },
     "exports": {
-        "./constants": {
-            "types": "./src/constants.ts",
-            "default": "./dist/constants.js"
-        },
-        "./validation": {
-            "types": "./src/validation.ts",
-            "default": "./dist/validation.js"
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./dist/index.js"
         }
     },
     "devDependencies": {
