@@ -2,19 +2,23 @@ import { auth } from '../lib/auth.js'
 export class SessionService {
   async verifySession(token: string) {
     // BetterAuth handles session caching automatically
-    await auth.api.getSession({
+    const session = await auth.api.getSession({
       headers: {
         cookie: `herald_session.session_token=${token}`,
       },
     })
+
+    return session
   }
 
   async invalidateSession(sessionId: string) {
-    await auth.api.signOut({
+    const res = await auth.api.signOut({
       headers: {
         'x-session-id': sessionId,
       },
     })
+
+    return res
   }
 }
 
