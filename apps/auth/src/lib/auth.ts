@@ -13,8 +13,8 @@ export const auth = betterAuth({
     },
   },
   emailAndPassword: { enabled: true },
-  cookiePrefix: SESSION_COOKIE_NAME,
   advanced: {
+    cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {
       enabled: true,
       domain: 'todayscarolinian.com',
