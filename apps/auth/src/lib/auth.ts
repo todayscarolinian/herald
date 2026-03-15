@@ -7,9 +7,10 @@ import { firestoreAdapter } from 'better-auth-firestore'
 
 import { firestore } from './firestore.ts'
 
-const trustedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((value) => value.trim())
+const trustedOrigins = [
+  'https://*.todayscarolinian.com',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+]
 
 export const auth = betterAuth({
   socialProviders: {
@@ -18,16 +19,16 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-    emailAndPassword: {
-        enabled: true,
-        sendResetPassword: async ({ user, url }, _request) => {
-          void sendEmail({
-                to: user.email,
-                subject: 'Reset your password',
-                text: `Click the link to reset your password: ${url}`
-            })
-      }
-   },
+  emailAndPassword: {
+    enabled: true,
+    sendResetPassword: async ({ user, url }, _request) => {
+      void sendEmail({
+        to: user.email,
+        subject: 'Reset your password',
+        text: `Click the link to reset your password: ${url}`,
+      })
+    },
+  },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {

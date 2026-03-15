@@ -1,8 +1,9 @@
 import { cors } from 'hono/cors'
 
-const origin = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((value) => value.trim())
+const origin = [
+  'https://*.todayscarolinian.com',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+]
 
 const corsMiddleware = cors({
   origin,

@@ -1,25 +1,51 @@
 {
-  "$schema": "https://turborepo.dev/schema.json",
-  "ui": "tui",
-  "globalEnv": [
-    ".env"
-  ],
-  "tasks": {
-    "build": {
-      "env": ["PORT", "BETTER_AUTH_SECRET", "FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PRIVATE_KEY", "RESEND_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "ALLOWED_ORIGINS", "NEXT_PUBLIC_AUTH_API_URL", "VERCEL_URL"],
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
+    "$schema": "https://turborepo.dev/schema.json",
+    "ui": "tui",
+    "globalEnv": [
+        ".env"
+    ],
+    "tasks": {
+        "build": {
+            "env": [
+                "PORT",
+                "BETTER_AUTH_SECRET",
+                "FIREBASE_PROJECT_ID",
+                "FIREBASE_CLIENT_EMAIL",
+                "FIREBASE_PRIVATE_KEY",
+                "RESEND_API_KEY",
+                "GOOGLE_CLIENT_ID",
+                "GOOGLE_CLIENT_SECRET",
+                "ALLOWED_ORIGINS",
+                "NEXT_PUBLIC_AUTH_API_URL",
+                "VERCEL_URL",
+                "NODE_ENV"
+            ],
+            "dependsOn": [
+                "^build"
+            ],
+            "inputs": [
+                "$TURBO_DEFAULT$",
+                ".env*"
+            ],
+            "outputs": [
+                ".next/**",
+                "!.next/cache/**",
+                "dist/**"
+            ]
+        },
+        "lint": {
+            "dependsOn": [
+                "^lint"
+            ]
+        },
+        "check-types": {
+            "dependsOn": [
+                "^check-types"
+            ]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        }
     }
-  }
 }
