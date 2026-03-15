@@ -10,7 +10,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "moduleResolution": "node16"
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../../packages/typescript-config/base.json"

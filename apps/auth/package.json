@@ -3,6 +3,8 @@
     "type": "module",
     "scripts": {
         "dev": "tsx watch src/server.ts",
+        "postinstall": "cd ../.. && patch-package --patch-dir apps/auth/patches",
+        "prebuild": "cd ../.. && patch-package --patch-dir apps/auth/patches",
         "build": "tsc -b",
         "check-types": "tsc --noEmit",
         "lint": "eslint"
@@ -23,6 +25,7 @@
         "@herald/types": "*",
         "@herald/utils": "*",
         "@repo/eslint-config": "*",
+        "patch-package": "^8.0.1",
         "tsx": "^4.7.1",
         "typescript": "^5.8.3"
     }
