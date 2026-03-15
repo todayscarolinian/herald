@@ -1,10 +1,16 @@
-import type { UserProfile } from '@herald/types/user'
-import { SESSION_COOKIE_NAME } from '@herald/utils/constants'
+import type { UserProfile } from '@herald/types'
+import { sendEmail, SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
+import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { firestore } from './firestore.ts'
+
+const trustedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((value) => value.trim())
+
 export const auth = betterAuth({
   socialProviders: {
     google: {
@@ -12,21 +18,24 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-  emailAndPassword: { enabled: true },
-  cookiePrefix: SESSION_COOKIE_NAME,
+    emailAndPassword: {
+        enabled: true,
+        sendResetPassword: async ({ user, url }, _request) => {
+          void sendEmail({
+                to: user.email,
+                subject: 'Reset your password',
+                text: `Click the link to reset your password: ${url}`
+            })
+      }
+   },
   advanced: {
+    cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {
       enabled: true,
       domain: 'todayscarolinian.com',
     },
   },
-  trustedOrigins: [
-    'https://todayscarolinian.com',
-    'https://archives.todayscarolinian.com',
-    'https://uscdays.todayscarolinian.com',
-    'https://herald.todayscarolinian.com',
-    'https://auth.todayscarolinian.com',
-  ],
+  trustedOrigins,
   session: {
     cookieCache: {
       enabled: true,
@@ -54,6 +63,9 @@ export const auth = betterAuth({
       firstName: { type: 'string' },
       lastName: { type: 'string' },
       middleName: { type: 'string', required: false },
+      positions: { type: 'string[]', defaultValue: [], required: false, input: false },
+      disabled: { type: 'boolean', defaultValue: false, required: false, input: false },
+      mustChangePassword: { type: 'boolean', defaultValue: false, required: true, input: false },
     },
   },
   callbacks: {
@@ -70,4 +82,5 @@ export const auth = betterAuth({
       }
     },
   },
+  plugins: [openAPI()],
 })

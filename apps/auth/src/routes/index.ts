@@ -1,3 +1,4 @@
+import { HealthStatus } from '@herald/types'
 import { Hono } from 'hono'
 const app = new Hono()
 
@@ -13,7 +14,7 @@ app.get('/', (c) => {
 })
 
 app.get('/health', (c) => {
-  return c.json({
+  return c.json<HealthStatus>({
     status: 'ok',
     service: 'herald-auth',
     version: '1.0.0',
