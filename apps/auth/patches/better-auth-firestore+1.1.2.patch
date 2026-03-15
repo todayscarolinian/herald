@@ -1,0 +1,25 @@
+diff --git a/node_modules/better-auth-firestore/dist/index.js b/node_modules/better-auth-firestore/dist/index.js
+index 9428913..9f1f694 100644
+--- a/node_modules/better-auth-firestore/dist/index.js
++++ b/node_modules/better-auth-firestore/dist/index.js
+@@ -1,4 +1,4 @@
+-export { firestoreAdapter } from "./firebase-adapter";
+-export { initFirestore } from "./firestore";
+-export { generateIndexSetupUrl, getIndexConfig } from "./setup";
+-export * from "./types";
++export { firestoreAdapter } from "./firebase-adapter.js";
++export { initFirestore } from "./firestore.js";
++export { generateIndexSetupUrl, getIndexConfig } from "./setup.js";
++export * from "./types.js";
+diff --git a/node_modules/better-auth-firestore/dist/firebase-adapter.js b/node_modules/better-auth-firestore/dist/firebase-adapter.js
+index 1b0bcf3..e6ce0d9 100644
+--- a/node_modules/better-auth-firestore/dist/firebase-adapter.js
++++ b/node_modules/better-auth-firestore/dist/firebase-adapter.js
+@@ -1,6 +1,6 @@
+ import { createAdapterFactory, } from "better-auth/adapters";
+ import { FieldPath, Timestamp } from "firebase-admin/firestore";
+-import { initFirestore } from "./firestore";
++import { initFirestore } from "./firestore.js";
+ const MAP_TO_FIRESTORE = {
+     userId: "user_id",
+     sessionToken: "session_token",
