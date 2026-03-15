@@ -4,11 +4,11 @@
     "private": true,
     "scripts": {
         "build": "turbo run build",
-        "build:auth": "turbo run build --filter=auth",
-        "build:core": "turbo run build --filter=core",
+        "build:auth": "turbo run build --filter=@herald/auth",
+        "build:core": "turbo run build --filter=@herald/core",
         "dev": "turbo run dev",
-        "dev:auth": "turbo run dev --filter=auth",
-        "dev:core": "turbo run dev --filter=core",
+        "dev:auth": "turbo run dev --filter=@herald/auth",
+        "dev:core": "turbo run dev --filter=@herald/core",
         "lint": "turbo run lint",
         "format": "prettier --write \"**/*.{ts,tsx,md}\"",
         "typecheck": "turbo run check-types",
@@ -22,11 +22,14 @@
         "typescript": "5.9.2"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=22"
     },
     "packageManager": "npm@11.7.0",
     "workspaces": [
         "apps/*",
         "packages/*"
-    ]
+    ],
+    "dependencies": {
+        "@opentelemetry/api": "^1.9.0"
+    }
 }

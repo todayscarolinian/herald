@@ -29,13 +29,24 @@ export const nodeConfig = [
             "no-console": "off",
 
             // Backend-specific: Stricter async/promise handling (critical for servers)
-            "@typescript-eslint/no-floating-promises": "error",
-            "@typescript-eslint/no-misused-promises": "error",
-            "@typescript-eslint/await-thenable": "error",
             "require-await": "error",
 
             // Backend-specific: Process and error handling
             "no-process-exit": "warn",
         },
     },
+    {
+        files: ["**/*.ts"],
+        rules: {
+            // Backend-specific: Stricter async/promise handling for TypeScript files
+            "@typescript-eslint/no-floating-promises": "error",
+            "@typescript-eslint/no-misused-promises": "error",
+            "@typescript-eslint/await-thenable": "error",
+        },
+        languageOptions: {
+            parserOptions: {
+                projectService: true,
+            },
+        }
+    }
 ];
