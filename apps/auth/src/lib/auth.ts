@@ -1,5 +1,5 @@
 import type { UserProfile } from '@herald/types'
-import { SESSION_COOKIE_NAME } from '@herald/utils'
+import { sendEmail, SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
@@ -20,7 +20,13 @@ export const auth = betterAuth({
   },
     emailAndPassword: {
         enabled: true,
-      
+        sendResetPassword: async ({ user, url }, _request) => {
+          void sendEmail({
+                to: user.email,
+                subject: 'Reset your password',
+                text: `Click the link to reset your password: ${url}`
+            })
+      }
    },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,
