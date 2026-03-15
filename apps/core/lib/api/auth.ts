@@ -4,14 +4,11 @@
  * This module provides functions to interact with the Herald Auth service, including health checks and authentication-related operations. It uses the Fetch API for making HTTP requests and React Query for managing server state in React applications.
  */
 
-import { HealthStatus } from "@herald/types"
+import { HealthStatus } from '@herald/types'
 import { useQuery } from '@tanstack/react-query'
 
 const getAuthBaseUrl = () => {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`
-  }
-  return process.env.NEXT_PUBLIC_AUTH_API_URL || ''
+  return process.env.NEXT_PUBLIC_AUTH_URL
 }
 
 const baseUrl = getAuthBaseUrl()
@@ -32,7 +29,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     try {
       const body = (await res.json()) as { message?: string }
-      if (body?.message) {message = body.message}
+      if (body?.message) {
+        message = body.message
+      }
     } catch {
       // ignore parse errors and keep fallback
     }
@@ -44,9 +43,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function useAuthHealth() {
-    return useQuery<HealthStatus>({
-        queryKey: ['auth', 'health'],
-        queryFn: () => request<HealthStatus>('/health'),
-        staleTime: 60 * 1000, // 1 minute
-    })
+  return useQuery<HealthStatus>({
+    queryKey: ['auth', 'health'],
+    queryFn: () => request<HealthStatus>('/health'),
+    staleTime: 60 * 1000, // 1 minute
+  })
 }

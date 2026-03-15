@@ -16,8 +16,8 @@
                 "GOOGLE_CLIENT_ID",
                 "GOOGLE_CLIENT_SECRET",
                 "ALLOWED_ORIGINS",
-                "NEXT_PUBLIC_AUTH_API_URL",
-                "VERCEL_URL",
+                "NEXT_PUBLIC_CORE_URL",
+                "NEXT_PUBLIC_AUTH_URL",
                 "NODE_ENV"
             ],
             "dependsOn": [
