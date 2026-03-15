@@ -4,7 +4,8 @@
     "scripts": {
         "dev": "tsx watch src/server.ts",
         "build": "tsc -b",
-        "typecheck": "tsc --noEmit"
+        "check-types": "tsc --noEmit",
+        "lint": "eslint"
     },
     "dependencies": {
         "@hono/node-server": "^1.19.11",
@@ -21,6 +22,7 @@
         "@types/node": "^20.11.17",
         "@herald/types": "*",
         "@herald/utils": "*",
+        "@repo/eslint-config": "*",
         "tsx": "^4.7.1",
         "typescript": "^5.8.3"
     }
