@@ -1,6 +1,5 @@
-import { UserProfile } from './user.js'
+import type { UserProfile } from '../user/index.ts'
 
-// Authentication types
 export interface LoginRequest {
   email: string
   password: string
