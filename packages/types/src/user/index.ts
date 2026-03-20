@@ -7,7 +7,7 @@ export interface UserProfile {
   lastName: string
   email: string
   password: string
-  positionId: UUID
+  positions: Position[]
   emailVerified: boolean
   disabled: boolean
   createdAt: string

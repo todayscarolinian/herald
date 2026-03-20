@@ -7,7 +7,7 @@
  */
 
 import type { UUID } from '../shared/uid.ts'
-import type { Position, UserProfile } from '../user/index.ts'
+import type { UserProfile } from '../user/index.ts'
 import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.ts'
 
 // =============================================================================
@@ -62,11 +62,9 @@ export type UserSortField = 'firstName' | 'lastName' | 'email' | 'createdAt' | '
 // OUTPUT DTOs
 // =============================================================================
 
-export type UserListDTO = PaginatedResult<UserProfile>
+export type UserDTO = Omit<UserProfile, 'password'>
 
-export interface UserWithPositionDTO extends UserProfile {
-  position: Position
-}
+export type UserListDTO = PaginatedResult<UserDTO>
 
 export interface TotalUsersDTO {
   totalUsers: number
