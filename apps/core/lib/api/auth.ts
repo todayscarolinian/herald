@@ -49,3 +49,12 @@ export function useAuthHealth() {
     staleTime: 60 * 1000, // 1 minute
   })
 }
+
+export async function logoutFn() {
+  const res = await fetch('http://localhost:3001/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+
+  })
+  if (!res.ok) {throw new Error('Logout failed')}
+}
