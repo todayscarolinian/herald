@@ -141,15 +141,11 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       }
     },
 
-    // Remove eslint-disable-next-line when implementing these methods and remove the _ prefix from the variable names
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async findByPosition(positionId) {
+    async findByPosition(/*positionId*/) {
       throw new Error('Not implemented: findByPosition')
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async findByPermissions(permissions) {
+    async findByPermissions(/*permissions*/) {
       throw new Error('Not implemented: findByPermissions')
     },
 
@@ -173,13 +169,11 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: getPositionDistribution')
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async exists(id) {
+    async exists(/*id*/) {
       throw new Error('Not implemented: exists')
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async emailExists(email) {
+    async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },
   }
