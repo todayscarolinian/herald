@@ -180,16 +180,52 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 }
 
 function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
+  const firstName = requireStringField(docSnap, 'firstName', id)
+  const lastName = requireStringField(docSnap, 'lastName', id)
+  const email = requireStringField(docSnap, 'email', id)
+  const positions = requirePositionsField(docSnap, id)
+  const emailVerified = requireBooleanField(docSnap, 'emailVerified', id)
+  const disabled = requireBooleanField(docSnap, 'disabled', id)
+  const createdAt = requireStringField(docSnap, 'createdAt', id)
+  const updatedAt = requireStringField(docSnap, 'updatedAt', id)
+
   return {
     id,
-    firstName: docSnap.firstName,
-    middleName: docSnap.middleName,
-    lastName: docSnap.lastName,
-    email: docSnap.email,
-    positions: docSnap.positions,
-    emailVerified: docSnap.emailVerified,
-    disabled: docSnap.disabled,
-    createdAt: docSnap.createdAt,
-    updatedAt: docSnap.updatedAt,
+    firstName,
+    middleName: typeof docSnap.middleName === 'string' ? docSnap.middleName : undefined,
+    lastName,
+    email,
+    positions,
+    emailVerified,
+    disabled,
+    createdAt,
+    updatedAt,
   }
+}
+
+function requireStringField(docSnap: DocumentData, field: string, userId: string): string {
+  const value = docSnap?.[field]
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
+  }
+
+  return value
+}
+
+function requireBooleanField(docSnap: DocumentData, field: string, userId: string): boolean {
+  const value = docSnap?.[field]
+  if (typeof value !== 'boolean') {
+    throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
+  }
+
+  return value
+}
+
+function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['positions'] {
+  const positions = docSnap?.positions
+  if (!Array.isArray(positions)) {
+    throw new Error(`Invalid or missing required user field "positions" for user ${  userId}`)
+  }
+
+  return positions as UserDTO['positions']
 }
