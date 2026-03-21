@@ -126,6 +126,9 @@ loginRouter.post('/credentials', async (c) => {
     ? Date.now() + 30 * 24 * 60 * 60 * 1000
     : Date.now() + 5 * 24 * 60 * 60 * 1000
 
+  // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
+  const userRecord = user as Record<string, unknown>
+
   return c.json<LoginResponse>({
     success: true,
     session: {
@@ -135,10 +138,10 @@ loginRouter.post('/credentials', async (c) => {
     user: {
       id: user.id,
       email: user.email,
-      firstName: (user as Record<string, unknown>).firstName as string,
-      middleName: (user as Record<string, unknown>).middleName as string | undefined,
-      lastName: (user as Record<string, unknown>).lastName as string,
-      positionId: ((user as Record<string, unknown>).positionId as string) ?? '',
+      firstName: userRecord.firstName as string,
+      middleName: userRecord.middleName as string | undefined,
+      lastName: userRecord.lastName as string,
+      positionId: (userRecord.positionId as string) ?? '',
       emailVerified: user.emailVerified,
       disabled: false,
       createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
