@@ -1,9 +1,9 @@
-name: Build Check
+name: Build and Typescript Check
 
 on: [pull_request]
 
 jobs:
-  build:
+  typecheck:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,3 +20,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Type check
+        run: npm run typecheck
