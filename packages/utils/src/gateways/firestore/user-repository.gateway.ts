@@ -84,7 +84,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
         const constraints: QueryConstraint[] = []
 
         if (params.filters?.positionId) {
-          constraints.push(where('positionId', '==', params.filters.positionId))
+          constraints.push(where('positions', 'array-contains', params.filters.positionId))
         }
 
         if (params.filters?.permissions?.length) {
