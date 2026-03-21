@@ -23,14 +23,6 @@ export class SessionService {
 
     return res
   }
-
-  async resetPassword(token: string, newPassword: string) {
-    const res = await auth.api.resetPassword({
-      body: { token, newPassword },
-    })
-
-    return res
-  }
 }
 
 export const sessionService = new SessionService()
