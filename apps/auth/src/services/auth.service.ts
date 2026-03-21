@@ -1,5 +1,5 @@
 export class AuthService {
-  async init() {
+  init() {
     return 'Hello from auth service'
   }
 }
