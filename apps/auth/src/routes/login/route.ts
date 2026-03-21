@@ -143,7 +143,7 @@ loginRouter.post('/credentials', async (c) => {
       lastName: userRecord.lastName as string,
       positionId: (userRecord.positionId as string) ?? '',
       emailVerified: user.emailVerified,
-      disabled: false,
+      disabled: userData.disabled === true,
       createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
       updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : String(user.updatedAt),
     },
