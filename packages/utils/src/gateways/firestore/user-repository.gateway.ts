@@ -25,7 +25,8 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
   return {
     async findById({ id }) {
       try {
-        const docRef = doc(firestore, COLLECTION_NAME, id)
+        const validatedId = validateUserId(id)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
         if (!docSnap.exists()) {
@@ -41,9 +42,10 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
     async findByEmail({ email }) {
       try {
+        const validatedEmail = validateEmail(email)
         const q = query(
           collection(firestore, COLLECTION_NAME),
-          where('email', '==', email),
+          where('email', '==', validatedEmail),
           limit(1)
         )
         const querySnapshot = await getDocs(q)
@@ -238,4 +240,39 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
   }
 
   return positions as UserDTO['positions']
+}
+
+function validateUserId(id: unknown): string {
+  if (typeof id !== 'string') {
+    throw new TypeError('Invalid findById input: "id" must be a string')
+  }
+
+  const normalizedId = id.trim()
+  if (normalizedId.length === 0) {
+    throw new TypeError('Invalid findById input: "id" cannot be empty')
+  }
+
+  if (normalizedId.includes('/')) {
+    throw new TypeError('Invalid findById input: "id" cannot contain "/"')
+  }
+
+  return normalizedId
+}
+
+function validateEmail(email: unknown): string {
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (typeof email !== 'string') {
+    throw new TypeError('Invalid findByEmail input: "email" must be a string')
+  }
+
+  const normalizedEmail = email.trim().toLowerCase()
+  if (normalizedEmail.length === 0) {
+    throw new TypeError('Invalid findByEmail input: "email" cannot be empty')
+  }
+
+  if (!EMAIL_REGEX.test(normalizedEmail)) {
+    throw new TypeError('Invalid findByEmail input: "email" must be a valid email address')
+  }
+
+  return normalizedEmail
 }
