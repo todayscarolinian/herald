@@ -7,8 +7,10 @@ import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
 
-app.post('/reset-password', async (c) => {
+app.post('/', async (c) => {
   const { token, newPassword } = await c.req.json()
+
+  /* Validate existence of parameters  */
   if (!token || !newPassword) {
     return c.json<APIResponse>(
       {
@@ -19,6 +21,7 @@ app.post('/reset-password', async (c) => {
     )
   }
 
+  /* Validate password strength  */
   if (!isValidPassword(newPassword)) {
     return c.json<APIResponse>(
       {
