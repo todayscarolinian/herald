@@ -66,8 +66,18 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
     async findAll(params) {
       try {
-        const page = Math.max(1, params.pagination?.page ?? DEFAULT_PAGINATION.page)
-        const pageLimit = Math.max(1, params.pagination?.limit ?? DEFAULT_PAGINATION.limit)
+        const MAX_PAGE_LIMIT = 10
+
+        const parsedPage = Number(params.pagination?.page)
+        const page = Number.isFinite(parsedPage)
+          ? Math.max(1, Math.floor(parsedPage))
+          : DEFAULT_PAGINATION.page
+
+        const parsedLimit = Number(params.pagination?.limit)
+        const normalizedLimit = Number.isFinite(parsedLimit)
+          ? Math.max(1, Math.floor(parsedLimit))
+          : DEFAULT_PAGINATION.limit
+        const pageLimit = Math.min(MAX_PAGE_LIMIT, normalizedLimit)
 
         const constraints: QueryConstraint[] = []
 
@@ -224,7 +234,7 @@ function requireBooleanField(docSnap: DocumentData, field: string, userId: strin
 function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['positions'] {
   const positions = docSnap?.positions
   if (!Array.isArray(positions)) {
-    throw new Error(`Invalid or missing required user field "positions" for user ${  userId}`)
+    throw new Error(`Invalid or missing required user field "positions" for user ${userId}`)
   }
 
   return positions as UserDTO['positions']
