@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 
-import { useAuthHealth } from '@/lib/api/auth'
+import { useAuthHealth } from '@/lib/api/queries/authQueries'
 
 export default function Home() {
   const { data: healthData } = useAuthHealth()
