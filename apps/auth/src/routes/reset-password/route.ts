@@ -1,25 +1,26 @@
 import { APIResponse } from '@herald/types'
-import { isAPIError } from 'better-auth/api'
+import { resetPasswordSchema } from '@herald/utils'
 import { Hono } from 'hono'
 
 import { isValidPassword } from '../../lib/helpers.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
-
 app.post('/', async (c) => {
-  const { token, newPassword } = await c.req.json()
+  const body = await c.req.json()
+  const result = resetPasswordSchema.safeParse(body)
 
-  /* Validate existence of parameters  */
-  if (!token || !newPassword) {
+  if (!result.success) {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Token or password not provided' },
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid request body' },
       },
       400
     )
   }
+
+  const { token, newPassword } = result.data
 
   /* Validate password strength  */
   if (!isValidPassword(newPassword)) {
@@ -32,35 +33,28 @@ app.post('/', async (c) => {
     )
   }
 
-  try {
-    await authService.resetPassword(token, newPassword)
-    return c.json<APIResponse>(
-      {
-        success: true,
-        data: { message: 'Password reset successfully' },
-      },
-      200
-    )
-  } catch (error) {
-    console.error('[reset-password]', error)
-    if (isAPIError(error) && error?.body?.code === 'INVALID_TOKEN') {
-      return c.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'AUTH_INVALID', message: 'Invalid or expired link' },
-        },
-        400
-      )
-    }
+  const res = await authService.resetPassword(token, newPassword)
 
+  if (!res.success && res.code) {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' },
+        error: {
+          code: res.code,
+          message: res.code === 'AUTH_INVALID' ? 'Invalid or expired link' : 'Something went wrong',
+        },
       },
-      500
+      res.code === 'INTERNAL_ERROR' ? 500 : 400
     )
   }
+
+  return c.json<APIResponse>(
+    {
+      success: true,
+      data: { message: 'Password reset successfully' },
+    },
+    200
+  )
 })
 
 export default app
