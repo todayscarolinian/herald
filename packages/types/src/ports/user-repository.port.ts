@@ -19,8 +19,8 @@ export interface IUserRepository {
   findByPosition(positionId: UUID): Promise<PaginatedResult<UserDTO>>
   findByPermissions(permissions: string[]): Promise<PaginatedResult<UserDTO>>
 
-  create(user: CreateUserInput): Promise<void>
-  update(user: UpdateUserInput): Promise<void>
+  create(user: CreateUserInput): Promise<UserDTO>
+  update(user: UpdateUserInput): Promise<UserDTO>
   delete(params: DeleteUserInput): Promise<void>
 
   getTotalCount(): Promise<TotalUsersDTO>
