@@ -22,7 +22,7 @@ export class PasswordService {
       const user = userDoc.data()
 
       const token = crypto.randomUUID()
-      const resetUrl = `https://todayscarolinian.com/reset-password?token=${token}`
+      const resetUrl = `${process.env.NEXT_PUBLIC_CORE_URL}/reset-password?token=${encodeURIComponent(token)}`
 
       await firestore
         .collection('verification_tokens')
