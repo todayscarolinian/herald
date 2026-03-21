@@ -14,6 +14,19 @@ const endpoints = {
   verifySession: '/verify-session',
 }
 
+const getErrorStatus = (error: unknown): number | null => {
+  if (!error || typeof error !== 'object') {
+    return null
+  }
+
+  const authError = error as {
+    status?: number
+    statusCode?: number
+  }
+
+  return authError.status ?? authError.statusCode ?? null
+}
+
 app.get('/', (c) => {
   return c.json<IndexResponse>({
     service: serviceName,
@@ -36,15 +49,23 @@ app.get('/health', (c) => {
 
 app.get('/verify-session', async (c) => {
   try {
-    const session = await sessionService.verifySession(c.req.raw.headers)
+    const result = await sessionService.verifySession(c.req.raw.headers)
+    const { session, user } = result ?? {}
 
-    if (!session?.session || !session.user) {
+    if (!session || !user) {
       return c.json({ valid: false }, 401)
     }
 
-    return c.json({ valid: true, user: session.user })
-  } catch {
-    return c.json({ valid: false }, 401)
+    return c.json({ valid: true, user })
+  } catch (error) {
+    // Auth/session failure
+    const status = getErrorStatus(error)
+    if (status === 401 || status === 403) {
+      return c.json({ valid: false }, 401)
+    }
+
+    // Unexpected internal failure
+    return c.json({ valid: false }, 500)
   }
 })
 
