@@ -1,4 +1,5 @@
 import { SESSION_COOKIE_NAME } from '@herald/utils'
+import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
 import { auth } from '../lib/auth.ts'
@@ -17,8 +18,15 @@ session.post('/logout', async (c) => {
     await auth.api.signOut({
       headers: c.req.raw.headers,
     })
-  } catch {
-    // Intentionally swallowed. Session may already be expired or absent.
+  } catch (err) {
+    if (isAPIError(err)) {
+      // Session not found or already expired — expected, safe to ignore.
+    } else {
+      // Unexpected infra failure — log for monitoring but don't block the user.
+      console.error('[session/logout] Unexpected error during signOut:', err)
+      // doesn't return error screen to user, just logs it and continues with 
+      // cookie clearing and redirecting to login page to not block the user from logging out
+    }
   }
 
   // Clear the shared SSO cookie. All attributes must exactly match what
