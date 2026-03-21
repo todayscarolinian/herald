@@ -1,7 +1,7 @@
 import { HealthStatus, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import { passwordService } from '../services/password.service.ts'
+import forgotPasswordRoutes from './forgot-password/index.ts'
 
 const app = new Hono()
 const serviceName = 'herald-auth'
@@ -11,7 +11,7 @@ const serviceDescription =
   
 const endpoints = {
   health: '/health',
-  forgotPassword: '/forgot-password',
+  forgotPassword: '/auth/forgot-password',
 }
 
 app.get('/', (c) => {
@@ -34,15 +34,6 @@ app.get('/health', (c) => {
   })
 })
 
-app.post('/forgot-password', async (c) => {
-  try {
-    const { email } = await c.req.json<{ email: string }>()
-    await passwordService.requestPasswordReset(email)
-  } catch {
-    // silently fail to prevent revealing whether account exists
-    // TODO: Add logging service
-  }
-  return c.json({ success: true }, 200)
-})
+app.route('/auth', forgotPasswordRoutes)
 
 export default app
