@@ -196,12 +196,13 @@ loginRouter.post('/google', async (c) => {
   const snapshot = await firestore.collection('users').where('email', '==', email).limit(1).get()
 
   if (snapshot.empty) {
+    // Return generic 401 instead of 404 to avoid leaking email existence
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'USER_NOT_FOUND', message: 'No account found for this Google account' },
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
       },
-      404,
+      401,
     )
   }
 
