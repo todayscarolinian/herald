@@ -26,9 +26,18 @@ loginRouter.post('/credentials', async (c) => {
   // Validate request body
   const parsed = loginSchema.safeParse(body)
   if (!parsed.success) {
-    const message = parsed.error.issues.map((i) => i.message).join(', ')
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'VALIDATION_ERROR', message } },
+    const errorDetails = parsed.error.issues.map((i) => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }))
+    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
+
+    return c.json<APIResponse<typeof errorDetails>>(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message },
+        data: errorDetails,
+      },
       422,
     )
   }
@@ -164,9 +173,18 @@ loginRouter.post('/google', async (c) => {
 
   const parsed = googleGuardSchema.safeParse(body)
   if (!parsed.success) {
-    const message = parsed.error.issues.map((i) => i.message).join(', ')
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'VALIDATION_ERROR', message } },
+    const errorDetails = parsed.error.issues.map((i) => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }))
+    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
+
+    return c.json<APIResponse<typeof errorDetails>>(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message },
+        data: errorDetails,
+      },
       422,
     )
   }
