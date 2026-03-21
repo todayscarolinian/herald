@@ -1,5 +1,5 @@
 import type { APIResponse, LoginResponse } from '@herald/types'
-import { loginSchema } from '@herald/utils'
+import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -105,7 +105,7 @@ loginRouter.post('/credentials', async (c) => {
     // Revoke the session we just created
     try {
       await auth.api.revokeSession({
-        headers: new Headers({ cookie: `herald_session.session_token=${signInResult.token}` }),
+        headers: new Headers({ cookie: `${SESSION_COOKIE_NAME}.${SESSION_TOKEN_FIELD}=${signInResult.token}` }),
         body: { token: signInResult.token },
       })
     } catch (revokeErr) {
