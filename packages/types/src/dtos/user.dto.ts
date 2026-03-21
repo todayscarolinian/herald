@@ -29,7 +29,7 @@ export type CreateUserInput = Omit<
 
 export type UpdateUserInput = Omit<
   UserProfile,
-  'id' | 'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
 >
 
 export interface DeleteUserInput {
