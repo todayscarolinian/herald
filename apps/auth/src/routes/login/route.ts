@@ -123,8 +123,8 @@ loginRouter.post('/credentials', async (c) => {
 
   const user = signInResult.user
   const expiresAt = rememberMe
-    ? Date.now() + 30 * 24 * 60 * 60 * 1000
-    : Date.now() + 5 * 24 * 60 * 60 * 1000
+  ? Date.now() + 30 * 24 * 60 * 60 * 1000
+  : Date.now() + 5 * 24 * 60 * 60 * 1000
 
   // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
   const userRecord = user as Record<string, unknown>
@@ -143,7 +143,7 @@ loginRouter.post('/credentials', async (c) => {
       lastName: userRecord.lastName as string,
       positionId: (userRecord.positionId as string) ?? '',
       emailVerified: user.emailVerified,
-      disabled: userData.disabled === true,
+      disabled: userData?.disabled === true,
       createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
       updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : String(user.updatedAt),
     },
