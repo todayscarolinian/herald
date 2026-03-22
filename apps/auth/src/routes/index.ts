@@ -1,8 +1,6 @@
 import { HealthStatus, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import loginRouter from './login/route.js'
-
 const app = new Hono()
 const serviceName = 'herald-auth'
 const serviceVersion = '1.0.0'
@@ -14,8 +12,6 @@ const endpoints = {
   'login/credentials': '/auth/login/credentials',
   'login/google': '/auth/login/google',
 }
-
-app.route('/auth/login', loginRouter)
 
 app.get('/', (c) => {
   return c.json<IndexResponse>({
