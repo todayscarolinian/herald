@@ -1,7 +1,7 @@
 import type { APIResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import { sessionService } from '../../services/auth.service.js'
+import { sessionService } from '../../services/session.service.js'
 
 const verifySessionRoutes = new Hono()
 
