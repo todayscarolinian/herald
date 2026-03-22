@@ -1,7 +1,7 @@
 import { HealthStatus, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import { session } from './session.ts'
+import { logout } from './logout/route.ts'
 const app = new Hono()
 const serviceName = 'herald-auth'
 const serviceVersion = '1.0.0'
@@ -32,5 +32,5 @@ app.get('/health', (c) => {
   })
 })
 
-app.route('/session', session)
+app.route('/auth/logout', logout)
 export default app

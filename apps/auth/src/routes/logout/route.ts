@@ -2,11 +2,11 @@ import { SESSION_COOKIE_NAME } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
-import { auth } from '../lib/auth.ts'
+import { auth } from '../../lib/auth.ts'
 
-const session = new Hono()
+const logout = new Hono()
 
-session.post('/logout', async (c) => {
+logout.post('/logout', async (c) => {
   const cookieName = `${SESSION_COOKIE_NAME}.session_token`
 
   // Login page lives where?
@@ -50,4 +50,4 @@ session.post('/logout', async (c) => {
   return c.redirect(loginUrl, 302)
 })
 
-export { session }
+export { logout }
