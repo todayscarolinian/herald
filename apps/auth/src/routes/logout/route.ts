@@ -22,10 +22,9 @@ logout.post('/logout', async (c) => {
     if (isAPIError(err)) {
       // Session not found or already expired — expected, safe to ignore.
     } else {
-      // Unexpected infra failure — log for monitoring but don't block the user.
-      console.error('[session/logout] Unexpected error during signOut:', err)
-      // doesn't return error screen to user, just logs it and continues with 
-      // cookie clearing and redirecting to login page to not block the user from logging out
+      if (!isAPIError(err)) {
+        console.error('[auth/logout] Unexpected error during signOut:', err)
+      }
     }
   }
 
