@@ -12,7 +12,7 @@ export function Footer() {
   return (
     <footer className="bg-tc_primary-500 py-3 text-tc_white md:py-5">
       <div className="mx-auto flex w-full flex-col items-center gap-3 px-[48px] text-center lg:flex-row lg:justify-between">
-        <p className="text-[14px] md:text-2xl">
+        <p className="text-[14px] md:text-lg">
           © 2026 Today&apos;s Carolinian. All Rights Reserved.
         </p>
         <div className="flex items-center gap-[24px] md:gap-[52px]">
@@ -23,7 +23,7 @@ export function Footer() {
               aria-label={label}
               className="hover:opacity-75 transition-opacity"
             >
-              <Icon className="size-6 md:size-8" />
+              <Icon className="size-4 md:size-6" />
             </a>
           ))}
         </div>
