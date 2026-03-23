@@ -1,3 +1,4 @@
+import { UserDTO } from '../dtos/user.dto.ts'
 import type { UserProfile } from '../user/index.ts'
 
 export interface LoginRequest {
@@ -12,7 +13,7 @@ export interface LoginResponse {
     token: string
     expiresAt: number
   }
-  user: UserProfile
+  user: UserDTO
 }
 
 export interface VerifySessionRequest {

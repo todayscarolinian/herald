@@ -1,0 +1,224 @@
+import type { APIResponse, LoginResponse, Position } from '@herald/types'
+import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
+import { isAPIError } from 'better-auth/api'
+import { Hono } from 'hono'
+import { z } from 'zod'
+
+import { auth } from '../../lib/auth.js'
+import { firestore } from '../../lib/firestore.js'
+
+const loginRouter = new Hono()
+
+// ---------------------------------------------------------------------------
+// POST /auth/login/credentials
+// ---------------------------------------------------------------------------
+loginRouter.post('/credentials', async (c) => {
+  let body: unknown
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json<APIResponse>(
+      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
+      400,
+    )
+  }
+
+  // Validate request body
+  const parsed = loginSchema.safeParse(body)
+  if (!parsed.success) {
+    const errorDetails = parsed.error.issues.map((i) => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }))
+    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
+
+    return c.json<APIResponse<typeof errorDetails>>(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message },
+        data: errorDetails,
+      },
+      422,
+    )
+  }
+
+  const { email, password, rememberMe } = parsed.data
+
+  // Authenticate via BetterAuth -- passes rememberMe so BetterAuth sets the
+  // correct cookie duration (30-day when true, default 5-day when false/unset).
+  let signInResult: Awaited<ReturnType<typeof auth.api.signInEmail>>
+  try {
+    signInResult = await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+        rememberMe: rememberMe ?? false,
+      },
+    })
+  } catch (err) {
+    if (isAPIError(err)) {
+      if (err.status === 401) {
+        return c.json<APIResponse>(
+          {
+            success: false,
+            error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
+          },
+          401,
+        )
+      }
+
+      if (err.status === 403) {
+        // Email not verified
+        return c.json<APIResponse>(
+          {
+            success: false,
+            error: { code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email before signing in' },
+          },
+          403,
+        )
+      }
+
+      if (err.status === 429) {
+        return c.json<APIResponse>(
+          {
+            success: false,
+            error: { code: 'TOO_MANY_REQUESTS', message: 'Too many login attempts. Please try again later' },
+          },
+          429,
+        )
+      }
+    }
+
+    console.error('[login/credentials] Unexpected error during signInEmail:', err)
+    return c.json<APIResponse>(
+      { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+      500,
+    )
+  }
+
+  // BetterAuth successfully signed them in. Now check if the user is disabled
+  // in Firestore before returning a successful response.
+  const userDoc = await firestore.collection('users').doc(signInResult.user.id).get()
+  const userData = userDoc.data()
+
+  if (userData?.disabled === true) {
+    // Revoke the session we just created
+    try {
+      await auth.api.revokeSession({
+        headers: new Headers({ cookie: `${SESSION_COOKIE_NAME}.${SESSION_TOKEN_FIELD}=${signInResult.token}` }),
+        body: { token: signInResult.token },
+      })
+    } catch (revokeErr) {
+      console.error('[login/credentials] Failed to revoke session for disabled user:', revokeErr)
+    }
+
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: { code: 'ACCOUNT_DISABLED', message: 'Your account has been disabled. Please contact an administrator' },
+      },
+      403,
+    )
+  }
+
+  const user = signInResult.user
+  const expiresAt = rememberMe
+  ? Date.now() + 30 * 24 * 60 * 60 * 1000
+  : Date.now() + 5 * 24 * 60 * 60 * 1000
+
+  // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
+  const userRecord = user as Record<string, unknown>
+
+  return c.json<LoginResponse>({
+    success: true,
+    session: {
+      token: signInResult.token,
+      expiresAt,
+    },
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: userRecord.firstName as string,
+      middleName: userRecord.middleName as string | undefined,
+      lastName: userRecord.lastName as string,
+      positions: (userRecord.positions as Position[]) ?? [],
+      emailVerified: user.emailVerified,
+      disabled: userData?.disabled === true,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : String(user.updatedAt),
+    },
+  })
+})
+
+// ---------------------------------------------------------------------------
+// POST /auth/login/google
+//
+// The actual OAuth flow is handled entirely on the client (browser). This
+// endpoint only guards that the Google-authenticated user exists in our system
+// and is not disabled before the client stores the session.
+// ---------------------------------------------------------------------------
+const googleGuardSchema = z.object({
+  email: z.email('Invalid email address'),
+})
+
+loginRouter.post('/google', async (c) => {
+  let body: unknown
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json<APIResponse>(
+      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
+      400,
+    )
+  }
+
+  const parsed = googleGuardSchema.safeParse(body)
+  if (!parsed.success) {
+    const errorDetails = parsed.error.issues.map((i) => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }))
+    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
+
+    return c.json<APIResponse<typeof errorDetails>>(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message },
+        data: errorDetails,
+      },
+      422,
+    )
+  }
+
+  const { email } = parsed.data
+
+  // Look up user in Firestore by email
+  const snapshot = await firestore.collection('users').where('email', '==', email).limit(1).get()
+
+  if (snapshot.empty) {
+    // Return generic 401 instead of 404 to avoid leaking email existence
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
+      },
+      401,
+    )
+  }
+
+  const userData = snapshot.docs[0]!.data()
+
+  if (userData.disabled === true) {
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: { code: 'ACCOUNT_DISABLED', message: 'Your account has been disabled. Please contact an administrator' },
+      },
+      403,
+    )
+  }
+
+  return c.json<APIResponse>({ success: true })
+})
+
+export default loginRouter

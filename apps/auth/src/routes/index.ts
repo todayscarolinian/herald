@@ -1,5 +1,11 @@
-import { HealthResponse, IndexResponse } from '@herald/types'
+import { APIResponse, HealthResponse, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
+
+import forgotPasswordRoutes from './forgot-password/index.ts'
+import loginRouter from './login/route.ts'
+import { logout } from './logout/route.ts'
+import resetPasswordRoute from './reset-password/route.ts'
+import verifySessionRoutes from './verify-session/route.ts'
 
 const app = new Hono()
 const serviceName = 'herald-auth'
@@ -9,10 +15,15 @@ const serviceDescription =
 
 const endpoints = {
   health: '/health',
+  'login/credentials': '/auth/login/credentials',
+  'login/google': '/auth/login/google',
+  logout: '/auth/logout',
+  verifySession: '/auth/verify-session',
+  forgotPassword: '/auth/forgot-password',
 }
 
 app.get('/', (c) => {
-  return c.json<IndexResponse>({
+  return c.json<APIResponse<IndexResponse>>({
     success: true,
     data: {
       service: serviceName,
@@ -26,7 +37,7 @@ app.get('/', (c) => {
 })
 
 app.get('/health', (c) => {
-  return c.json<HealthResponse>({
+  return c.json<APIResponse<HealthResponse>>({
     success: true,
     data: {
       status: 'ok',
@@ -37,4 +48,9 @@ app.get('/health', (c) => {
   })
 })
 
+app.route('/auth', forgotPasswordRoutes)
+app.route('/auth', verifySessionRoutes)
+app.route('/auth/reset-password', resetPasswordRoute)
+app.route('/auth/login', loginRouter)
+app.route('/auth/logout', logout)
 export default app

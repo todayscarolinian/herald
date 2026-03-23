@@ -2,9 +2,7 @@
  * This file defines the structure of the response returned by the index endpoint of the API.
  */
 
-import { APIResponse } from '../auth/index.ts'
-
-export interface IndexData {
+export interface IndexResponse {
   service: string
   version: string
   status: 'ok' | 'error'
@@ -12,5 +10,3 @@ export interface IndexData {
   endpoints: Record<string, string>
   timestamp: string
 }
-
-export type IndexResponse = APIResponse<IndexData>
