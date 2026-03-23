@@ -1,4 +1,4 @@
-import { LoginRequest, LoginResponse } from '@herald/types'
+import type { APIResponse, LoginRequest, LoginResponse, ResetPasswordRequest } from '@herald/types'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
@@ -18,4 +18,9 @@ export async function googleGuardCheck(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await post<void>(ENDPOINTS.auth.logout, {})
+}
+
+export function resetPassword(request: ResetPasswordRequest): Promise<APIResponse<{ message: string }>> {
+  // Backend expects: { token, newPassword }
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.resetPassword, request)
 }
