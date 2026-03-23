@@ -2,7 +2,7 @@ import { LoginRequest, LoginResponse } from '@herald/types'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
-import { authClient, signIn } from '@/lib/auth-client'
+import { signIn } from '@/lib/auth-client'
 
 export function credentialsSignIn(credentials: LoginRequest): Promise<LoginResponse> {
   return post<LoginResponse>(ENDPOINTS.auth.loginCredentials, credentials)
@@ -17,5 +17,5 @@ export async function googleGuardCheck(email: string): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
-  await authClient.signOut()
+  await post<void>(ENDPOINTS.auth.logout, {})
 }

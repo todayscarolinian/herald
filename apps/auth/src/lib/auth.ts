@@ -1,10 +1,11 @@
 import type { UserProfile } from '@herald/types'
-import { sendEmail, SESSION_COOKIE_NAME } from '@herald/utils'
+import { SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
+import { emailService } from '../services/email.service.ts'
 import { firestore } from './firestore.ts'
 
 const trustedOrigins = [
@@ -22,11 +23,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }, _request) => {
-      await sendEmail({
-        to: user.email,
-        subject: 'Reset your password',
-        text: `Click the link to reset your password: ${url}`,
-      })
+      await emailService.sendPasswordReset(user.email, url)
     },
   },
   advanced: {
