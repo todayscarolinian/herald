@@ -9,7 +9,9 @@ const serviceDescription =
   
 const endpoints = {
   health: '/health',
-  verifySession: '/auth/verify-session',
+  'login/credentials': '/auth/login/credentials',
+  'login/google': '/auth/login/google',
+  'verifySession': '/auth/verify-session',
 }
 
 app.get('/', (c) => {
