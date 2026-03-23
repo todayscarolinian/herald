@@ -5,7 +5,8 @@
  */
 
 import { HealthStatus } from '@herald/types'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 
 const getAuthBaseUrl = () => {
   return process.env.NEXT_PUBLIC_AUTH_URL
@@ -47,5 +48,26 @@ export function useAuthHealth() {
     queryKey: ['auth', 'health'],
     queryFn: () => request<HealthStatus>('/health'),
     staleTime: 60 * 1000, // 1 minute
+  })
+}
+
+export async function logoutFn() {
+  const res = await fetch(`${baseUrl}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    throw new Error('Logout failed')
+  }
+}
+
+export const useLogout = () => {
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: logoutFn,
+    onSuccess: () => {
+      router.replace('/login')
+    },
   })
 }
