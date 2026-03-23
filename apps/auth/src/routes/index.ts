@@ -1,12 +1,13 @@
 import { HealthStatus, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
+import { logout } from './logout/route.ts'
 const app = new Hono()
 const serviceName = 'herald-auth'
 const serviceVersion = '1.0.0'
 const serviceDescription =
-    "Today's Carolinian centralized authentication service for SSO, session management, and user identity workflows."
-  
+  "Today's Carolinian centralized authentication service for SSO, session management, and user identity workflows."
+
 const endpoints = {
   health: '/health',
   'login/credentials': '/auth/login/credentials',
@@ -34,4 +35,5 @@ app.get('/health', (c) => {
   })
 })
 
+app.route('/auth/logout', logout)
 export default app
