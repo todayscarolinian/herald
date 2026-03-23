@@ -13,7 +13,7 @@ export function Footer() {
     <footer className="bg-tc_primary-500 py-3 text-tc_white md:py-5">
       <div className="mx-auto flex w-full flex-col items-center gap-3 px-[48px] text-center lg:flex-row lg:justify-between">
         <p className="text-[14px] md:text-2xl">
-          © 2026 Today's Carolinian. All Rights Reserved.
+          © 2026 Today&apos;s Carolinian. All Rights Reserved.
         </p>
         <div className="flex items-center gap-[24px] md:gap-[52px]">
           {socialLinks.map(({ href, label, icon: Icon }) => (
