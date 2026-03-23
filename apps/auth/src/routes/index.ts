@@ -1,4 +1,4 @@
-import { HealthStatus, IndexResponse } from '@herald/types'
+import { APIResponse, HealthResponse, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
 import forgotPasswordRoutes from './forgot-password/index.ts'
@@ -23,22 +23,28 @@ const endpoints = {
 }
 
 app.get('/', (c) => {
-  return c.json<IndexResponse>({
-    service: serviceName,
-    version: serviceVersion,
-    status: 'ok',
-    summary: serviceDescription,
-    endpoints,
-    timestamp: new Date().toISOString(),
+  return c.json<APIResponse<IndexResponse>>({
+    success: true,
+    data: {
+      service: serviceName,
+      version: serviceVersion,
+      status: 'ok',
+      summary: serviceDescription,
+      endpoints,
+      timestamp: new Date().toISOString(),
+    },
   })
 })
 
 app.get('/health', (c) => {
-  return c.json<HealthStatus>({
-    status: 'ok',
-    service: serviceName,
-    version: serviceVersion,
-    timestamp: new Date().toISOString(),
+  return c.json<APIResponse<HealthResponse>>({
+    success: true,
+    data: {
+      status: 'ok',
+      service: serviceName,
+      version: serviceVersion,
+      timestamp: new Date().toISOString(),
+    },
   })
 })
 

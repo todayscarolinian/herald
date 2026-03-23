@@ -1,6 +1,6 @@
-import { UserProfile } from './user.js'
+import { UserDTO } from '../dtos/user.dto.ts'
+import type { UserProfile } from '../user/index.ts'
 
-// Authentication types
 export interface LoginRequest {
   email: string
   password: string
@@ -13,7 +13,7 @@ export interface LoginResponse {
     token: string
     expiresAt: number
   }
-  user: UserProfile
+  user: UserDTO
 }
 
 export interface VerifySessionRequest {

@@ -1,4 +1,4 @@
-import type { APIResponse, LoginResponse } from '@herald/types'
+import type { APIResponse, LoginResponse, Position } from '@herald/types'
 import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
@@ -141,7 +141,7 @@ loginRouter.post('/credentials', async (c) => {
       firstName: userRecord.firstName as string,
       middleName: userRecord.middleName as string | undefined,
       lastName: userRecord.lastName as string,
-      positionId: (userRecord.positionId as string) ?? '',
+      positions: (userRecord.positions as Position[]) ?? [],
       emailVerified: user.emailVerified,
       disabled: userData?.disabled === true,
       createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
