@@ -9,6 +9,7 @@ import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useResetPassword } from '@/lib/api/hooks/mutations/authMutations'
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
@@ -19,6 +20,9 @@ export default function ResetPasswordPage() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const resetPasswordMutation = useResetPassword()
 
   return (
     <div className="flex min-h-screen flex-col bg-tc_grayscale-100">
@@ -46,6 +50,7 @@ export default function ResetPasswordPage() {
               onSubmit={(e) => {
                 e.preventDefault()
                 setError(null)
+                setSuccess(null)
 
                 if (!token) {
                   setError('Reset token is missing from this link.')
@@ -62,10 +67,18 @@ export default function ResetPasswordPage() {
                   return
                 }
 
-                // UI-only for now: keep the payload shape aligned with the backend.
-                // Later we can wire this to an API helper/mutation.
-                // eslint-disable-next-line no-console
-                console.log('reset-password payload', { token, newPassword })
+                resetPasswordMutation.mutate(
+                  { token, newPassword },
+                  {
+                    onSuccess: (res) => {
+                      setError(null)
+                      setSuccess(res.data?.message ?? 'Password reset successfully')
+                    },
+                    onError: (err) => {
+                      setError(err?.message ?? 'Something went wrong')
+                    },
+                  }
+                )
               }}
             >
               <div className="flex flex-col gap-5">
@@ -127,11 +140,13 @@ export default function ResetPasswordPage() {
                 <Button
                   type="submit"
                   className="mt-2 h-12 w-full rounded-md bg-tc_primary-500 text-base font-semibold hover:bg-tc_primary-400"
+                  disabled={resetPasswordMutation.isPending}
                 >
-                  Reset Password
+                  {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
                 </Button>
 
                 {error ? <p className="text-base font-medium text-tc_error-600">{error}</p> : null}
+                {success ? <p className="text-base font-medium text-tc_success-700">{success}</p> : null}
               </div>
             </form>
           </div>
