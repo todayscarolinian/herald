@@ -27,8 +27,8 @@ export function LoginForm() {
       password: "",
       rememberMe: false,
     },
-    onSubmit: async ({ value }) => {
-      // TODO: POST to NEXT_PUBLIC_AUTH_API_URL/sign-in (future ticket)
+    onSubmit: ({ value }) => {
+      // TODO: replace with actual api call
       console.log(value);
     },
   });
