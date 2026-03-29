@@ -3,7 +3,7 @@
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,25 @@ import { Input } from '@/components/ui/input'
 import { useResetPassword } from '@/lib/api/hooks/mutations/authMutations'
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordLoading />}>
+      <ResetPasswordContent />
+    </Suspense>
+  )
+}
+
+function ResetPasswordLoading() {
+  return (
+    <div className="flex min-h-screen flex-col bg-tc_grayscale-100">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
+        <Card className="w-full max-w-xl py-12 px-10 text-center text-tc_grayscale-700">Loading...</Card>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams])
 
