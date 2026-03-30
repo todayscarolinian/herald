@@ -19,7 +19,7 @@ loginRouter.post('/credentials', async (c) => {
   } catch {
     return c.json<APIResponse>(
       { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400,
+      400
     )
   }
 
@@ -38,7 +38,7 @@ loginRouter.post('/credentials', async (c) => {
         error: { code: 'VALIDATION_ERROR', message },
         data: errorDetails,
       },
-      422,
+      422
     )
   }
 
@@ -57,42 +57,51 @@ loginRouter.post('/credentials', async (c) => {
     })
   } catch (err) {
     if (isAPIError(err)) {
-      if (err.status === 401) {
+      if (err.statusCode === 401) {
         return c.json<APIResponse>(
           {
             success: false,
             error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
           },
-          401,
+          401
         )
       }
 
-      if (err.status === 403) {
+      if (err.statusCode === 403) {
         // Email not verified
         return c.json<APIResponse>(
           {
             success: false,
-            error: { code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email before signing in' },
+            error: {
+              code: 'EMAIL_NOT_VERIFIED',
+              message: 'Please verify your email before signing in',
+            },
           },
-          403,
+          403
         )
       }
 
-      if (err.status === 429) {
+      if (err.statusCode === 429) {
         return c.json<APIResponse>(
           {
             success: false,
-            error: { code: 'TOO_MANY_REQUESTS', message: 'Too many login attempts. Please try again later' },
+            error: {
+              code: 'TOO_MANY_REQUESTS',
+              message: 'Too many login attempts. Please try again later',
+            },
           },
-          429,
+          429
         )
       }
     }
 
     console.error('[login/credentials] Unexpected error during signInEmail:', err)
     return c.json<APIResponse>(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
-      500,
+      {
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+      },
+      500
     )
   }
 
@@ -105,7 +114,9 @@ loginRouter.post('/credentials', async (c) => {
     // Revoke the session we just created
     try {
       await auth.api.revokeSession({
-        headers: new Headers({ cookie: `${SESSION_COOKIE_NAME}.${SESSION_TOKEN_FIELD}=${signInResult.token}` }),
+        headers: new Headers({
+          cookie: `${SESSION_COOKIE_NAME}.${SESSION_TOKEN_FIELD}=${signInResult.token}`,
+        }),
         body: { token: signInResult.token },
       })
     } catch (revokeErr) {
@@ -115,16 +126,19 @@ loginRouter.post('/credentials', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'ACCOUNT_DISABLED', message: 'Your account has been disabled. Please contact an administrator' },
+        error: {
+          code: 'ACCOUNT_DISABLED',
+          message: 'Your account has been disabled. Please contact an administrator',
+        },
       },
-      403,
+      403
     )
   }
 
   const user = signInResult.user
   const expiresAt = rememberMe
-  ? Date.now() + 30 * 24 * 60 * 60 * 1000
-  : Date.now() + 5 * 24 * 60 * 60 * 1000
+    ? Date.now() + 30 * 24 * 60 * 60 * 1000
+    : Date.now() + 5 * 24 * 60 * 60 * 1000
 
   // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
   const userRecord = user as Record<string, unknown>
@@ -144,8 +158,10 @@ loginRouter.post('/credentials', async (c) => {
       positions: (userRecord.positions as Position[]) ?? [],
       emailVerified: user.emailVerified,
       disabled: userData?.disabled === true,
-      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
-      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : String(user.updatedAt),
+      createdAt:
+        user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
+      updatedAt:
+        user.updatedAt instanceof Date ? user.updatedAt.toISOString() : String(user.updatedAt),
     },
   })
 })
@@ -168,7 +184,7 @@ loginRouter.post('/google', async (c) => {
   } catch {
     return c.json<APIResponse>(
       { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400,
+      400
     )
   }
 
@@ -186,7 +202,7 @@ loginRouter.post('/google', async (c) => {
         error: { code: 'VALIDATION_ERROR', message },
         data: errorDetails,
       },
-      422,
+      422
     )
   }
 
@@ -202,7 +218,7 @@ loginRouter.post('/google', async (c) => {
         success: false,
         error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
       },
-      401,
+      401
     )
   }
 
@@ -212,9 +228,12 @@ loginRouter.post('/google', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'ACCOUNT_DISABLED', message: 'Your account has been disabled. Please contact an administrator' },
+        error: {
+          code: 'ACCOUNT_DISABLED',
+          message: 'Your account has been disabled. Please contact an administrator',
+        },
       },
-      403,
+      403
     )
   }
 

@@ -11,10 +11,7 @@ type RequestOptions = Omit<RequestInit, 'headers'> & {
 /**
  * Generic request helper for GET and other verbs.
  */
-async function request<T>(
-  path: string,
-  init?: RequestOptions
-): Promise<T> {
+async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   const baseUrl = getAuthBaseUrl()
   if (!baseUrl) {
     throw new Error('Auth API base URL is not configured.')
@@ -30,7 +27,7 @@ async function request<T>(
 
   if (!res.ok) {
     throw new Error(
-      data?.error?.message ?? data?.message ?? `Request failed: ${res.status} ${res.statusText}`,
+      data?.error?.message ?? data?.message ?? `Request failed: ${res.status} ${res.statusText}`
     )
   }
 
