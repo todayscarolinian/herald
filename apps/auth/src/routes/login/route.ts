@@ -57,7 +57,7 @@ loginRouter.post('/credentials', async (c) => {
     })
   } catch (err) {
     if (isAPIError(err)) {
-      if (err.status === 401) {
+      if (err.statusCode === 401) {
         return c.json<APIResponse>(
           {
             success: false,
@@ -67,7 +67,7 @@ loginRouter.post('/credentials', async (c) => {
         )
       }
 
-      if (err.status === 403) {
+      if (err.statusCode === 403) {
         // Email not verified
         return c.json<APIResponse>(
           {
@@ -81,7 +81,7 @@ loginRouter.post('/credentials', async (c) => {
         )
       }
 
-      if (err.status === 429) {
+      if (err.statusCode === 429) {
         return c.json<APIResponse>(
           {
             success: false,
