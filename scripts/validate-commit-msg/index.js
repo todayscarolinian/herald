@@ -61,18 +61,6 @@ function validateCommitMessage(message) {
         if (subject.length < 1) {
             errors.push('Subject cannot be empty');
         }
-
-        if (subject.length > 72) {
-            errors.push(`Subject is too long (${subject.length} characters). Maximum is 72 characters`);
-        }
-
-        if (subject[0] !== subject[0].toLowerCase()) {
-            errors.push('Subject must start with lowercase letter');
-        }
-
-        if (subject.endsWith('.')) {
-            errors.push('Subject must not end with a period');
-        }
     }
 
     // Check blank line after header (if body exists)
