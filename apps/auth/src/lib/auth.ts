@@ -1,15 +1,18 @@
 import type { UserProfile } from '@herald/types'
-import { sendEmail, SESSION_COOKIE_NAME } from '@herald/utils'
+import { SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
+import { emailService } from '../services/email.service.ts'
 import { firestore } from './firestore.ts'
 
 const trustedOrigins = [
   'https://*.todayscarolinian.com',
-  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+  ...(process.env.NODE_ENV === 'development'
+    ? ['http://localhost:3000', 'http://localhost:3001']
+    : []),
 ]
 
 export const auth = betterAuth({
@@ -17,23 +20,32 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      mapProfileToUser: (profile) => {
+        return {
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+        }
+      },
     },
   },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }, _request) => {
-      await sendEmail({
-        to: user.email,
-        subject: 'Reset your password',
-        text: `Click the link to reset your password: ${url}`,
-      })
+      await emailService.sendPasswordReset(user.email, url)
     },
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await emailService.sendVerificationEmail(user, url)
+    },
+    sendOnSignIn: true,
   },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {
       enabled: true,
-      domain: 'todayscarolinian.com',
+      domain: process.env.NODE_ENV === 'production' ? '.todayscarolinian.com' : undefined,
     },
   },
   trustedOrigins,
@@ -57,9 +69,6 @@ export const auth = betterAuth({
     },
   }),
   user: {
-    fields: {
-      name: 'firstName',
-    },
     additionalFields: {
       firstName: { type: 'string' },
       lastName: { type: 'string' },

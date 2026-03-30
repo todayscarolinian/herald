@@ -13,11 +13,13 @@
         }
     },
     "devDependencies": {
+        "@herald/types": "*",
         "@repo/typescript-config": "*",
         "@types/node": "^20.19.37",
         "typescript": "latest"
     },
     "dependencies": {
+        "firebase": "^12.11.0",
         "zod": "^4.3.6"
     }
 }
