@@ -2,7 +2,12 @@ import type { APIResponse, ResetPasswordRequest } from '@herald/types'
 import { LoginRequest, LoginResponse } from '@herald/types'
 import { useMutation } from '@tanstack/react-query'
 
-import { credentialsSignIn, googleGuardCheck, googleSignIn, signOut } from '@/lib/api/services/authService'
+import {
+  credentialsSignIn,
+  googleGuardCheck,
+  googleSignIn,
+  signOut,
+} from '@/lib/api/services/authService'
 
 import { resetPassword } from '../../services/authService'
 

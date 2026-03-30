@@ -37,7 +37,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
             message: 'Invalid or expired session',
           },
         },
-        401,
+        401
       )
     }
 
@@ -60,7 +60,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
             message: 'Unauthorized session access',
           },
         },
-        401,
+        401
       )
     }
 
@@ -73,7 +73,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
           message: 'An unexpected error occurred',
         },
       },
-      500,
+      500
     )
   }
 })

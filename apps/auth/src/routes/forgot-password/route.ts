@@ -48,8 +48,8 @@ app.post('/forgot-password', async (c) => {
   } catch (err) {
     if (isAPIError(err)) {
       if (err.statusCode === 404) {
-          // Don't reveal that the email doesn't exist - respond with success
-          console.log(`[forgot-password] Password reset requested for non-existent email: ${email}`)
+        // Don't reveal that the email doesn't exist - respond with success
+        console.log(`[forgot-password] Password reset requested for non-existent email: ${email}`)
         return c.json<APIResponse>({
           success: true,
           data: {
