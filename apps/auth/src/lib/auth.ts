@@ -10,7 +10,9 @@ import { firestore } from './firestore.ts'
 
 const trustedOrigins = [
   'https://*.todayscarolinian.com',
-  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+  ...(process.env.NODE_ENV === 'development'
+    ? ['http://localhost:3000', 'http://localhost:3001']
+    : []),
 ]
 
 export const auth = betterAuth({
@@ -43,7 +45,7 @@ export const auth = betterAuth({
     cookiePrefix: SESSION_COOKIE_NAME,
     crossSubDomainCookies: {
       enabled: true,
-      domain: 'todayscarolinian.com',
+      domain: process.env.NODE_ENV === 'production' ? '.todayscarolinian.com' : undefined,
     },
   },
   trustedOrigins,
@@ -67,9 +69,6 @@ export const auth = betterAuth({
     },
   }),
   user: {
-    fields: {
-      name: 'firstName',
-    },
     additionalFields: {
       firstName: { type: 'string' },
       lastName: { type: 'string' },
