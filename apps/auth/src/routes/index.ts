@@ -8,6 +8,7 @@ import resetPasswordRoute from './reset-password/route.ts'
 import verifySessionRoutes from './verify-session/route.ts'
 
 const app = new Hono()
+const authRouter = new Hono()
 const serviceName = 'herald-auth'
 const serviceVersion = '1.0.0'
 const serviceDescription =
@@ -20,6 +21,7 @@ const endpoints = {
   logout: '/auth/logout',
   verifySession: '/auth/verify-session',
   forgotPassword: '/auth/forgot-password',
+  resetPassword: '/auth/reset-password',
 }
 
 app.get('/', (c) => {
@@ -48,9 +50,20 @@ app.get('/health', (c) => {
   })
 })
 
-app.route('/auth', forgotPasswordRoutes)
-app.route('/auth', verifySessionRoutes)
-app.route('/auth/reset-password', resetPasswordRoute)
-app.route('/auth/login', loginRouter)
-app.route('/auth/logout', logout)
+// Centralized auth sub-routes mounted under a single /auth endpoint.
+authRouter.route('/login', loginRouter)
+authRouter.route('/', logout)
+authRouter.route('/', forgotPasswordRoutes)
+authRouter.route('/', resetPasswordRoute)
+authRouter.route('/', verifySessionRoutes)
+
+app.route('/auth', authRouter)
+
+// BetterAuth handler fallback (for OAuth and other built-in routes)
+// Commented out for now
+/*
+app.on(['POST', 'GET'], '/auth/*', (c) => {
+   return auth.handler(c.req.raw)
+})
+*/
 export default app

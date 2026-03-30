@@ -6,7 +6,7 @@ import { isValidPassword } from '../../lib/helpers.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
-app.post('/', async (c) => {
+app.post('/reset-password', async (c) => {
   const body = await c.req.json()
   const result = resetPasswordSchema.safeParse(body)
 
