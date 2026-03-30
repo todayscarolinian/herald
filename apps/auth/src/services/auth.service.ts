@@ -1,28 +1,25 @@
-import { SESSION_COOKIE_NAME } from '@herald/utils'
+import { isAPIError } from 'better-auth/api'
 
-import { auth } from '../lib/auth.js'
+import { auth } from '../lib/auth.ts'
 
-export class SessionService {
-  async verifySession(token: string) {
-    // BetterAuth handles session caching automatically
-    const session = await auth.api.getSession({
-      headers: {
-        cookie: `${SESSION_COOKIE_NAME}.session_token=${token}`,
-      },
-    })
-
-    return session
-  }
-
-  async invalidateSession(sessionId: string) {
-    const res = await auth.api.signOut({
-      headers: {
-        'x-session-id': sessionId,
-      },
-    })
-
-    return res
+export class AuthService {
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      await auth.api.resetPassword({
+        body: { token, newPassword },
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('[reset-password]', error)
+      if (isAPIError(error)) {
+        if (error?.body?.code === 'INVALID_TOKEN') {
+          return { success: false, code: 'AUTH_INVALID' }
+        }
+        return { success: false, code: 'AUTH_API_ERROR' }
+      }
+      return { success: false, code: 'INTERNAL_ERROR' }
+    }
   }
 }
 
-export const sessionService = new SessionService()
+export const authService = new AuthService()

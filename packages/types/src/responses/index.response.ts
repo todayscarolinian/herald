@@ -1,9 +1,6 @@
-export interface HealthStatus {
-  status: 'ok' | 'error'
-  service: string
-  version: string
-  timestamp: string
-}
+/**
+ * This file defines the structure of the response returned by the index endpoint of the API.
+ */
 
 export interface IndexResponse {
   service: string
