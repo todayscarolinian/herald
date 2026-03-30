@@ -1,7 +1,7 @@
 import { APIResponse, HealthResponse, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import forgotPasswordRoutes from './forgot-password/index.ts'
+import forgotPasswordRoutes from './forgot-password/route.ts'
 import loginRouter from './login/route.ts'
 import { logout } from './logout/route.ts'
 import resetPasswordRoute from './reset-password/route.ts'
