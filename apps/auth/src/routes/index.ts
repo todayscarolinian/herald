@@ -59,11 +59,4 @@ authRouter.route('/', verifySessionRoutes)
 
 app.route('/auth', authRouter)
 
-// BetterAuth handler fallback (for OAuth and other built-in routes)
-// Commented out for now
-/*
-app.on(['POST', 'GET'], '/auth/*', (c) => {
-   return auth.handler(c.req.raw)
-})
-*/
 export default app
