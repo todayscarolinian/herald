@@ -87,7 +87,7 @@ function ResetPasswordContent() {
                 }
 
                 resetPasswordMutation.mutate(
-                  { token, newPassword },
+                  { token, newPassword, confirmPassword },
                   {
                     onSuccess: (res) => {
                       setError(null)

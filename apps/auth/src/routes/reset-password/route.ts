@@ -1,22 +1,37 @@
 import { APIResponse } from '@herald/types'
 import { resetPasswordSchema } from '@herald/utils'
+import { isValidPassword, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { Hono } from 'hono'
 
-import { isValidPassword } from '../../lib/helpers.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
 app.post('/reset-password', async (c) => {
-  const body = await c.req.json()
+  let body: unknown
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json<APIResponse>(
+      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
+      400
+    )
+  }
+
   const result = resetPasswordSchema.safeParse(body)
 
   if (!result.success) {
+    const errorDetails = result.error.issues.map((i) => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }))
+    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid request body' },
+        error: { code: 'VALIDATION_ERROR', message },
+        data: errorDetails,
       },
-      400
+      422
     )
   }
 
@@ -27,7 +42,7 @@ app.post('/reset-password', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'WEAK_PASSWORD', message: 'Password does not meet strength requirements' },
+        error: { code: 'WEAK_PASSWORD', message: PASSWORD_STRENGTH_REQUIREMENTS },
       },
       400
     )
