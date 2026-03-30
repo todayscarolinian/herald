@@ -18,6 +18,12 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      mapProfileToUser: (profile) => {
+        return {
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+        }
+      },
     },
   },
   emailAndPassword: {
@@ -25,6 +31,13 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }, _request) => {
       await emailService.sendPasswordReset(user.email, url)
     },
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await emailService.sendVerificationEmail(user, url)
+    },
+    sendOnSignIn: true,
   },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,

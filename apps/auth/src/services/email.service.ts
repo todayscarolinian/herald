@@ -1,5 +1,13 @@
 import { resend } from '../lib/resend.ts'
 
+type VerificationEmailUser = {
+  email: string
+  name?: string | null
+  firstName?: string
+  middleName?: string
+  lastName?: string
+}
+
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
@@ -9,6 +17,16 @@ export class EmailService {
       to,
       subject: 'Welcome to Herald',
       html: this.getWelcomeTemplate(userName, tempPassword),
+    })
+    return result
+  }
+
+  async sendVerificationEmail(user: VerificationEmailUser, url: string) {
+    const result = await resend.emails.send({
+      from: this.fromEmail,
+      to: user.email,
+      subject: 'Verify Your Email Address',
+      html: this.getVerificationTemplate(user, url),
     })
     return result
   }
@@ -41,6 +59,22 @@ export class EmailService {
       <p>Click the link below to reset your password:</p>
       <a href="${escapeLink}">Reset Password</a>
     `
+  }
+
+  private getVerificationTemplate(user: VerificationEmailUser, url: string) {
+    const fullName = [user.firstName, user.middleName, user.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+    const recipientName = fullName || user.name?.trim() || user.email
+    const escapeName = this.htmlEscape(recipientName)
+    const escapeUrl = this.htmlEscape(url)
+
+    return `
+            <h1>Welcome to Herald, ${escapeName}!</h1>
+            <p>Please verify your email address by clicking the link below:</p>
+            <a href="${escapeUrl}">Verify Email</a>
+        `
   }
 
   public htmlEscape(str: string) {
