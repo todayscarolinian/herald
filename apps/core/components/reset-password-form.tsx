@@ -1,5 +1,6 @@
 'use client'
 
+import { isValidPassword, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
@@ -57,8 +58,8 @@ export function ResetPasswordForm() {
                   return
                 }
 
-                if (newPassword.length < 8) {
-                  setError('Password must be at least 8 characters.')
+                if (!isValidPassword(newPassword)) {
+                  setError(PASSWORD_STRENGTH_REQUIREMENTS)
                   return
                 }
 
