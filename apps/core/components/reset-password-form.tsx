@@ -25,6 +25,19 @@ export function ResetPasswordForm() {
 
   const resetPasswordMutation = useResetPassword()
 
+  if (!token) {
+    return (
+      <div className="bg-tc_grayscale-100 flex min-h-screen flex-col">
+        <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
+          <Card className="text-tc_grayscale-700 w-full max-w-xl px-10 py-12 text-center">
+            <p className="text-base font-medium">Reset token is missing from this link.</p>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-tc_grayscale-100 flex min-h-screen flex-col">
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
