@@ -1,18 +1,14 @@
 'use client'
 
+import { forgotPasswordSchema } from '@herald/utils'
 import { useForm } from '@tanstack/react-form'
 import Image from 'next/image'
 import { useCallback, useState } from 'react'
-import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useForgotPassword } from '@/lib/api/hooks/mutations/authMutations'
-
-const forgotPasswordSchema = z.object({
-  email: z.email({ message: 'Please enter a valid email address' }),
-})
 
 const RATE_LIMIT_WINDOW_MS = 60_000 * 5 // 5 minutes
 const RATE_LIMIT_STORAGE_KEY = 'forgot-password-next-allowed-at'
