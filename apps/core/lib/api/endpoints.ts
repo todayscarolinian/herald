@@ -5,5 +5,6 @@ export const ENDPOINTS = {
     loginGoogle: '/auth/login/google',
     logout: '/auth/logout',
     resetPassword: '/auth/reset-password',
+    forgotPassword: '/auth/forgot-password',
   },
 } as const
