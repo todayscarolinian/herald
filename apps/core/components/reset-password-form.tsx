@@ -3,7 +3,7 @@
 import { isValidPassword, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
 import { Footer } from '@/components/footer'
@@ -24,6 +24,8 @@ export function ResetPasswordForm() {
   const [success, setSuccess] = useState<string | null>(null)
 
   const resetPasswordMutation = useResetPassword()
+
+  const router = useRouter()
 
   if (!token) {
     return (
@@ -87,6 +89,10 @@ export function ResetPasswordForm() {
                     onSuccess: (res) => {
                       setError(null)
                       setSuccess(res.data?.message ?? 'Password reset successfully')
+
+                      setTimeout(() => {
+                        router.push('/login')
+                      }, 2000)
                     },
                     onError: (err) => {
                       setError(err?.message ?? 'Something went wrong')
