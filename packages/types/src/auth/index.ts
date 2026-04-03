@@ -1,5 +1,4 @@
 import { UserDTO } from '../dtos/user.dto.ts'
-import type { UserProfile } from '../user/index.ts'
 
 export interface LoginRequest {
   email: string
@@ -7,12 +6,14 @@ export interface LoginRequest {
   rememberMe?: boolean
 }
 
+export interface AuthSessionPayload {
+  token: string
+  expiresAt: number
+}
+
 export interface LoginResponse {
   success: boolean
-  session: {
-    token: string
-    expiresAt: number
-  }
+  session: AuthSessionPayload
   user: UserDTO
 }
 
@@ -20,9 +21,22 @@ export interface VerifySessionRequest {
   token: string
 }
 
+export interface AuthUserPayload {
+  id: string
+  email: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  emailVerified: boolean
+  disabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface VerifySessionResponse {
   valid: boolean
-  user?: UserProfile
+  session?: AuthSessionPayload
+  user?: AuthUserPayload
 }
 
 export interface ForgotPasswordRequest {
