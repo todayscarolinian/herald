@@ -49,7 +49,7 @@ export function LoginForm() {
 
           <div className="w-full text-left md:text-center">
             <h1 className="text-tc_accent_black-300 text-2xl font-bold">
-              Welcome to <span className="opacity-50">TC Herald</span>
+              Welcome to <span className="text-tc_primary-500">TC Herald</span>
             </h1>
             <p className="text-tc_accent_black-300 mt-1 text-base opacity-60">
               Log in using the form below.
