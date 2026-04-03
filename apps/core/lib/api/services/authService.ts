@@ -23,6 +23,5 @@ export async function signOut(): Promise<void> {
 export function resetPassword(
   request: ResetPasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  // Backend expects: { token, newPassword }
   return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.resetPassword, request)
 }
