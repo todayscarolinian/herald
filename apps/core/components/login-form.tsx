@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -42,9 +43,7 @@ export function LoginForm() {
         router.push('/')
       } catch (error: unknown) {
         if (error instanceof Error) {
-          alert(error.message)
-        } else {
-          alert('Something went wrong')
+          toast.error(error.message)
         }
       }
     },
@@ -221,9 +220,7 @@ export function LoginForm() {
               await googleLogin.mutateAsync()
             } catch (error: unknown) {
               if (error instanceof Error) {
-                alert(error.message)
-              } else {
-                alert('Something went wrong')
+                toast.error(error.message)
               }
             }
           }}
