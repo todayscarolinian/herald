@@ -9,7 +9,9 @@ export function credentialsSignIn(credentials: LoginRequest): Promise<LoginRespo
 }
 
 export async function googleSignIn(): Promise<void> {
-  await signIn.social({ provider: 'google', callbackURL: '/auth/google/callback' })
+  const callbackURL = process.env.NEXT_PUBLIC_CORE_URL || 'http://localhost:3000'
+
+  await signIn.social({ provider: 'google', callbackURL })
 }
 
 export async function googleGuardCheck(email: string): Promise<void> {

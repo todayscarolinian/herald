@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { z } from 'zod'
 
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useCredentialsSignIn, useGoogleSignIn } from '@/lib/api/hooks/mutations/authMutations'
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: 'Email is required.' }),
@@ -20,6 +22,9 @@ const loginSchema = z.object({
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const credentialsLogin = useCredentialsSignIn()
+  const googleLogin = useGoogleSignIn()
+  const router = useRouter()
 
   const form = useForm({
     defaultValues: {
@@ -27,9 +32,21 @@ export function LoginForm() {
       password: '',
       rememberMe: false,
     },
-    onSubmit: ({ value }) => {
-      // TODO: replace with actual api call
-      console.log(value)
+    onSubmit: async ({ value }) => {
+      try {
+        await credentialsLogin.mutateAsync({
+          email: value.email,
+          password: value.password,
+          rememberMe: value.rememberMe,
+        })
+        router.push('/')
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          alert(error.message)
+        } else {
+          alert('Something went wrong')
+        }
+      }
     },
   })
 
@@ -177,13 +194,13 @@ export function LoginForm() {
           </form.Field>
 
           <form.Subscribe selector={(state) => state.isSubmitting}>
-            {(isSubmitting) => (
+            {() => (
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={form.state.isSubmitting || credentialsLogin.status === 'pending'}
                 className="bg-tc_primary-500 text-tc_white hover:bg-tc_primary-600 active:bg-tc_primary-500 h-[42px] w-full text-base font-semibold transition-colors"
               >
-                {isSubmitting ? 'Logging in...' : 'Log In'}
+                {credentialsLogin.status === 'pending' ? 'Logging in...' : 'Log In'}
               </Button>
             )}
           </form.Subscribe>
@@ -199,6 +216,18 @@ export function LoginForm() {
           type="button"
           variant="outline"
           className="border-tc_grayscale-400 text-tc_accent_black-400 hover:bg-tc_grayscale-100 h-[42px] w-full gap-3 text-base font-medium transition-colors"
+          onClick={async () => {
+            try {
+              await googleLogin.mutateAsync()
+            } catch (error: unknown) {
+              if (error instanceof Error) {
+                alert(error.message)
+              } else {
+                alert('Something went wrong')
+              }
+            }
+          }}
+          disabled={googleLogin.status === 'pending'}
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
             <path
