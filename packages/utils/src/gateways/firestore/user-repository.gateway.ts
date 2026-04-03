@@ -2,6 +2,7 @@
 import { DEFAULT_PAGINATION, type IUserRepository, type UserDTO } from '@herald/types'
 import {
   collection,
+  deleteDoc,
   doc,
   DocumentData,
   type Firestore,
@@ -21,6 +22,7 @@ import { createPaginatedResult } from '../../dto.ts'
 
 export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
+  const SESSIONS_COLLECTION = 'sessions'
 
   return {
     async findById({ id }) {
@@ -169,8 +171,34 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: update')
     },
 
-    async delete() {
-      throw new Error('Not implemented: delete')
+    async delete(params) {
+      try {
+        const validatedId = validateUserId(params.id)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        await deleteDoc(docRef)
+
+        const sessionsQuery = query(
+          collection(firestore, SESSIONS_COLLECTION),
+          where('userId', '==', validatedId)
+        )
+        const sessionsSnapshot = await getDocs(sessionsQuery)
+
+        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => deleteDoc(sessionDoc.ref))
+        await Promise.all(deletePromises)
+      } catch (error) {
+        console.error('Error deleting user:', error)
+        throw error
+      }
+    },
+
+    async disable() {
+      throw new Error('Not implemented: disable')
     },
 
     async getTotalCount() {
