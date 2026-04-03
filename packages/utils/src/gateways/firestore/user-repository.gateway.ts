@@ -197,10 +197,6 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       }
     },
 
-    async disable() {
-      throw new Error('Not implemented: disable')
-    },
-
     async getTotalCount() {
       throw new Error('Not implemented: getTotalCount')
     },
