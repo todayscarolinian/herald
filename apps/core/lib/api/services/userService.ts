@@ -1,17 +1,7 @@
 import type { APIResponse, UpdateUserInput, UserDTO } from '@herald/types'
 
+import { put } from '@/lib/api/client'
+
 export async function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
-  const res = await fetch(`/api/users/${params.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  })
-
-  const data = (await res.json()) as APIResponse<UserDTO>
-
-  if (!res.ok) {
-    throw new Error(data.error?.message ?? `Failed to update user: ${res.status} ${res.statusText}`)
-  }
-
-  return data
+  return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
 }
