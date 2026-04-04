@@ -1,4 +1,10 @@
-import { DEFAULT_PAGINATION, type UserFilters, type UserSortField } from '@herald/types'
+import {
+  DEFAULT_PAGINATION,
+  SortDirection,
+  SortInput,
+  type UserFilters,
+  type UserSortField,
+} from '@herald/types'
 import { createFirebaseUserRepository } from '@herald/utils'
 import { getApps, initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
@@ -51,17 +57,19 @@ function parsePagination(searchParams: URLSearchParams) {
   return { page, limit }
 }
 
-function parseSort(searchParams: URLSearchParams) {
+function parseSort(searchParams: URLSearchParams): SortInput<UserSortField> | undefined {
   const field = searchParams.get('sortField')?.trim() as UserSortField | null
-  const direction = searchParams.get('sortDirection')?.trim().toLowerCase()
+  const directionParam = searchParams.get('sortDirection')?.trim().toLowerCase()
 
   if (!field || !ALLOWED_SORT_FIELDS.includes(field)) {
     return undefined
   }
 
+  const direction: SortDirection = directionParam === 'asc' ? 'asc' : 'desc'
+
   return {
     field,
-    direction: direction === 'asc' ? 'asc' : 'desc',
+    direction,
   }
 }
 
@@ -112,7 +120,13 @@ function getServerFirestore() {
     throw new Error('Missing Firebase server configuration: FIREBASE_PROJECT_ID')
   }
 
-  const app = getApps().length ? getApps()[0] : initializeApp({ projectId: firebaseProjectId })
+  const apps = getApps()
+
+  if (apps.length > 0) {
+    return getFirestore(apps[0]!)
+  }
+
+  const app = initializeApp({ projectId: firebaseProjectId })
   return getFirestore(app)
 }
 
