@@ -5,6 +5,7 @@ import forgotPasswordRoutes from './forgot-password/route.ts'
 import loginRouter from './login/route.ts'
 import { logout } from './logout/route.ts'
 import resetPasswordRoute from './reset-password/route.ts'
+import sendWelcomeEmailRoute from './send-welcome-email/route.ts'
 import verifySessionRoutes from './verify-session/route.ts'
 
 const app = new Hono()
@@ -55,6 +56,7 @@ authRouter.route('/login', loginRouter)
 authRouter.route('/', logout)
 authRouter.route('/', forgotPasswordRoutes)
 authRouter.route('/', resetPasswordRoute)
+authRouter.route('/', sendWelcomeEmailRoute)
 authRouter.route('/', verifySessionRoutes)
 
 app.route('/auth', authRouter)

@@ -75,7 +75,63 @@ export const auth = betterAuth({
       middleName: { type: 'string', required: false },
       positions: { type: 'string[]', defaultValue: [], required: false, input: false },
       disabled: { type: 'boolean', defaultValue: false, required: false, input: false },
+      welcomeEmailSent: { type: 'boolean', defaultValue: false, required: false, input: false },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true, input: false },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session, context) => {
+          const userDoc = await firestore.collection('users').doc(session.userId).get()
+          const userData = userDoc.data()
+
+          if (
+            !userData ||
+            userData.mustChangePassword !== true ||
+            userData.welcomeEmailSent === true
+          ) {
+            return
+          }
+
+          const requestBody = context?.body as { password?: unknown } | undefined
+          const temporaryPassword =
+            typeof requestBody?.password === 'string' ? requestBody.password : undefined
+
+          if (!temporaryPassword) {
+            console.warn(
+              '[auth/databaseHooks.session.create] Skipping welcome email: no password in context'
+            )
+            return
+          }
+
+          const fullName = [userData.firstName, userData.middleName, userData.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim()
+          const userName = fullName || userData.name || userData.email
+          const baseCoreUrl =
+            process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
+          const changePasswordUrl = `${baseCoreUrl}/change-password`
+
+          const result = await emailService.sendWelcomeEmail(
+            String(userData.email),
+            temporaryPassword,
+            String(userName),
+            changePasswordUrl
+          )
+
+          if ((result as { error?: unknown })?.error) {
+            console.error('[auth/databaseHooks.session.create] Failed to send welcome email')
+            return
+          }
+
+          await firestore
+            .collection('users')
+            .doc(session.userId)
+            .set({ welcomeEmailSent: true }, { merge: true })
+        },
+      },
     },
   },
   callbacks: {
