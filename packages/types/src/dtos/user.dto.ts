@@ -53,7 +53,10 @@ export interface ListUsersInput {
 
 export interface UserFilters {
   positionId?: UUID
+  positionIds?: UUID[]
   permissions?: string[]
+  disabled?: boolean
+  emailVerified?: boolean
 }
 
 export type UserSortField = 'firstName' | 'lastName' | 'email' | 'createdAt' | 'updatedAt'

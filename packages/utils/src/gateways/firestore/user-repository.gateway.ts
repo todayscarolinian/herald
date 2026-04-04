@@ -1,5 +1,11 @@
 /* eslint-disable no-console */
-import { DEFAULT_PAGINATION, type IUserRepository, type UserDTO } from '@herald/types'
+import {
+  DEFAULT_PAGINATION,
+  type IUserRepository,
+  type UserDTO,
+  type UserFilters,
+  type UserSortField,
+} from '@herald/types'
 import {
   collection,
   doc,
@@ -10,6 +16,7 @@ import {
   getDocs,
   limit,
   orderBy,
+  type Query,
   query,
   type QueryConstraint,
   type QueryDocumentSnapshot,
@@ -18,6 +25,10 @@ import {
 } from 'firebase/firestore'
 
 import { createPaginatedResult } from '../../dto.ts'
+
+const MAX_PAGE_LIMIT = 10
+const DEFAULT_SORT_FIELD: UserSortField = 'createdAt'
+const DEFAULT_SORT_DIRECTION = 'desc'
 
 export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
@@ -66,82 +77,24 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       }
     },
 
-    async findAll(params) {
+    async findAll(params: Parameters<IUserRepository['findAll']>[0]) {
       try {
-        const MAX_PAGE_LIMIT = 10
+        const { page, limit: pageLimit } = normalizePagination(params.pagination)
+        const sortField = validateSortField(params.sort?.field)
+        const sortDirection = validateSortDirection(params.sort?.direction)
 
-        const parsedPage = Number(params.pagination?.page)
-        const page = Number.isFinite(parsedPage)
-          ? Math.max(1, Math.floor(parsedPage))
-          : DEFAULT_PAGINATION.page
-
-        const parsedLimit = Number(params.pagination?.limit)
-        const normalizedLimit = Number.isFinite(parsedLimit)
-          ? Math.max(1, Math.floor(parsedLimit))
-          : DEFAULT_PAGINATION.limit
-        const pageLimit = Math.min(MAX_PAGE_LIMIT, normalizedLimit)
-
-        const constraints: QueryConstraint[] = []
-
-        if (params.filters?.positionId) {
-          constraints.push(where('positions', 'array-contains', params.filters.positionId))
-        }
-
-        if (params.filters?.permissions?.length) {
-          if (params.filters.permissions.length === 1) {
-            constraints.push(where('permissions', 'array-contains', params.filters.permissions[0]))
-          } else {
-            constraints.push(
-              where('permissions', 'array-contains-any', params.filters.permissions.slice(0, 10))
-            )
-          }
-        }
-
-        const sortField = params.sort?.field ?? 'createdAt'
-        const sortDirection = params.sort?.direction ?? 'desc'
-        constraints.push(orderBy(sortField, sortDirection))
-
-        const usersRef = collection(firestore, COLLECTION_NAME)
-        const baseQuery = query(usersRef, ...constraints)
+        const baseQuery = buildUserQuery(
+          firestore,
+          COLLECTION_NAME,
+          params.filters,
+          sortField,
+          sortDirection
+        )
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
 
-        let pageQuery = query(baseQuery, limit(pageLimit))
-
-        if (page > 1) {
-          let cursor: QueryDocumentSnapshot<DocumentData> | undefined
-          let remaining = (page - 1) * pageLimit
-
-          while (remaining > 0) {
-            const step = Math.min(pageLimit, remaining)
-            const cursorQuery = cursor
-              ? query(baseQuery, startAfter(cursor), limit(step))
-              : query(baseQuery, limit(step))
-
-            const cursorSnapshot = await getDocs(cursorQuery)
-            if (cursorSnapshot.empty) {
-              break
-            }
-
-            cursor = cursorSnapshot.docs[cursorSnapshot.docs.length - 1]
-            remaining -= cursorSnapshot.docs.length
-
-            if (cursorSnapshot.docs.length < step) {
-              break
-            }
-          }
-
-          if (cursor) {
-            pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
-          }
-        }
-
-        const querySnapshot = await getDocs(pageQuery)
-
-        const users: UserDTO[] = querySnapshot.docs.map((docSnap) =>
-          mapUserDocToDTO(docSnap.id, docSnap.data())
-        )
+        const users = await fetchPaginatedUsers(baseQuery, page, pageLimit)
 
         return createPaginatedResult(users, total, {
           page,
@@ -189,6 +142,133 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: emailExists')
     },
   }
+}
+
+function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
+  page: number
+  limit: number
+} {
+  const parsedPage = Number(pagination?.page)
+  const page = Number.isFinite(parsedPage)
+    ? Math.max(1, Math.floor(parsedPage))
+    : DEFAULT_PAGINATION.page
+
+  const parsedLimit = Number(pagination?.limit)
+  const normalizedLimit = Number.isFinite(parsedLimit)
+    ? Math.max(1, Math.floor(parsedLimit))
+    : DEFAULT_PAGINATION.limit
+
+  return {
+    page,
+    limit: Math.min(MAX_PAGE_LIMIT, normalizedLimit),
+  }
+}
+
+function validateSortField(field: unknown): UserSortField {
+  const sortField = typeof field === 'string' ? field.trim() : DEFAULT_SORT_FIELD
+  const allowedFields: UserSortField[] = [
+    'firstName',
+    'lastName',
+    'email',
+    'createdAt',
+    'updatedAt',
+  ]
+
+  if (!allowedFields.includes(sortField as UserSortField)) {
+    return DEFAULT_SORT_FIELD
+  }
+
+  return sortField as UserSortField
+}
+
+function validateSortDirection(direction: unknown): 'asc' | 'desc' {
+  return direction === 'asc' ? 'asc' : DEFAULT_SORT_DIRECTION
+}
+
+function buildUserQuery(
+  firestore: Firestore,
+  collectionName: string,
+  filters: UserFilters | undefined,
+  sortField: UserSortField,
+  sortDirection: 'asc' | 'desc'
+): Query<DocumentData> {
+  const constraints: QueryConstraint[] = []
+  const usersRef = collection(firestore, collectionName)
+
+  if (filters?.positionIds?.length) {
+    constraints.push(where('positions', 'array-contains-any', filters.positionIds.slice(0, 10)))
+  } else if (filters?.positionId) {
+    constraints.push(where('positions', 'array-contains', filters.positionId))
+  }
+
+  if (Array.isArray(filters?.permissions) && filters.permissions.length > 0) {
+    if (filters.permissions.length === 1) {
+      constraints.push(where('permissions', 'array-contains', filters.permissions[0]))
+    } else {
+      constraints.push(where('permissions', 'array-contains-any', filters.permissions.slice(0, 10)))
+    }
+  }
+
+  if (typeof filters?.disabled === 'boolean') {
+    constraints.push(where('disabled', '==', filters.disabled))
+  }
+
+  if (typeof filters?.emailVerified === 'boolean') {
+    constraints.push(where('emailVerified', '==', filters.emailVerified))
+  }
+
+  constraints.push(orderBy(sortField, sortDirection))
+  return query(usersRef, ...constraints)
+}
+
+async function fetchPaginatedUsers(
+  baseQuery: Query<DocumentData>,
+  page: number,
+  pageLimit: number
+): Promise<UserDTO[]> {
+  if (page === 1) {
+    const snapshot = await getDocs(query(baseQuery, limit(pageLimit)))
+    return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+  }
+
+  const cursor = await getPageCursor(baseQuery, page, pageLimit)
+  if (!cursor) {
+    return []
+  }
+
+  const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
+  const snapshot = await getDocs(pageQuery)
+  return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+}
+
+async function getPageCursor(
+  baseQuery: Query<DocumentData>,
+  page: number,
+  pageLimit: number
+): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
+  let cursor: QueryDocumentSnapshot<DocumentData> | undefined
+  let remaining = (page - 1) * pageLimit
+
+  while (remaining > 0) {
+    const step = Math.min(pageLimit, remaining)
+    const cursorQuery = cursor
+      ? query(baseQuery, startAfter(cursor), limit(step))
+      : query(baseQuery, limit(step))
+
+    const snapshot = await getDocs(cursorQuery)
+    if (snapshot.empty) {
+      return undefined
+    }
+
+    cursor = snapshot.docs[snapshot.docs.length - 1]
+    remaining -= snapshot.docs.length
+
+    if (snapshot.docs.length < step) {
+      return undefined
+    }
+  }
+
+  return cursor
 }
 
 function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
