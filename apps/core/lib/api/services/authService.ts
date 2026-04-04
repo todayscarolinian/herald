@@ -9,7 +9,11 @@ export function credentialsSignIn(credentials: LoginRequest): Promise<LoginRespo
 }
 
 export async function googleSignIn(): Promise<void> {
-  const callbackURL = process.env.NEXT_PUBLIC_CORE_URL || 'http://localhost:3000'
+  const callbackURL = process.env.NEXT_PUBLIC_CORE_URL
+
+  if (!callbackURL) {
+    throw new Error('NEXT_PUBLIC_CORE_URL is not defined')
+  }
 
   await signIn.social({ provider: 'google', callbackURL })
 }
