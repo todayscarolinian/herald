@@ -4,8 +4,6 @@ import { getApps, initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { signUp } from '@/lib/auth-client'
-
 const firebaseConfig = {
   projectId: process.env.FIREBASE_PROJECT_ID,
 }
@@ -79,21 +77,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       firstName: string
       lastName: string
     }) => {
-      const result = await signUp.email({
-        email: params.email,
-        password: params.password,
-        name: `${params.firstName} ${params.lastName}`,
-      } as Parameters<typeof signUp.email>[0])
-
-      if (result.error) {
-        throw new Error(result.error.message ?? 'Failed to create auth user')
+      const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_AUTH_URL
+      if (!authUrl) {
+        throw new Error('BETTER_AUTH_URL is not configured')
       }
 
-      if (!result.data?.user?.id) {
+      const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: authUrl,
+        },
+        body: JSON.stringify({
+          email: params.email,
+          password: params.password,
+          name: `${params.firstName} ${params.lastName}`,
+        }),
+      })
+
+      const rawText = await res.text()
+      // eslint-disable-next-line no-console
+      console.log('[signUpEmail] status:', res.status, 'body:', rawText)
+      const data = JSON.parse(rawText) as { user?: { id?: string }; message?: string }
+
+      // const data = (await res.json()) as { user?: { id?: string }; message?: string }
+
+      if (!res.ok) {
+        throw new Error(data?.message ?? `BetterAuth sign-up failed: ${res.status}`)
+      }
+
+      if (!data?.user?.id) {
         throw new Error('Failed to create auth user: no ID returned')
       }
 
-      return { id: result.data.user.id }
+      return { id: data.user.id }
     },
   })
 
@@ -134,6 +151,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
+    // eslint-disable-next-line no-console
     console.error('[POST /api/users] Unexpected error:', error)
     return NextResponse.json<APIResponse>(
       {

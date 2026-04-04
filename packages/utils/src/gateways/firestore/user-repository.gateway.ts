@@ -213,7 +213,8 @@ export function createFirebaseUserRepository(
 
         const userDoc = {
           firstName: trimmedFirstName,
-          middleName: typeof middleName === 'string' ? middleName.trim() : undefined,
+          ...(typeof middleName === 'string' &&
+            middleName.trim() && { middleName: middleName.trim() }),
           lastName: trimmedLastName,
           email: validatedEmail,
           positions,
