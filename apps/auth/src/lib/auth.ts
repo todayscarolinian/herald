@@ -126,10 +126,17 @@ export const auth = betterAuth({
             return
           }
 
-          await firestore
-            .collection('users')
-            .doc(session.userId)
-            .set({ welcomeEmailSent: true }, { merge: true })
+          try {
+            await firestore
+              .collection('users')
+              .doc(session.userId)
+              .set({ welcomeEmailSent: true }, { merge: true })
+          } catch (error) {
+            console.error(
+              '[auth/databaseHooks.session.create] Failed to update welcomeEmailSent flag',
+              error
+            )
+          }
         },
       },
     },
