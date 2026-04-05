@@ -29,35 +29,41 @@ export class AuthService {
       })
       return { success: true }
     } catch (error) {
-      if (!isAPIError(error)) {
-        console.error('[verify-email] Unexpected error:', error)
-        return { success: false, code: 'INTERNAL_ERROR', emailResent: false }
-      }
+      console.error('[verify-email] Unexpected error:', error)
+      if (isAPIError(error)) {
+        const code = error.body?.code
+        if (code === 'INVALID_TOKEN' || code === 'TOKEN_EXPIRED') {
+          let emailResent = false
+          try {
+            const snapshot = await firestore
+              .collection('verification_tokens')
+              .where('token', '==', token)
+              .limit(1)
+              .get()
 
-      if (error.body?.code !== 'INVALID_TOKEN' && error.statusCode !== 400) {
+            if (!snapshot.empty) {
+              const email = snapshot.docs[0]!.data().email as string
+              const callbackURL = process.env.BETTER_AUTH_URL
+              if (!callbackURL) {
+                console.error('[verify-email] Missing BETTER_AUTH_URL')
+                return { success: false, code: 'INTERNAL_ERROR', emailResent: false }
+              }
+              await auth.api.sendVerificationEmail({
+                body: { email, callbackURL: `${callbackURL}/auth/verify-email` },
+              })
+              emailResent = true
+            } else {
+              console.warn('[verify-email] No verification token found for resend')
+              return { success: false, code: 'TOKEN_NOT_FOUND', emailResent: false }
+            }
+          } catch (err) {
+            console.error('[verify-email] Resend failed:', err)
+          }
+          return { success: false, code, emailResent }
+        }
         return { success: false, code: 'AUTH_API_ERROR', emailResent: false }
       }
-
-      let emailResent = false
-      try {
-        const snapshot = await firestore
-          .collection('verification_tokens')
-          .where('token', '==', token)
-          .limit(1)
-          .get()
-
-        if (!snapshot.empty) {
-          const email = snapshot.docs[0]!.data().email as string
-          await auth.api.sendVerificationEmail({
-            body: { email, callbackURL: `${process.env.NEXT_PUBLIC_AUTH_URL}/verify-email` },
-          })
-          emailResent = true
-        }
-      } catch (err) {
-        console.error('[verify-email] Resend failed:', err)
-      }
-
-      return { success: false, code: 'AUTH_INVALID', emailResent }
+      return { success: false, code: 'INTERNAL_ERROR', emailResent: false }
     }
   }
 }
