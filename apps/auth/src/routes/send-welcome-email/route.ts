@@ -93,10 +93,13 @@ app.post('/send-welcome-email', async (c) => {
     )
   }
 
-  return c.json<APIResponse<{ message: string }>>({
-    success: true,
-    data: { message: 'Welcome email sent successfully' },
-  })
+  return c.json<APIResponse<{ message: string }>>(
+    {
+      success: true,
+      data: { message: 'Welcome email sent successfully' },
+    },
+    200
+  )
 })
 
 export default app
