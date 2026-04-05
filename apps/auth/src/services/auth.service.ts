@@ -1,7 +1,7 @@
 import { isAPIError } from 'better-auth/api'
 
 import { auth } from '../lib/auth.ts'
-import { firestore } from '../lib/firestore.ts'
+import { userRepository } from '../repositories/user.repository.ts'
 import { emailService } from './email.service.ts'
 
 type WelcomeEmailUser = {
@@ -24,8 +24,7 @@ export class AuthService {
     temporaryPassword: string
   ): Promise<WelcomeEmailResult> {
     try {
-      const existingUserDoc = await firestore.collection('users').doc(user.id).get()
-      const existingUserData = existingUserDoc.data()
+      const existingUserData = await userRepository.findById(user.id)
 
       // Idempotent behavior: if the welcome email was already sent, treat as success.
       if (existingUserData?.welcomeEmailSent === true) {
@@ -52,10 +51,7 @@ export class AuthService {
         return { success: false, code: 'EMAIL_PROVIDER_ERROR' }
       }
 
-      await firestore
-        .collection('users')
-        .doc(user.id)
-        .set({ welcomeEmailSent: true }, { merge: true })
+      await userRepository.markWelcomeEmailSent(user.id)
 
       return { success: true }
     } catch (error) {
