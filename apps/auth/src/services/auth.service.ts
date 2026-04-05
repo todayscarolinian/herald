@@ -1,8 +1,11 @@
+import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
 import { auth } from '../lib/auth.ts'
-import { userRepository } from '../repositories/user.repository.ts'
+import { firestore } from '../lib/firestore.ts'
 import { emailService } from './email.service.ts'
+
+const userRepository = createAdminFirebaseUserRepository(firestore)
 
 type WelcomeEmailUser = {
   id: string
@@ -29,6 +32,10 @@ export class AuthService {
       // Idempotent behavior: if the welcome email was already sent, treat as success.
       if (existingUserData?.welcomeEmailSent === true) {
         return { success: true }
+      }
+
+      if (!existingUserData) {
+        return { success: false, code: 'INTERNAL_ERROR' }
       }
 
       const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'

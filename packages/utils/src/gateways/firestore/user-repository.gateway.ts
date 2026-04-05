@@ -16,8 +16,34 @@ import {
   startAfter,
   where,
 } from 'firebase/firestore'
+import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
 
 import { createPaginatedResult } from '../../dto.ts'
+
+type AuthUserRecord = {
+  welcomeEmailSent?: boolean
+} & Record<string, unknown>
+
+export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
+  const COLLECTION_NAME = 'users'
+
+  return {
+    async findById(userId: string): Promise<AuthUserRecord | null> {
+      const validatedId = validateUserId(userId)
+      const docSnap = await firestore.collection(COLLECTION_NAME).doc(validatedId).get()
+      const data = docSnap.data()
+      return (data as AuthUserRecord | undefined) ?? null
+    },
+
+    async markWelcomeEmailSent(userId: string): Promise<void> {
+      const validatedId = validateUserId(userId)
+      await firestore
+        .collection(COLLECTION_NAME)
+        .doc(validatedId)
+        .set({ welcomeEmailSent: true }, { merge: true })
+    },
+  }
+}
 
 export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
