@@ -14,6 +14,7 @@ import {
   type QueryConstraint,
   type QueryDocumentSnapshot,
   startAfter,
+  updateDoc,
   where,
 } from 'firebase/firestore'
 
@@ -165,8 +166,39 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: create')
     },
 
-    async update() {
-      throw new Error('Not implemented: update')
+    async update(user) {
+      try {
+        const validatedId = validateUserId(user.id)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        const now = new Date().toISOString()
+        const updateData = {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName ?? null,
+          email: user.email,
+          password: user.password,
+          positions: user.positions,
+          updatedAt: now,
+        }
+
+        await updateDoc(docRef, updateData)
+
+        const updatedSnap = await getDoc(docRef)
+        if (!updatedSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found after update`)
+        }
+
+        return mapUserDocToDTO(updatedSnap.id, updatedSnap.data())
+      } catch (error) {
+        console.error('Error updating user:', error)
+        throw error
+      }
     },
 
     async delete() {
