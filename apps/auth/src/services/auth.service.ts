@@ -1,7 +1,6 @@
 import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
-import { auth } from '../lib/auth.ts'
 import { firestore } from '../lib/firestore.ts'
 import { emailService } from './email.service.ts'
 
@@ -22,6 +21,40 @@ type WelcomeEmailResult = {
 }
 
 export class AuthService {
+  async sendWelcomeEmailOnFirstLogin(userId: string, temporaryPassword: string): Promise<void> {
+    try {
+      const userData = await userRepository.findById(userId)
+      if (!userData) {
+        return
+      }
+
+      if (userData.mustChangePassword !== true || userData.welcomeEmailSent === true) {
+        return
+      }
+
+      const result = await this.sendWelcomeEmail(
+        {
+          id: userId,
+          email: String(userData.email ?? ''),
+          firstName: typeof userData.firstName === 'string' ? userData.firstName : undefined,
+          middleName: typeof userData.middleName === 'string' ? userData.middleName : undefined,
+          lastName: typeof userData.lastName === 'string' ? userData.lastName : undefined,
+          name: typeof userData.name === 'string' ? userData.name : undefined,
+        },
+        temporaryPassword
+      )
+
+      if (!result.success) {
+        console.error(
+          '[send-welcome-email-on-first-login] Failed to send welcome email:',
+          result.code
+        )
+      }
+    } catch (error) {
+      console.error('[send-welcome-email-on-first-login]', error)
+    }
+  }
+
   async sendWelcomeEmail(
     user: WelcomeEmailUser,
     temporaryPassword: string
@@ -29,13 +62,13 @@ export class AuthService {
     try {
       const existingUserData = await userRepository.findById(user.id)
 
-      // Idempotent behavior: if the welcome email was already sent, treat as success.
-      if (existingUserData?.welcomeEmailSent === true) {
-        return { success: true }
-      }
-
       if (!existingUserData) {
         return { success: false, code: 'INTERNAL_ERROR' }
+      }
+
+      // Idempotent behavior: if the welcome email was already sent, treat as success.
+      if (existingUserData.welcomeEmailSent === true) {
+        return { success: true }
       }
 
       const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
@@ -69,6 +102,7 @@ export class AuthService {
 
   async resetPassword(token: string, newPassword: string) {
     try {
+      const { auth } = await import('../lib/auth.ts')
       await auth.api.resetPassword({
         body: { token, newPassword },
       })

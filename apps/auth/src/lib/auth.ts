@@ -5,6 +5,7 @@ import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
+import { authService } from '../services/auth.service.ts'
 import { emailService } from '../services/email.service.ts'
 import { firestore } from './firestore.ts'
 
@@ -83,17 +84,6 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session, context) => {
-          const userDoc = await firestore.collection('users').doc(session.userId).get()
-          const userData = userDoc.data()
-
-          if (
-            !userData ||
-            userData.mustChangePassword !== true ||
-            userData.welcomeEmailSent === true
-          ) {
-            return
-          }
-
           const requestBody = context?.body as { password?: unknown } | undefined
           const temporaryPassword =
             typeof requestBody?.password === 'string' ? requestBody.password : undefined
@@ -105,38 +95,7 @@ export const auth = betterAuth({
             return
           }
 
-          const fullName = [userData.firstName, userData.middleName, userData.lastName]
-            .filter(Boolean)
-            .join(' ')
-            .trim()
-          const userName = fullName || userData.name || userData.email
-          const baseCoreUrl =
-            process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
-          const changePasswordUrl = `${baseCoreUrl}/change-password`
-
-          const result = await emailService.sendWelcomeEmail(
-            String(userData.email),
-            temporaryPassword,
-            String(userName),
-            changePasswordUrl
-          )
-
-          if ((result as { error?: unknown })?.error) {
-            console.error('[auth/databaseHooks.session.create] Failed to send welcome email')
-            return
-          }
-
-          try {
-            await firestore
-              .collection('users')
-              .doc(session.userId)
-              .set({ welcomeEmailSent: true }, { merge: true })
-          } catch (error) {
-            console.error(
-              '[auth/databaseHooks.session.create] Failed to update welcomeEmailSent flag',
-              error
-            )
-          }
+          await authService.sendWelcomeEmailOnFirstLogin(session.userId, temporaryPassword)
         },
       },
     },
