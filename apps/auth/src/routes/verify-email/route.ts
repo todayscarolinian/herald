@@ -21,6 +21,7 @@ app.get('/verify-email', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
+        data: { emailResent: res.emailResent },
         error: {
           code: res.code,
           message: res.code === 'AUTH_INVALID' ? 'Invalid or expired link' : 'Something went wrong',
