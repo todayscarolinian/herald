@@ -7,7 +7,7 @@ import { authService } from '../../services/auth.service.ts'
 const app = new Hono()
 
 const isInternalRequest = (headers: Headers): boolean => {
-  const configuredSecret = process.env.HERALD_INTERNAL_API_KEY ?? process.env.BETTER_AUTH_SECRET
+  const configuredSecret = process.env.HERALD_INTERNAL_API_KEY
   if (!configuredSecret) {
     return false
   }
