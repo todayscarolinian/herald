@@ -92,5 +92,14 @@ export const auth = betterAuth({
       }
     },
   },
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      '/send-verification-email': {
+        window: 60, // time in seconds
+        max: 2, // max requests per window
+      },
+    },
+  },
   plugins: [openAPI()],
 })
