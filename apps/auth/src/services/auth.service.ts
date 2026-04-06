@@ -13,6 +13,32 @@ type WelcomeEmailResult = {
 }
 
 export class AuthService {
+  async isUserExists(email: string): Promise<boolean> {
+    try {
+      const existingUserData = await userRepository.findByEmail(email)
+
+      return !!existingUserData
+    } catch (error) {
+      console.error('[user-exists]', error)
+      return false
+    }
+  }
+
+  async isUserActive(email: string): Promise<boolean> {
+    try {
+      const existingUserData = await userRepository.findByEmail(email)
+
+      if (!existingUserData) {
+        return false
+      }
+
+      return !existingUserData.disabled
+    } catch (error) {
+      console.error('[user-is-active]', error)
+      return false
+    }
+  }
+
   async sendWelcomeEmail(userId: UUID, temporaryPassword: string): Promise<WelcomeEmailResult> {
     try {
       const existingUserData = await userRepository.findById(userId)

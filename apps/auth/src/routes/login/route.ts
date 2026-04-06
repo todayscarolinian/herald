@@ -1,19 +1,13 @@
 import type { APIResponse, LoginResponse, Position } from '@herald/types'
-import {
-  createFirebaseUserRepository,
-  loginSchema,
-  SESSION_COOKIE_NAME,
-  SESSION_TOKEN_FIELD,
-} from '@herald/utils'
+import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { auth } from '../../lib/auth.js'
-import { firestore } from '../../lib/firestore.js'
+import { authService } from '../../services/auth.service.ts'
 
 const loginRouter = new Hono()
-const firebaseUserRepository = createFirebaseUserRepository(firestore)
 
 // ---------------------------------------------------------------------------
 // POST /auth/login/credentials
@@ -111,13 +105,14 @@ loginRouter.post('/credentials', async (c) => {
     )
   }
 
-  const userData = await firebaseUserRepository.findById({ id: signInResult.user.id })
+  const isUserExists = await authService.isUserExists(signInResult.user.email)
+  const isUserActive = await authService.isUserActive(signInResult.user.email)
 
-  if (!userData) {
+  if (!isUserExists) {
     // This should never happen since the user was just authenticated successfully via BetterAuth,
     // but we check just in case of a data inconsistency between BetterAuth and Firestore.
     console.warn(
-      `[login/credentials] No Firestore user data found for authenticated user ID ${signInResult.user.id}`
+      `[login/credentials] No Firestore user data found for authenticated user email ${signInResult.user.email}`
     )
     return c.json<APIResponse>(
       {
@@ -131,7 +126,7 @@ loginRouter.post('/credentials', async (c) => {
     )
   }
 
-  if (userData?.disabled === true) {
+  if (!isUserActive) {
     // Revoke the session we just created
     try {
       await auth.api.revokeSession({
@@ -178,7 +173,7 @@ loginRouter.post('/credentials', async (c) => {
       lastName: userRecord.lastName as string,
       positions: (userRecord.positions as Position[]) ?? [],
       emailVerified: user.emailVerified,
-      disabled: userData.disabled,
+      disabled: user.disabled,
       createdAt:
         user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
       updatedAt:
@@ -230,9 +225,10 @@ loginRouter.post('/google', async (c) => {
   const { email } = parsed.data
 
   // Look up user in Firestore by email
-  const userData = await firebaseUserRepository.findByEmail({ email })
+  const isUserExists = await authService.isUserExists(email)
+  const isUserActive = await authService.isUserActive(email)
 
-  if (!userData) {
+  if (!isUserExists) {
     // Return generic 401 instead of 404 to avoid leaking email existence
     return c.json<APIResponse>(
       {
@@ -243,7 +239,7 @@ loginRouter.post('/google', async (c) => {
     )
   }
 
-  if (userData.disabled === true) {
+  if (!isUserActive) {
     return c.json<APIResponse>(
       {
         success: false,
