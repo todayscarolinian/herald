@@ -11,7 +11,11 @@ type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(to: string, tempPassword: string, userName: string) {
+  async sendWelcomeEmail(
+    to: string,
+    tempPassword: string,
+    userName: string
+  ) {
     const result = await resend.emails.send({
       from: this.fromEmail,
       to,
