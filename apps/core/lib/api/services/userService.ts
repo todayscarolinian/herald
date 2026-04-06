@@ -1,12 +1,13 @@
 import type {
   APIResponse,
+  CreateUserInput,
   ListUsersInput,
   PaginatedResult,
   UpdateUserInput,
   UserDTO,
 } from '@herald/types'
 
-import { get, put } from '@/lib/api/client'
+import { get, post, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
 export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<UserDTO>> {
@@ -42,6 +43,65 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   return get<PaginatedResult<UserDTO>>(`${ENDPOINTS.users}?${searchParams.toString()}`)
 }
 
+export async function createUser(params: CreateUserInput): Promise<APIResponse<UserDTO>> {
+  return post<APIResponse<UserDTO>, CreateUserInput>('/api/users', params)
+}
+
 export async function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
   return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
+}
+
+export async function signUpInBetterAuth(params: {
+  email: string
+  password: string
+  name: string
+}): Promise<{ id: string }> {
+  const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_AUTH_URL
+  if (!authUrl) {
+    throw new Error('BETTER_AUTH_URL is not configured')
+  }
+
+  const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: authUrl,
+    },
+    body: JSON.stringify({
+      email: params.email,
+      password: params.password,
+      name: params.name,
+    }),
+  })
+
+  const rawText = await res.text()
+  const data = JSON.parse(rawText) as { user?: { id?: string }; message?: string }
+
+  if (!res.ok) {
+    throw new Error(data?.message ?? `BetterAuth sign-up failed: ${res.status}`)
+  }
+
+  if (!data?.user?.id) {
+    throw new Error('Failed to create auth user: no ID returned')
+  }
+
+  return { id: data.user.id }
+}
+
+export async function sendWelcomeEmail(email: string): Promise<void> {
+  const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_AUTH_URL
+  if (!authUrl) {
+    return
+  }
+
+  try {
+    await fetch(`${authUrl}/auth/send-welcome-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+  } catch (emailError) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to send welcome email:', emailError)
+  }
 }

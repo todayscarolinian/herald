@@ -20,6 +20,7 @@ import {
   query,
   type QueryConstraint,
   type QueryDocumentSnapshot,
+  setDoc,
   startAfter,
   Timestamp,
   updateDoc,
@@ -116,8 +117,53 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: findByPermissions')
     },
 
-    async create() {
-      throw new Error('Not implemented: create')
+    async create(params) {
+      try {
+        const { id, firstName, middleName, lastName, email, positions } = params
+
+        const validatedEmail = validateEmail(email)
+        const trimmedFirstName = firstName?.trim()
+        const trimmedLastName = lastName?.trim()
+
+        if (!trimmedFirstName) {
+          throw new TypeError('Invalid input: "firstName" is required')
+        }
+
+        if (!trimmedLastName) {
+          throw new TypeError('Invalid input: "lastName" is required')
+        }
+
+        if (!Array.isArray(positions)) {
+          throw new TypeError('Invalid input: "positions" must be an array')
+        }
+
+        const userId = typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined
+
+        const now = Timestamp.now()
+
+        const userDoc = {
+          firstName: trimmedFirstName,
+          ...(typeof middleName === 'string' &&
+            middleName.trim() && { middleName: middleName.trim() }),
+          lastName: trimmedLastName,
+          email: validatedEmail,
+          positions,
+          emailVerified: false,
+          disabled: false,
+          createdAt: now,
+          updatedAt: now,
+        }
+
+        const docRef = userId
+          ? doc(firestore, COLLECTION_NAME, userId)
+          : doc(collection(firestore, COLLECTION_NAME))
+        await setDoc(docRef, userDoc)
+
+        return mapUserDocToDTO(docRef.id, userDoc)
+      } catch (error) {
+        console.error('Error creating user:', error)
+        throw error
+      }
     },
 
     async update(user) {
@@ -130,7 +176,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
-        const now = new Date().toISOString()
+        const now = Timestamp.now()
         const updateData = {
           firstName: user.firstName,
           lastName: user.lastName,
@@ -357,6 +403,7 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
 
 function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {
   const value = docSnap?.[field]
+  console.log(`---\nDebugging timestamp field "${field}" for user ${userId}: ${value}\n---`)
   if (!(value instanceof Timestamp)) {
     throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
   }

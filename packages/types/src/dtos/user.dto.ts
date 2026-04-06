@@ -20,7 +20,7 @@ import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.t
 
 export type CreateUserInput = Omit<
   UserProfile,
-  'id' | 'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
 >
 
 /**

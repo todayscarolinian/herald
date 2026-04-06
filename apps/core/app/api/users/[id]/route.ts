@@ -1,8 +1,12 @@
 import type { APIResponse, UpdateUserInput, UserDTO } from '@herald/types'
-import { createFirebaseUserRepository } from '@herald/utils'
+import {
+  createFirebaseUserRepository,
+  isValidPassword,
+  PASSWORD_STRENGTH_REQUIREMENTS,
+} from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { firestore } from '@/lib/firebase'
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,6 +34,50 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
+    if (!body.firstName || typeof body.firstName !== 'string') {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: '"firstName" is required' } },
+        { status: 422 }
+      )
+    }
+
+    if (!body.lastName || typeof body.lastName !== 'string') {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: '"lastName" is required' } },
+        { status: 422 }
+      )
+    }
+
+    if (!body.email || typeof body.email !== 'string') {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: '"email" is required' } },
+        { status: 422 }
+      )
+    }
+
+    if (!body.password || typeof body.password !== 'string' || !isValidPassword(body.password)) {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `"password" is required. ${PASSWORD_STRENGTH_REQUIREMENTS}`,
+          },
+        },
+        { status: 422 }
+      )
+    }
+
+    if (!Array.isArray(body.positions)) {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"positions" must be an array' },
+        },
+        { status: 422 }
+      )
+    }
+
     const updateData: UpdateUserInput = {
       id,
       firstName: body.firstName,
@@ -40,7 +88,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       positions: body.positions,
     }
 
-    const userRepository = createFirebaseUserRepository(firestore)
+    const userRepository = createFirebaseUserRepository(getServerFirestore())
     const updatedUser = await userRepository.update(updateData)
 
     return NextResponse.json<APIResponse<UserDTO>>(
