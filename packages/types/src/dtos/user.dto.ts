@@ -20,7 +20,7 @@ import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.t
 
 export type CreateUserInput = Omit<
   UserProfile,
-  'id' | 'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
 >
 
 /**
@@ -53,7 +53,10 @@ export interface ListUsersInput {
 
 export interface UserFilters {
   positionId?: UUID
+  positionIds?: UUID[]
   permissions?: string[]
+  disabled?: boolean
+  emailVerified?: boolean
 }
 
 export type UserSortField = 'firstName' | 'lastName' | 'email' | 'createdAt' | 'updatedAt'
