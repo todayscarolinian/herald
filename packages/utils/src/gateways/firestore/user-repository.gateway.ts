@@ -529,6 +529,7 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
 
 function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {
   const value = docSnap?.[field]
+  console.log(`---\nDebugging timestamp field "${field}" for user ${userId}: ${value}\n---`)
   if (!(value instanceof Timestamp)) {
     throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
   }
