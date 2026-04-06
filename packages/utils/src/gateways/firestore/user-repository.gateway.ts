@@ -20,17 +20,7 @@ import {
 
 import { createPaginatedResult } from '../../dto.ts'
 
-export function createFirebaseUserRepository(
-  firestore: Firestore,
-  auth: {
-    signUpEmail: (params: {
-      email: string
-      password: string
-      firstName: string
-      lastName: string
-    }) => Promise<{ id: string }>
-  }
-): IUserRepository {
+export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
 
   return {
@@ -174,7 +164,7 @@ export function createFirebaseUserRepository(
 
     async create(params) {
       try {
-        const { firstName, middleName, lastName, email, password, positions } = params
+        const { id, firstName, middleName, lastName, email, positions } = params
 
         const validatedEmail = validateEmail(email)
         const trimmedFirstName = firstName?.trim()
@@ -188,26 +178,11 @@ export function createFirebaseUserRepository(
           throw new TypeError('Invalid input: "lastName" is required')
         }
 
-        if (typeof password !== 'string' || password.length < 6) {
-          throw new TypeError('Invalid input: "password" must be at least 6 characters')
-        }
-
         if (!Array.isArray(positions)) {
           throw new TypeError('Invalid input: "positions" must be an array')
         }
 
-        const authUser = await auth.signUpEmail({
-          email: validatedEmail,
-          password,
-          firstName: trimmedFirstName,
-          lastName: trimmedLastName,
-        })
-
-        if (!authUser?.id) {
-          throw new Error('Failed to create user in authentication provider')
-        }
-
-        const userId = authUser.id
+        const userId = typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined
 
         const now = new Date().toISOString()
 
@@ -224,21 +199,13 @@ export function createFirebaseUserRepository(
           updatedAt: now,
         }
 
-        const docRef = doc(firestore, COLLECTION_NAME, userId)
+        const docRef = userId
+          ? doc(firestore, COLLECTION_NAME, userId)
+          : doc(collection(firestore, COLLECTION_NAME))
         await setDoc(docRef, userDoc)
 
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_AUTH_URL}/auth/send-welcome-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: validatedEmail }),
-          })
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError)
-        }
-
         return {
-          id: userId,
+          id: docRef.id,
           ...userDoc,
         }
       } catch (error) {

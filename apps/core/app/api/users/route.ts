@@ -1,8 +1,10 @@
 import type { APIResponse, CreateUserInput, UserDTO } from '@herald/types'
-import { createFirebaseUserRepository } from '@herald/utils'
+import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { getApps, initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
+
+import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
 
 const firebaseConfig = {
   projectId: process.env.FIREBASE_PROJECT_ID,
@@ -70,53 +72,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const firebaseUserRepository = createFirebaseUserRepository(clientFirestore, {
-    signUpEmail: async (params: {
-      email: string
-      password: string
-      firstName: string
-      lastName: string
-    }) => {
-      const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_AUTH_URL
-      if (!authUrl) {
-        throw new Error('BETTER_AUTH_URL is not configured')
-      }
-
-      const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: authUrl,
-        },
-        body: JSON.stringify({
-          email: params.email,
-          password: params.password,
-          name: `${params.firstName} ${params.lastName}`,
-        }),
-      })
-
-      const rawText = await res.text()
-      // eslint-disable-next-line no-console
-      console.log('[signUpEmail] status:', res.status, 'body:', rawText)
-      const data = JSON.parse(rawText) as { user?: { id?: string }; message?: string }
-
-      // const data = (await res.json()) as { user?: { id?: string }; message?: string }
-
-      if (!res.ok) {
-        throw new Error(data?.message ?? `BetterAuth sign-up failed: ${res.status}`)
-      }
-
-      if (!data?.user?.id) {
-        throw new Error('Failed to create auth user: no ID returned')
-      }
-
-      return { id: data.user.id }
-    },
-  })
+  const firebaseUserRepository = createFirebaseUserRepository(clientFirestore)
 
   let user: UserDTO
   try {
+    // Creates the user in BetterAuth to handle account and user creation
+    const authUser = await signUpInBetterAuth({
+      email,
+      password,
+      name: `${firstName} ${lastName}`,
+    })
+
+    // Then sets additional user details in Firestore
     user = await firebaseUserRepository.create({
+      id: authUser.id,
       firstName,
       middleName: typeof middleName === 'string' ? middleName : undefined,
       lastName,
@@ -124,6 +93,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       password,
       positions,
     })
+
+    await sendWelcomeEmail(email)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unexpected error occurred'
 
@@ -147,6 +118,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ) {
       return NextResponse.json<APIResponse>(
         { success: false, error: { code: 'VALIDATION_ERROR', message } },
+        { status: 422 }
+      )
+    }
+
+    if (
+      message.toLowerCase().includes('password too short') ||
+      message.toLowerCase().includes('password too weak')
+    ) {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: PASSWORD_STRENGTH_REQUIREMENTS },
+        },
         { status: 422 }
       )
     }
