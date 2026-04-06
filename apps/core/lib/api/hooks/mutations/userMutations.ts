@@ -1,9 +1,14 @@
-import type { APIResponse, CreateUserInput, UpdateUserInput, UserDTO } from '@herald/types'
+import type {
+  APIResponse,
+  CreateUserInput,
+  DeleteUserInput,
+  UpdateUserInput,
+  UserDTO,
+} from '@herald/types'
 import { useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { updateUser } from '@/lib/api/services/userService'
-import { createUser } from '@/lib/api/services/userService'
+import { createUser, disableUser, updateUser } from '@/lib/api/services/userService'
 
 export function useCreateUser() {
   const queryClient = useQueryClient()
@@ -19,5 +24,11 @@ export function useCreateUser() {
 export function useUpdateUser() {
   return useMutation<APIResponse<UserDTO>, Error, UpdateUserInput>({
     mutationFn: updateUser,
+  })
+}
+
+export function useDisableUser() {
+  return useMutation<APIResponse<{ message: string }>, Error, DeleteUserInput>({
+    mutationFn: disableUser,
   })
 }

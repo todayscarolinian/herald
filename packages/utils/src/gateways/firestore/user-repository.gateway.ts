@@ -8,6 +8,7 @@ import {
 } from '@herald/types'
 import {
   collection,
+  deleteDoc,
   doc,
   DocumentData,
   type Firestore,
@@ -35,6 +36,7 @@ const DEFAULT_SORT_DIRECTION = 'desc'
 
 export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
+  const SESSIONS_COLLECTION = 'sessions'
 
   return {
     async findById({ id }) {
@@ -203,6 +205,35 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
     async delete() {
       throw new Error('Not implemented: delete')
+    },
+
+    async disable(params) {
+      try {
+        const validatedId = validateUserId(params.id)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        await updateDoc(docRef, {
+          disabled: true,
+          updatedAt: new Date().toISOString(),
+        })
+
+        const sessionsQuery = query(
+          collection(firestore, SESSIONS_COLLECTION),
+          where('userId', '==', validatedId)
+        )
+        const sessionsSnapshot = await getDocs(sessionsQuery)
+
+        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => deleteDoc(sessionDoc.ref))
+        await Promise.all(deletePromises)
+      } catch (error) {
+        console.error('Error disabling user:', error)
+        throw error
+      }
     },
 
     async getTotalCount() {

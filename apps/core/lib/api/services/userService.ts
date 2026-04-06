@@ -1,6 +1,7 @@
 import type {
   APIResponse,
   CreateUserInput,
+  DeleteUserInput,
   ListUsersInput,
   PaginatedResult,
   UpdateUserInput,
@@ -51,6 +52,12 @@ export async function updateUser(params: UpdateUserInput): Promise<APIResponse<U
   return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
 }
 
+export async function disableUser(
+  params: DeleteUserInput
+): Promise<APIResponse<{ message: string }>> {
+  return post<APIResponse<{ message: string }>, DeleteUserInput>(`/api/users/${params.id}`, params)
+}
+
 export async function signUpInBetterAuth(params: {
   email: string
   password: string
@@ -61,25 +68,19 @@ export async function signUpInBetterAuth(params: {
     throw new Error('BETTER_AUTH_URL is not configured')
   }
 
-  const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Origin: authUrl,
-    },
-    body: JSON.stringify({
+  const res = await post<APIResponse<{ user?: { id?: string } }>>(
+    `${authUrl}/api/auth/sign-up/email`,
+    {
       email: params.email,
       password: params.password,
       name: params.name,
-    }),
-  })
-
-  const rawText = await res.text()
-  const data = JSON.parse(rawText) as { user?: { id?: string }; message?: string }
-
-  if (!res.ok) {
-    throw new Error(data?.message ?? `BetterAuth sign-up failed: ${res.status}`)
+    }
+  )
+  if (!res.success) {
+    throw new Error(`BetterAuth sign-up failed: ${res.error}`)
   }
+
+  const { data } = res
 
   if (!data?.user?.id) {
     throw new Error('Failed to create auth user: no ID returned')
@@ -95,11 +96,10 @@ export async function sendWelcomeEmail(email: string): Promise<void> {
   }
 
   try {
-    await fetch(`${authUrl}/auth/send-welcome-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
+    await post<APIResponse<{ message: string }>, { email: string }>(
+      `${authUrl}/auth/send-welcome-email`,
+      { email }
+    )
   } catch (emailError) {
     // eslint-disable-next-line no-console
     console.error('Failed to send welcome email:', emailError)
