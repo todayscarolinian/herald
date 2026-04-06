@@ -1,6 +1,12 @@
-import type { ListUsersInput, PaginatedResult, UserDTO } from '@herald/types'
+import type {
+  APIResponse,
+  ListUsersInput,
+  PaginatedResult,
+  UpdateUserInput,
+  UserDTO,
+} from '@herald/types'
 
-import { get } from '@/lib/api/client'
+import { get, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
 export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<UserDTO>> {
@@ -34,4 +40,8 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   }
 
   return get<PaginatedResult<UserDTO>>(`${ENDPOINTS.users}?${searchParams.toString()}`)
+}
+
+export async function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
+  return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
 }
