@@ -1,32 +1,62 @@
 import type { APIResponse, CreateUserInput, UserDTO } from '@herald/types'
-import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
-import { getApps, initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import {
+  DEFAULT_PAGINATION,
+  SortDirection,
+  SortInput,
+  type UserFilters,
+  type UserSortField,
+} from '@herald/types'
+import {
+  createFirebaseUserRepository,
+  isValidPassword,
+  PASSWORD_STRENGTH_REQUIREMENTS,
+} from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
+import { firestore } from '@/lib/firebase'
 
-const firebaseConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
+const ALLOWED_SORT_FIELDS: UserSortField[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'createdAt',
+  'updatedAt',
+]
+
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const filters = parseFilters(url.searchParams)
+    const pagination = parsePagination(url.searchParams)
+    const sort = parseSort(url.searchParams)
+
+    const repository = createFirebaseUserRepository(firestore)
+    const result = await repository.findAll({ filters, pagination, sort })
+
+    return NextResponse.json(result, { status: 200 })
+  } catch (error) {
+    return handleRouteError(error)
+  }
 }
 
-const clientApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!
-
-const clientFirestore = getFirestore(clientApp)
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
+  const body = (await req.json()) as Partial<CreateUserInput>
+
+  const { firstName, middleName, lastName, email, password, positions } = body
+
+  if (!firstName || !lastName || !email || !password || !positions) {
     return NextResponse.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
+      {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Missing required fields: firstName, lastName, email, password, positions',
+        },
+      },
       { status: 400 }
     )
   }
-
-  const { firstName, middleName, lastName, email, password, positions } =
-    (body as Partial<CreateUserInput & { password: string }>) ?? {}
 
   if (!firstName || typeof firstName !== 'string') {
     return NextResponse.json<APIResponse>(
@@ -49,13 +79,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  if (!password || typeof password !== 'string' || password.length < 6) {
+  if (!password || typeof password !== 'string' || !isValidPassword(password)) {
     return NextResponse.json<APIResponse>(
       {
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: '"password" is required and must be at least 6 characters',
+          message: `"password" is required. ${PASSWORD_STRENGTH_REQUIREMENTS}`,
         },
       },
       { status: 422 }
@@ -72,7 +102,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const firebaseUserRepository = createFirebaseUserRepository(clientFirestore)
+  const firebaseUserRepository = createFirebaseUserRepository(firestore)
 
   let user: UserDTO
   try {
@@ -122,19 +152,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (
-      message.toLowerCase().includes('password too short') ||
-      message.toLowerCase().includes('password too weak')
-    ) {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: PASSWORD_STRENGTH_REQUIREMENTS },
-        },
-        { status: 422 }
-      )
-    }
-
     // eslint-disable-next-line no-console
     console.error('[POST /api/users] Unexpected error:', error)
     return NextResponse.json<APIResponse>(
@@ -147,4 +164,90 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json<APIResponse<UserDTO>>({ success: true, data: user }, { status: 201 })
+}
+
+function parseFilters(searchParams: URLSearchParams): UserFilters {
+  const positionId = searchParams.get('positionId')?.trim()
+  const positionIds = parseListParam(searchParams, 'positionIds')
+  const permissions = parseListParam(searchParams, 'permissions')
+  const disabled = parseBooleanParam(searchParams.get('disabled'))
+  const emailVerified = parseBooleanParam(searchParams.get('emailVerified'))
+
+  return {
+    ...(positionId ? { positionId } : {}),
+    ...(positionIds.length ? { positionIds } : {}),
+    ...(permissions.length ? { permissions } : {}),
+    ...(disabled !== undefined ? { disabled } : {}),
+    ...(emailVerified !== undefined ? { emailVerified } : {}),
+  }
+}
+
+function parsePagination(searchParams: URLSearchParams) {
+  const page = parsePositiveInteger(searchParams.get('page'), DEFAULT_PAGINATION.page)
+  const limit = parsePositiveInteger(searchParams.get('limit'), DEFAULT_PAGINATION.limit)
+  return { page, limit }
+}
+
+function parseSort(searchParams: URLSearchParams): SortInput<UserSortField> | undefined {
+  const field = searchParams.get('sortField')?.trim() as UserSortField | null
+  const directionParam = searchParams.get('sortDirection')?.trim().toLowerCase()
+
+  if (!field || !ALLOWED_SORT_FIELDS.includes(field)) {
+    return undefined
+  }
+
+  const direction: SortDirection = directionParam === 'asc' ? 'asc' : 'desc'
+
+  return {
+    field,
+    direction,
+  }
+}
+
+function parseListParam(searchParams: URLSearchParams, key: string): string[] {
+  const values = searchParams.getAll(key).flatMap((value) =>
+    value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  )
+
+  return [...new Set(values)]
+}
+
+function parseBooleanParam(value: string | null): boolean | undefined {
+  if (value === null) {
+    return undefined
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'true') {
+    return true
+  }
+
+  if (normalized === 'false') {
+    return false
+  }
+
+  throw new Error('Invalid boolean query parameter value; use "true" or "false"')
+}
+
+function parsePositiveInteger(value: string | null, fallback: number) {
+  if (!value) {
+    return fallback
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new Error('Invalid pagination value; page and limit must be positive integers')
+  }
+
+  return parsed
+}
+
+function handleRouteError(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Unknown error'
+  const status = message.includes('Invalid') || message.includes('Missing') ? 400 : 500
+
+  return NextResponse.json({ error: message }, { status })
 }

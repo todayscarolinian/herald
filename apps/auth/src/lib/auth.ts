@@ -73,9 +73,9 @@ export const auth = betterAuth({
       firstName: { type: 'string' },
       lastName: { type: 'string' },
       middleName: { type: 'string', required: false },
-      positions: { type: 'string[]', defaultValue: [], required: false, input: false },
-      disabled: { type: 'boolean', defaultValue: false, required: false, input: false },
-      mustChangePassword: { type: 'boolean', defaultValue: false, required: true, input: false },
+      positions: { type: 'string[]', defaultValue: [], required: true },
+      disabled: { type: 'boolean', defaultValue: false, required: true },
+      mustChangePassword: { type: 'boolean', defaultValue: false, required: true },
     },
   },
   callbacks: {
