@@ -2,6 +2,7 @@ import { UUID } from '@herald/types'
 import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
+import { auth } from '../lib/auth.ts'
 import { firestore } from '../lib/firestore.ts'
 import { emailService } from './email.service.ts'
 
