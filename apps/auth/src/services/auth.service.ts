@@ -1,3 +1,4 @@
+import { UUID } from '@herald/types'
 import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
@@ -6,92 +7,42 @@ import { emailService } from './email.service.ts'
 
 const userRepository = createAdminFirebaseUserRepository(firestore)
 
-type WelcomeEmailUser = {
-  id: string
-  email: string
-  firstName?: string
-  middleName?: string
-  lastName?: string
-  name?: string
-}
-
 type WelcomeEmailResult = {
   success: boolean
   code?: 'EMAIL_PROVIDER_ERROR' | 'INTERNAL_ERROR'
 }
 
 export class AuthService {
-  async sendWelcomeEmailOnFirstLogin(userId: string, temporaryPassword: string): Promise<void> {
+  async sendWelcomeEmail(userId: UUID, temporaryPassword: string): Promise<WelcomeEmailResult> {
     try {
-      const userData = await userRepository.findById(userId)
-      if (!userData) {
-        return
-      }
-
-      if (userData.mustChangePassword !== true || userData.welcomeEmailSent === true) {
-        return
-      }
-
-      const result = await this.sendWelcomeEmail(
-        {
-          id: userId,
-          email: String(userData.email ?? ''),
-          firstName: typeof userData.firstName === 'string' ? userData.firstName : undefined,
-          middleName: typeof userData.middleName === 'string' ? userData.middleName : undefined,
-          lastName: typeof userData.lastName === 'string' ? userData.lastName : undefined,
-          name: typeof userData.name === 'string' ? userData.name : undefined,
-        },
-        temporaryPassword
-      )
-
-      if (!result.success) {
-        console.error(
-          '[send-welcome-email-on-first-login] Failed to send welcome email:',
-          result.code
-        )
-      }
-    } catch (error) {
-      console.error('[send-welcome-email-on-first-login]', error)
-    }
-  }
-
-  async sendWelcomeEmail(
-    user: WelcomeEmailUser,
-    temporaryPassword: string
-  ): Promise<WelcomeEmailResult> {
-    try {
-      const existingUserData = await userRepository.findById(user.id)
+      const existingUserData = await userRepository.findById(userId)
 
       if (!existingUserData) {
         return { success: false, code: 'INTERNAL_ERROR' }
       }
 
-      // Idempotent behavior: if the welcome email was already sent, treat as success.
-      if (existingUserData.welcomeEmailSent === true) {
-        return { success: true }
-      }
-
       const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
       const changePasswordUrl = `${baseCoreUrl}/change-password`
 
-      const fullName = [user.firstName, user.middleName, user.lastName]
+      const fullName = [
+        existingUserData.firstName,
+        existingUserData.middleName,
+        existingUserData.lastName,
+      ]
         .filter(Boolean)
         .join(' ')
         .trim()
-      const userName = fullName || user.name?.trim() || user.email
 
       const emailResult = await emailService.sendWelcomeEmail(
-        user.email,
+        existingUserData.email,
         temporaryPassword,
-        userName,
+        fullName,
         changePasswordUrl
       )
 
       if ((emailResult as { error?: unknown })?.error) {
         return { success: false, code: 'EMAIL_PROVIDER_ERROR' }
       }
-
-      await userRepository.markWelcomeEmailSent(user.id)
 
       return { success: true }
     } catch (error) {

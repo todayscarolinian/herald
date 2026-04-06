@@ -5,7 +5,6 @@ import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
-import { authService } from '../services/auth.service.ts'
 import { emailService } from '../services/email.service.ts'
 import { firestore } from './firestore.ts'
 
@@ -76,28 +75,7 @@ export const auth = betterAuth({
       middleName: { type: 'string', required: false },
       positions: { type: 'string[]', defaultValue: [], required: true },
       disabled: { type: 'boolean', defaultValue: false, required: true },
-      welcomeEmailSent: { type: 'boolean', defaultValue: false, required: true },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true },
-    },
-  },
-  databaseHooks: {
-    session: {
-      create: {
-        after: async (session, context) => {
-          const requestBody = context?.body as { password?: unknown } | undefined
-          const temporaryPassword =
-            typeof requestBody?.password === 'string' ? requestBody.password : undefined
-
-          if (!temporaryPassword) {
-            console.warn(
-              '[auth/databaseHooks.session.create] Skipping welcome email: no password in context'
-            )
-            return
-          }
-
-          await authService.sendWelcomeEmailOnFirstLogin(session.userId, temporaryPassword)
-        },
-      },
     },
   },
   callbacks: {

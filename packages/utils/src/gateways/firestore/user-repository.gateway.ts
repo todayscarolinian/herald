@@ -5,6 +5,7 @@ import {
   type UserDTO,
   type UserFilters,
   type UserSortField,
+  UUID,
 } from '@herald/types'
 import {
   collection,
@@ -36,8 +37,12 @@ const DEFAULT_SORT_FIELD: UserSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
 
 type AuthUserRecord = {
-  welcomeEmailSent?: boolean
-} & Record<string, unknown>
+  id: UUID
+  firstName: string
+  middleName?: string
+  lastName: string
+  email: string
+}
 
 export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
   const COLLECTION_NAME = 'users'
@@ -46,16 +51,17 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
     async findById(userId: string): Promise<AuthUserRecord | null> {
       const validatedId = validateUserId(userId)
       const docSnap = await firestore.collection(COLLECTION_NAME).doc(validatedId).get()
-      const data = docSnap.data()
-      return (data as AuthUserRecord | undefined) ?? null
-    },
+      if (!docSnap.exists) {
+        return null
+      }
 
-    async markWelcomeEmailSent(userId: string): Promise<void> {
-      const validatedId = validateUserId(userId)
-      await firestore
-        .collection(COLLECTION_NAME)
-        .doc(validatedId)
-        .set({ welcomeEmailSent: true }, { merge: true })
+      return {
+        id: docSnap.id,
+        firstName: docSnap.get('firstName'),
+        middleName: docSnap.get('middleName') || undefined,
+        lastName: docSnap.get('lastName'),
+        email: docSnap.get('email'),
+      }
     },
   }
 }
@@ -63,6 +69,7 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
 export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
   const COLLECTION_NAME = 'users'
   const SESSIONS_COLLECTION = 'sessions'
+  const ACCOUNTS_COLLECTION = 'accounts'
 
   return {
     async findById({ id }) {
@@ -248,6 +255,15 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
         const sessionsSnapshot = await getDocs(sessionsQuery)
 
         const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => deleteDoc(sessionDoc.ref))
+
+        const accountsQuery = query(
+          collection(firestore, ACCOUNTS_COLLECTION),
+          where('userId', '==', validatedId)
+        )
+        const accountsSnapshot = await getDocs(accountsQuery)
+
+        deletePromises.push(...accountsSnapshot.docs.map((accountDoc) => deleteDoc(accountDoc.ref)))
+
         await Promise.all(deletePromises)
       } catch (error) {
         console.error('Error deleting user:', error)
@@ -482,7 +498,6 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
 
 function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {
   const value = docSnap?.[field]
-  console.log(`---\nDebugging timestamp field "${field}" for user ${userId}: ${value}\n---`)
   if (!(value instanceof Timestamp)) {
     throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
   }

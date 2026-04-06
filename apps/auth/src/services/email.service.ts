@@ -20,7 +20,7 @@ export class EmailService {
     const result = await resend.emails.send({
       from: this.fromEmail,
       to,
-      subject: 'Welcome to Herald - Change Your Password',
+      subject: 'Welcome to Herald!',
       html: this.getWelcomeTemplate(userName, tempPassword, changePasswordLink),
     })
     return result
@@ -93,7 +93,7 @@ export class EmailService {
 
         <p style="margin: 0 0 8px 0;">Go be great,</p>
         <p style="margin: 0 0 4px 0;"><strong>The TC Herald Team</strong></p>
-        <p style="margin: 0;">Contact Email: noreply@todayscarolinian.com</p>
+        <p style="margin: 0;">Contact Email: todayscarolinianusc.dev@gmail.com</p>
       </div>
     `
   }

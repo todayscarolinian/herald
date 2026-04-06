@@ -124,7 +124,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       positions,
     })
 
-    await sendWelcomeEmail(email)
+    await sendWelcomeEmail(authUser.id, password)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unexpected error occurred'
 

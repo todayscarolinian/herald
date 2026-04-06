@@ -12,19 +12,12 @@ const isInternalRequest = (headers: Headers): boolean => {
     return false
   }
 
-  const internalKey = headers.get('x-herald-internal-key')
+  const internalKey = headers.get('x-herald-internal-api-key')
   return internalKey === configuredSecret
 }
 
 const sendWelcomeEmailSchema = z.object({
-  user: z.object({
-    id: z.string().min(1, 'User id is required'),
-    email: z.email('Invalid email address'),
-    firstName: z.string().optional(),
-    middleName: z.string().optional(),
-    lastName: z.string().optional(),
-    name: z.string().optional(),
-  }),
+  userId: z.string().min(1, 'User ID is required'),
   temporaryPassword: z.string().min(1, 'Temporary password is required'),
 })
 
@@ -67,8 +60,8 @@ app.post('/send-welcome-email', async (c) => {
     )
   }
 
-  const { user, temporaryPassword } = parsed.data
-  const result = await authService.sendWelcomeEmail(user, temporaryPassword)
+  const { userId, temporaryPassword } = parsed.data
+  const result = await authService.sendWelcomeEmail(userId, temporaryPassword)
 
   if (!result.success) {
     if (result.code === 'EMAIL_PROVIDER_ERROR') {
