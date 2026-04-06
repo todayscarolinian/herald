@@ -1,4 +1,10 @@
-import type { APIResponse, LoginRequest, LoginResponse, ResetPasswordRequest } from '@herald/types'
+import type {
+  APIResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  LoginResponse,
+  ResetPasswordRequest,
+} from '@herald/types'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
@@ -9,7 +15,13 @@ export function credentialsSignIn(credentials: LoginRequest): Promise<LoginRespo
 }
 
 export async function googleSignIn(): Promise<void> {
-  await signIn.social({ provider: 'google', callbackURL: '/auth/google/callback' })
+  const callbackURL = process.env.NEXT_PUBLIC_CORE_URL
+
+  if (!callbackURL) {
+    throw new Error('NEXT_PUBLIC_CORE_URL is not defined')
+  }
+
+  await signIn.social({ provider: 'google', callbackURL })
 }
 
 export async function googleGuardCheck(email: string): Promise<void> {
@@ -18,6 +30,12 @@ export async function googleGuardCheck(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await post<void>(ENDPOINTS.auth.logout, {})
+}
+
+export function forgotPassword(
+  request: ForgotPasswordRequest
+): Promise<APIResponse<{ message: string }>> {
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.forgotPassword, request)
 }
 
 export function resetPassword(

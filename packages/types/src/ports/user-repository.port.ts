@@ -22,6 +22,7 @@ export interface IUserRepository {
   create(user: CreateUserInput): Promise<UserDTO>
   update(user: UpdateUserInput): Promise<UserDTO>
   delete(params: DeleteUserInput): Promise<void>
+  disable(params: DeleteUserInput): Promise<void>
 
   getTotalCount(): Promise<TotalUsersDTO>
   getPositionDistribution(): Promise<PositionDistributionDTO[]>
