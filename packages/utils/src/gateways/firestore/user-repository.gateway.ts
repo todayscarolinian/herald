@@ -139,7 +139,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
         const userId = typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined
 
-        const now = new Date().toISOString()
+        const now = Timestamp.now()
 
         const userDoc = {
           firstName: trimmedFirstName,
@@ -159,10 +159,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           : doc(collection(firestore, COLLECTION_NAME))
         await setDoc(docRef, userDoc)
 
-        return {
-          id: docRef.id,
-          ...userDoc,
-        }
+        return mapUserDocToDTO(docRef.id, userDoc)
       } catch (error) {
         console.error('Error creating user:', error)
         throw error
@@ -179,7 +176,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
-        const now = new Date().toISOString()
+        const now = Timestamp.now()
         const updateData = {
           firstName: user.firstName,
           lastName: user.lastName,
@@ -406,6 +403,7 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
 
 function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {
   const value = docSnap?.[field]
+  console.log(`---\nDebugging timestamp field "${field}" for user ${userId}: ${value}\n---`)
   if (!(value instanceof Timestamp)) {
     throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
   }

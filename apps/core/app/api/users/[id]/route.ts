@@ -6,7 +6,7 @@ import {
 } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { firestore } from '@/lib/firebase'
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       positions: body.positions,
     }
 
-    const userRepository = createFirebaseUserRepository(firestore)
+    const userRepository = createFirebaseUserRepository(getServerFirestore())
     const updatedUser = await userRepository.update(updateData)
 
     return NextResponse.json<APIResponse<UserDTO>>(

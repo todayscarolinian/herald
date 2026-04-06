@@ -13,8 +13,8 @@ import {
 } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
-import { firestore } from '@/lib/firebase'
 
 const ALLOWED_SORT_FIELDS: UserSortField[] = [
   'firstName',
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(url.searchParams)
     const sort = parseSort(url.searchParams)
 
-    const repository = createFirebaseUserRepository(firestore)
+    const repository = createFirebaseUserRepository(getServerFirestore())
     const result = await repository.findAll({ filters, pagination, sort })
 
     return NextResponse.json(result, { status: 200 })
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const firebaseUserRepository = createFirebaseUserRepository(firestore)
+  const firebaseUserRepository = createFirebaseUserRepository(getServerFirestore())
 
   let user: UserDTO
   try {
