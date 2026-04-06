@@ -42,6 +42,7 @@ type AuthUserRecord = {
   middleName?: string
   lastName: string
   email: string
+  disabled: boolean
 }
 
 export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
@@ -61,6 +62,36 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
         middleName: docSnap.get('middleName') || undefined,
         lastName: docSnap.get('lastName'),
         email: docSnap.get('email'),
+        disabled: docSnap.get('disabled') || false,
+      }
+    },
+
+    async findByEmail(email: string): Promise<AuthUserRecord | null> {
+      const validatedEmail = validateEmail(email)
+
+      const querySnap = await firestore
+        .collection(COLLECTION_NAME)
+        .where('email', '==', validatedEmail)
+        .limit(1)
+        .get()
+
+      if (querySnap.empty) {
+        return null
+      }
+
+      const docSnap = querySnap.docs[0]
+
+      if (!docSnap || !docSnap.exists) {
+        return null
+      }
+
+      return {
+        id: docSnap.id,
+        firstName: docSnap.get('firstName'),
+        middleName: docSnap.get('middleName') || undefined,
+        lastName: docSnap.get('lastName'),
+        email: docSnap.get('email'),
+        disabled: docSnap.get('disabled') || false,
       }
     },
   }
