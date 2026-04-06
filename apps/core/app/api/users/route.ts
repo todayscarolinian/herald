@@ -6,9 +6,9 @@ import {
   type UserSortField,
 } from '@herald/types'
 import { createFirebaseUserRepository } from '@herald/utils'
-import { getApps, initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
+
+import { firestore } from '@/lib/api/services/firebase/firestore/server'
 
 const ALLOWED_SORT_FIELDS: UserSortField[] = [
   'firstName',
@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(url.searchParams)
     const sort = parseSort(url.searchParams)
 
-    const firestore = getServerFirestore()
     const repository = createFirebaseUserRepository(firestore)
     const result = await repository.findAll({ filters, pagination, sort })
 
@@ -112,22 +111,6 @@ function parsePositiveInteger(value: string | null, fallback: number) {
   }
 
   return parsed
-}
-
-function getServerFirestore() {
-  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID
-  if (!firebaseProjectId) {
-    throw new Error('Missing Firebase server configuration: FIREBASE_PROJECT_ID')
-  }
-
-  const apps = getApps()
-
-  if (apps.length > 0) {
-    return getFirestore(apps[0]!)
-  }
-
-  const app = initializeApp({ projectId: firebaseProjectId })
-  return getFirestore(app)
 }
 
 function handleRouteError(error: unknown) {
