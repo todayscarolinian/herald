@@ -21,6 +21,7 @@ import {
   type QueryConstraint,
   type QueryDocumentSnapshot,
   startAfter,
+  Timestamp,
   where,
 } from 'firebase/firestore'
 
@@ -278,8 +279,8 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
   const positions = requirePositionsField(docSnap, id)
   const emailVerified = requireBooleanField(docSnap, 'emailVerified', id)
   const disabled = requireBooleanField(docSnap, 'disabled', id)
-  const createdAt = requireStringField(docSnap, 'createdAt', id)
-  const updatedAt = requireStringField(docSnap, 'updatedAt', id)
+  const createdAt = requireTimestampField(docSnap, 'createdAt', id)
+  const updatedAt = requireTimestampField(docSnap, 'updatedAt', id)
 
   return {
     id,
@@ -320,6 +321,15 @@ function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['
   }
 
   return positions as UserDTO['positions']
+}
+
+function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {
+  const value = docSnap?.[field]
+  if (!(value instanceof Timestamp)) {
+    throw new Error(`Invalid or missing required user field "${field}" for user ${userId}`)
+  }
+
+  return value.toDate().toISOString()
 }
 
 function validateUserId(id: unknown): string {
