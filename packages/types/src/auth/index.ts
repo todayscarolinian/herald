@@ -49,6 +49,12 @@ export interface ResetPasswordRequest {
   confirmPassword: string
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface APIResponse<T = unknown> {
   success: boolean
   data?: T
