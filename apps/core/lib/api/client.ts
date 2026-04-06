@@ -113,3 +113,37 @@ export async function put<TResponse, TBody = unknown>(
 
   return (await res.json()) as TResponse
 }
+
+/**
+ * API DELETE helper with enhanced error handling and custom options.
+ */
+export async function del<TResponse>(path: string, options?: RequestOptions): Promise<TResponse> {
+  const baseUrl = getAuthBaseUrl()
+  if (!baseUrl) {
+    throw new Error('Auth API base URL is not configured.')
+  }
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: 'DELETE',
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options?.headers ?? {}),
+    },
+  })
+
+  if (!res.ok) {
+    let message = `Request failed: ${res.status} ${res.statusText}`
+    try {
+      const parsed = (await res.json()) as { message?: string; error?: { message?: string } }
+      message = parsed?.error?.message ?? parsed?.message ?? message
+    } catch {
+      // Keep fallback message
+    }
+
+    throw new Error(message)
+  }
+
+  return (await res.json()) as TResponse
+}

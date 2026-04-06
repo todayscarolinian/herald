@@ -8,7 +8,7 @@ import type {
   UserDTO,
 } from '@herald/types'
 
-import { get, post, put } from '@/lib/api/client'
+import { del,get, post, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
 export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<UserDTO>> {
@@ -56,6 +56,12 @@ export async function disableUser(
   params: DeleteUserInput
 ): Promise<APIResponse<{ message: string }>> {
   return post<APIResponse<{ message: string }>, DeleteUserInput>(`/api/users/${params.id}`, params)
+}
+
+export async function deleteUser(
+  params: DeleteUserInput
+): Promise<APIResponse<{ message: string }>> {
+  return del<APIResponse<{ message: string }>>(`/api/users/${params.id}`)
 }
 
 export async function signUpInBetterAuth(params: {
