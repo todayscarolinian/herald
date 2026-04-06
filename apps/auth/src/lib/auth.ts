@@ -34,12 +34,12 @@ export const auth = betterAuth({
       await emailService.sendPasswordReset(user.email, url)
     },
     requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
       await emailService.sendVerificationEmail(user, url)
     },
-    sendOnSignIn: true,
   },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,
@@ -73,9 +73,9 @@ export const auth = betterAuth({
       firstName: { type: 'string' },
       lastName: { type: 'string' },
       middleName: { type: 'string', required: false },
-      positions: { type: 'string[]', defaultValue: [], required: false, input: false },
-      disabled: { type: 'boolean', defaultValue: false, required: false, input: false },
-      mustChangePassword: { type: 'boolean', defaultValue: false, required: true, input: false },
+      positions: { type: 'string[]', defaultValue: [], required: true },
+      disabled: { type: 'boolean', defaultValue: false, required: true },
+      mustChangePassword: { type: 'boolean', defaultValue: false, required: true },
     },
   },
   callbacks: {
@@ -90,6 +90,15 @@ export const auth = betterAuth({
           name: fullName,
         },
       }
+    },
+  },
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      '/send-verification-email': {
+        window: 60, // time in seconds
+        max: 2, // max requests per window
+      },
     },
   },
   plugins: [openAPI()],

@@ -11,12 +11,17 @@ type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(to: string, tempPassword: string, userName: string) {
+  async sendWelcomeEmail(
+    to: string,
+    tempPassword: string,
+    userName: string,
+    changePasswordLink: string
+  ) {
     const result = await resend.emails.send({
       from: this.fromEmail,
       to,
-      subject: 'Welcome to Herald',
-      html: this.getWelcomeTemplate(userName, tempPassword),
+      subject: 'Welcome to Herald!',
+      html: this.getWelcomeTemplate(userName, tempPassword, changePasswordLink),
     })
     return result
   }
@@ -41,15 +46,65 @@ export class EmailService {
     return result
   }
 
-  private getWelcomeTemplate(name: string, password: string) {
+  private getWelcomeTemplate(name: string, password: string, changePasswordLink: string) {
     const escapeName = this.htmlEscape(name)
     const escapePassword = this.htmlEscape(password)
+    const escapeChangePasswordLink = this.htmlEscape(changePasswordLink)
+    const logoUrl = this.getHeraldLogoUrl(changePasswordLink)
 
     return `
-      <h1>Welcome to Herald, ${escapeName}!</h1>
-      <p>Your temporary password is: <strong>${escapePassword}</strong></p>
-      <p>Please change it after your first login.</p>
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 620px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <img
+            src="${logoUrl}"
+            alt="TC Herald"
+            width="96"
+            height="96"
+            style="display: inline-block; width: 96px; height: 96px; object-fit: contain;"
+          />
+        </div>
+
+        <p style="margin: 0 0 16px 0;">Hi ${escapeName},</p>
+
+        <p style="margin: 0 0 16px 0;">It is great to welcome you to <strong>TC Herald</strong>.</p>
+
+        <p style="margin: 0 0 16px 0;">
+          As part of Today's Carolinian's digital ecosystem, your Herald account gives you access to a centralized identity experience for TC platforms and services.
+        </p>
+
+        <p style="margin: 0 0 16px 0;">
+          To get started, please use your temporary password below and update it immediately:
+          <br />
+          <strong>${escapePassword}</strong>
+        </p>
+
+        <p style="margin: 0 0 20px 0;">
+          <a
+            href="${escapeChangePasswordLink}"
+            style="display: inline-block; background: #b91c1c; color: #ffffff; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-weight: 600;"
+          >
+            Set Your Password
+          </a>
+        </p>
+
+        <p style="margin: 0 0 16px 0;">
+          If there is any support we can provide along your journey, please do not hesitate to reach out.
+        </p>
+
+        <p style="margin: 0 0 8px 0;">Go be great,</p>
+        <p style="margin: 0 0 4px 0;"><strong>The TC Herald Team</strong></p>
+        <p style="margin: 0;">Contact Email: todayscarolinianusc.dev@gmail.com</p>
+      </div>
     `
+  }
+
+  private getHeraldLogoUrl(changePasswordLink: string) {
+    try {
+      const origin = new URL(changePasswordLink).origin
+      return `${origin}/tc-herald-logo.png`
+    } catch {
+      return 'https://herald.todayscarolinian.com/tc-herald-logo.png'
+    }
   }
 
   private getPasswordResetTemplate(link: string) {
