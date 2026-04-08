@@ -106,6 +106,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let user: UserDTO
   try {
+    const existingUser = await firebaseUserRepository.findByEmail({ email })
+    if (existingUser) {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'EMAIL_EXISTS', message: 'A user with that email already exists' },
+        },
+        { status: 409 }
+      )
+    }
+
     // Creates the user in BetterAuth to handle account and user creation
     const authUser = await signUpInBetterAuth({
       email,
