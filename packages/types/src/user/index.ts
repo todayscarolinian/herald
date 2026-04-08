@@ -18,7 +18,6 @@ export interface Position {
   id: UUID
   name: string
   abbreviation: string
-  description?: string
   permissions: string[]
   createdAt: string
   updatedAt: string
