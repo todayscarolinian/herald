@@ -7,7 +7,7 @@ const origin = [
 
 const corsMiddleware = cors({
   origin,
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-herald-internal-api-key'],
   allowMethods: ['POST', 'GET', 'OPTIONS'],
   exposeHeaders: ['Content-Length'],
   maxAge: 600,
