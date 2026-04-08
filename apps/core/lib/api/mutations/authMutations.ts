@@ -7,10 +7,9 @@ import {
   forgotPassword,
   googleGuardCheck,
   googleSignIn,
+  resetPassword,
   signOut,
 } from '@/lib/api/services/authService'
-
-import { resetPassword } from '../../services/authService'
 
 export function useCredentialsSignIn() {
   return useMutation<LoginResponse, Error, LoginRequest>({
