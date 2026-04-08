@@ -11,6 +11,16 @@ import type {
 import { del, get, post, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
+const getInternalApiKeyHeader = () => {
+  const internalApiKey = process.env.HERALD_INTERNAL_API_KEY
+
+  if (!internalApiKey) {
+    return undefined
+  }
+
+  return internalApiKey
+}
+
 export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<UserDTO>> {
   const searchParams = new URLSearchParams()
 
@@ -74,12 +84,19 @@ export async function signUpInBetterAuth(params: {
     throw new Error('BETTER_AUTH_URL is not configured')
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Origin: authUrl,
+  }
+
+  const internalApiKey = getInternalApiKeyHeader()
+  if (internalApiKey) {
+    headers['x-herald-internal-api-key'] = internalApiKey
+  }
+
   const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Origin: authUrl,
-    },
+    headers,
     body: JSON.stringify({
       email: params.email,
       password: params.password,
@@ -107,16 +124,21 @@ export async function sendWelcomeEmail(userId: string, temporaryPassword: string
     return
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  const internalApiKey = getInternalApiKeyHeader()
+  if (internalApiKey) {
+    headers['x-herald-internal-api-key'] = internalApiKey
+  }
+
   try {
-    await post<APIResponse<{ message: string }>, { userId: string; temporaryPassword: string }>(
-      `/auth/send-welcome-email`,
-      { userId, temporaryPassword },
-      {
-        headers: {
-          'x-herald-internal-api-key': process.env.HERALD_INTERNAL_API_KEY ?? '',
-        },
-      }
-    )
+    await fetch(`${authUrl}/api/auth/send-welcome-email`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId, temporaryPassword }),
+    })
   } catch (emailError) {
     // eslint-disable-next-line no-console
     console.error('Failed to send welcome email:', emailError)
