@@ -1,15 +1,15 @@
-import type { APIResponse, ResetPasswordRequest } from '@herald/types'
+import type { APIResponse, ForgotPasswordRequest, ResetPasswordRequest } from '@herald/types'
 import { LoginRequest, LoginResponse } from '@herald/types'
 import { useMutation } from '@tanstack/react-query'
 
 import {
   credentialsSignIn,
+  forgotPassword,
   googleGuardCheck,
   googleSignIn,
+  resetPassword,
   signOut,
 } from '@/lib/api/services/authService'
-
-import { resetPassword } from '../../services/authService'
 
 export function useCredentialsSignIn() {
   return useMutation<LoginResponse, Error, LoginRequest>({
@@ -38,5 +38,11 @@ export function useSignOut() {
 export function useResetPassword() {
   return useMutation<APIResponse<{ message: string }>, Error, ResetPasswordRequest>({
     mutationFn: resetPassword,
+  })
+}
+
+export function useForgotPassword() {
+  return useMutation<APIResponse<{ message: string }>, Error, ForgotPasswordRequest>({
+    mutationFn: forgotPassword,
   })
 }

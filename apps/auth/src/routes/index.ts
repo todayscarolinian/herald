@@ -1,10 +1,12 @@
 import { APIResponse, HealthResponse, IndexResponse } from '@herald/types'
 import { Hono } from 'hono'
 
+import changePasswordRoute from './change-password/route.ts'
 import forgotPasswordRoutes from './forgot-password/route.ts'
 import loginRouter from './login/route.ts'
 import { logout } from './logout/route.ts'
 import resetPasswordRoute from './reset-password/route.ts'
+import sendWelcomeEmailRoute from './send-welcome-email/route.ts'
 import verifySessionRoutes from './verify-session/route.ts'
 
 const app = new Hono()
@@ -22,6 +24,7 @@ const endpoints = {
   verifySession: '/auth/verify-session',
   forgotPassword: '/auth/forgot-password',
   resetPassword: '/auth/reset-password',
+  changePassword: '/auth/change-password',
 }
 
 app.get('/', (c) => {
@@ -55,7 +58,9 @@ authRouter.route('/login', loginRouter)
 authRouter.route('/', logout)
 authRouter.route('/', forgotPasswordRoutes)
 authRouter.route('/', resetPasswordRoute)
+authRouter.route('/', sendWelcomeEmailRoute)
 authRouter.route('/', verifySessionRoutes)
+authRouter.route('/', changePasswordRoute)
 
 app.route('/auth', authRouter)
 

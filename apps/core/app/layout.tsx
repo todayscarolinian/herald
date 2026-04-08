@@ -2,6 +2,7 @@ import './globals.css'
 
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 
 import CoreProvider from '@/components/providers/CoreProvider'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,7 @@ export default function RootLayout({
     <html lang="en" className={cn('font-sans', inter.variable)}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <CoreProvider>{children}</CoreProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )
