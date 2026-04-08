@@ -10,7 +10,7 @@ import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useResetPassword } from '@/lib/api/hooks/mutations/authMutations'
+import { useResetPassword } from '@/lib/api/mutations/authMutations'
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams()

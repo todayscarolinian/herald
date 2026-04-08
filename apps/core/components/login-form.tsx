@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCredentialsSignIn, useGoogleSignIn } from '@/lib/api/hooks/mutations/authMutations'
+import { useCredentialsSignIn, useGoogleSignIn } from '@/lib/api/mutations/authMutations'
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: 'Email is required.' }),

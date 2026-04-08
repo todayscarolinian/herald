@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useForgotPassword } from '@/lib/api/hooks/mutations/authMutations'
+import { useForgotPassword } from '@/lib/api/mutations/authMutations'
 
 const RATE_LIMIT_WINDOW_MS = 60_000 * 5 // 5 minutes
 const RATE_LIMIT_STORAGE_KEY = 'forgot-password-next-allowed-at'
