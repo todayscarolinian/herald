@@ -54,23 +54,19 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   return get<PaginatedResult<UserDTO>>(`${ENDPOINTS.users}?${searchParams.toString()}`)
 }
 
-export async function createUser(params: CreateUserInput): Promise<APIResponse<UserDTO>> {
+export function createUser(params: CreateUserInput): Promise<APIResponse<UserDTO>> {
   return post<APIResponse<UserDTO>, CreateUserInput>('/api/users', params)
 }
 
-export async function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
+export function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
   return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
 }
 
-export async function disableUser(
-  params: DeleteUserInput
-): Promise<APIResponse<{ message: string }>> {
+export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
   return post<APIResponse<{ message: string }>, DeleteUserInput>(`/api/users/${params.id}`, params)
 }
 
-export async function deleteUser(
-  params: DeleteUserInput
-): Promise<APIResponse<{ message: string }>> {
+export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
   return del<APIResponse<{ message: string }>>(`/api/users/${params.id}`)
 }
 
