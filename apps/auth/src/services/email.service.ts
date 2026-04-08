@@ -11,17 +11,12 @@ type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(
-    to: string,
-    tempPassword: string,
-    userName: string,
-    changePasswordLink: string
-  ) {
+  async sendWelcomeEmail(to: string, tempPassword: string, userName: string) {
     const result = await resend.emails.send({
       from: this.fromEmail,
       to,
       subject: 'Welcome to Herald!',
-      html: this.getWelcomeTemplate(userName, tempPassword, changePasswordLink),
+      html: this.getWelcomeTemplate(userName, tempPassword),
     })
     return result
   }
@@ -46,15 +41,16 @@ export class EmailService {
     return result
   }
 
-  private getWelcomeTemplate(name: string, password: string, changePasswordLink: string) {
+  private getWelcomeTemplate(name: string, password: string) {
     const escapeName = this.htmlEscape(name)
     const escapePassword = this.htmlEscape(password)
-    const escapeChangePasswordLink = this.htmlEscape(changePasswordLink)
-    const logoUrl = this.getHeraldLogoUrl(changePasswordLink)
+    const logoUrl = this.getHeraldLogoUrl()
+    const onboardingUrl = this.getOnboardingUrl()
+    const escapeOnboardingUrl = this.htmlEscape(onboardingUrl)
 
     return `
-      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 620px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 24px;">
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 620px; margin: 0 auto; padding: 8px 4px;">
+        <div style="text-align: center; margin-bottom: 28px;">
           <img
             src="${logoUrl}"
             alt="TC Herald"
@@ -64,31 +60,40 @@ export class EmailService {
           />
         </div>
 
-        <p style="margin: 0 0 16px 0;">Hi ${escapeName},</p>
+        <p style="margin: 0 0 14px 0; font-size: 15px;">Hi ${escapeName},</p>
 
-        <p style="margin: 0 0 16px 0;">It is great to welcome you to <strong>TC Herald</strong>.</p>
+        <h1 style="margin: 0 0 14px 0; font-size: 28px; line-height: 1.2; color: #111827;">Welcome to Herald</h1>
 
-        <p style="margin: 0 0 16px 0;">
-          As part of Today's Carolinian's digital ecosystem, your Herald account gives you access to a centralized identity experience for TC platforms and services.
+        <p style="margin: 0 0 16px 0; font-size: 16px;">
+          Herald is the account you will use across Today's Carolinian's digital tools. It keeps access simple, helps us recognize you across services, and gives you one place to manage the identity details connected to your role.
         </p>
 
-        <p style="margin: 0 0 16px 0;">
-          To get started, please use your temporary password below and update it immediately:
+        <div style="margin: 0 0 18px 0; padding: 14px 16px; border: 1px solid #fca5a5; border-left: 5px solid #b91c1c; border-radius: 10px; background: #fff1f2;">
+          <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; letter-spacing: 0.02em; color: #7f1d1d; text-transform: uppercase;">
+            Important: Verify your email first
+          </p>
+          <p style="margin: 0; font-size: 15px; color: #7f1d1d;">
+            You will receive a separate email to confirm your email address. Please confirm it first, then continue to onboarding. Verification is required before you can proceed.
+          </p>
+        </div>
+
+        <p style="margin: 0 0 16px 0; font-size: 16px;">
+          Your temporary password is included below for first access. After confirming your email, head to the onboarding page to finish your setup and learn what comes next.
           <br />
-          <strong>${escapePassword}</strong>
+          <strong style="display: inline-block; margin-top: 6px; font-size: 18px; letter-spacing: 0.02em;">${escapePassword}</strong>
         </p>
 
-        <p style="margin: 0 0 20px 0;">
+        <p style="margin: 0 0 22px 0;">
           <a
-            href="${escapeChangePasswordLink}"
-            style="display: inline-block; background: #b91c1c; color: #ffffff; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-weight: 600;"
+            href="${escapeOnboardingUrl}"
+            style="display: inline-block; background: #9f1d20; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 9999px; font-weight: 700; box-shadow: 0 8px 18px rgba(159, 29, 32, 0.18);"
           >
-            Set Your Password
+            Go to Onboarding
           </a>
         </p>
 
-        <p style="margin: 0 0 16px 0;">
-          If there is any support we can provide along your journey, please do not hesitate to reach out.
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #4b5563;">
+          If anything feels unclear, just follow the onboarding steps. That section will walk you through the basics and help you get settled in.
         </p>
 
         <p style="margin: 0 0 8px 0;">Go be great,</p>
@@ -98,12 +103,21 @@ export class EmailService {
     `
   }
 
-  private getHeraldLogoUrl(changePasswordLink: string) {
+  private getHeraldLogoUrl() {
     try {
-      const origin = new URL(changePasswordLink).origin
-      return `${origin}/tc-herald-logo.png`
+      const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
+      return `${baseCoreUrl}/tc-logo-red.png`
     } catch {
-      return 'https://herald.todayscarolinian.com/tc-herald-logo.png'
+      return 'https://herald.todayscarolinian.com/tc-logo-red.png'
+    }
+  }
+
+  private getOnboardingUrl() {
+    try {
+      const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
+      return `${baseCoreUrl}/onboarding`
+    } catch {
+      return 'https://herald.todayscarolinian.com/onboarding'
     }
   }
 

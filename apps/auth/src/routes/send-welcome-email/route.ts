@@ -6,32 +6,12 @@ import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
 
-const isInternalRequest = (headers: Headers): boolean => {
-  const configuredSecret = process.env.HERALD_INTERNAL_API_KEY
-  if (!configuredSecret) {
-    return false
-  }
-
-  const internalKey = headers.get('x-herald-internal-api-key')
-  return internalKey === configuredSecret
-}
-
 const sendWelcomeEmailSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   temporaryPassword: z.string().min(1, 'Temporary password is required'),
 })
 
 app.post('/send-welcome-email', async (c) => {
-  if (!isInternalRequest(c.req.raw.headers)) {
-    return c.json<APIResponse>(
-      {
-        success: false,
-        error: { code: 'UNAUTHORIZED', message: 'Unauthorized request' },
-      },
-      401
-    )
-  }
-
   let body: unknown
   try {
     body = await c.req.json()

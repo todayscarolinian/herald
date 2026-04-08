@@ -2,6 +2,7 @@ import { UUID } from '@herald/types'
 import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
+import { auth } from '../lib/auth.ts'
 import { firestore } from '../lib/firestore.ts'
 import { emailService } from './email.service.ts'
 
@@ -47,9 +48,6 @@ export class AuthService {
         return { success: false, code: 'INTERNAL_ERROR' }
       }
 
-      const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
-      const changePasswordUrl = `${baseCoreUrl}/change-password`
-
       const fullName = [
         existingUserData.firstName,
         existingUserData.middleName,
@@ -62,8 +60,7 @@ export class AuthService {
       const emailResult = await emailService.sendWelcomeEmail(
         existingUserData.email,
         temporaryPassword,
-        fullName,
-        changePasswordUrl
+        fullName
       )
 
       if ((emailResult as { error?: unknown })?.error) {

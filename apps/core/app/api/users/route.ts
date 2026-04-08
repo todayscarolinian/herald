@@ -6,11 +6,7 @@ import {
   type UserFilters,
   type UserSortField,
 } from '@herald/types'
-import {
-  createFirebaseUserRepository,
-  isValidPassword,
-  PASSWORD_STRENGTH_REQUIREMENTS,
-} from '@herald/utils'
+import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
@@ -23,6 +19,8 @@ const ALLOWED_SORT_FIELDS: UserSortField[] = [
   'createdAt',
   'updatedAt',
 ]
+
+const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*'
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,15 +41,16 @@ export async function GET(request: NextRequest) {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = (await req.json()) as Partial<CreateUserInput>
 
-  const { firstName, middleName, lastName, email, password, positions } = body
+  const { firstName, middleName, lastName, email, positions } = body
+  const password = generateRandomStrongPassword()
 
-  if (!firstName || !lastName || !email || !password || !positions) {
+  if (!firstName || !lastName || !email || !positions) {
     return NextResponse.json<APIResponse>(
       {
         success: false,
         error: {
           code: 'BAD_REQUEST',
-          message: 'Missing required fields: firstName, lastName, email, password, positions',
+          message: 'Missing required fields: firstName, lastName, email, positions',
         },
       },
       { status: 400 }
@@ -79,19 +78,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  if (!password || typeof password !== 'string' || !isValidPassword(password)) {
-    return NextResponse.json<APIResponse>(
-      {
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: `"password" is required. ${PASSWORD_STRENGTH_REQUIREMENTS}`,
-        },
-      },
-      { status: 422 }
-    )
-  }
-
   if (!Array.isArray(positions)) {
     return NextResponse.json<APIResponse>(
       {
@@ -106,6 +92,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let user: UserDTO
   try {
+    const existingUser = await firebaseUserRepository.findByEmail({ email })
+    if (existingUser) {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'EMAIL_EXISTS', message: 'A user with that email already exists' },
+        },
+        { status: 409 }
+      )
+    }
+
     // Creates the user in BetterAuth to handle account and user creation
     const authUser = await signUpInBetterAuth({
       email,
@@ -164,6 +161,58 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json<APIResponse<UserDTO>>({ success: true, data: user }, { status: 201 })
+}
+
+function generateRandomStrongPassword(length = 14): string {
+  const lower = 'abcdefghijklmnopqrstuvwxyz'
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const digits = '0123456789'
+  const specials = PASSWORD_SPECIAL_CHARACTERS
+  const all = `${lower}${upper}${digits}${specials}`
+
+  if (length < 8) {
+    throw new Error(PASSWORD_STRENGTH_REQUIREMENTS)
+  }
+
+  const requiredCharacters = [
+    getRandomCharacter(lower),
+    getRandomCharacter(upper),
+    getRandomCharacter(digits),
+    getRandomCharacter(specials),
+  ]
+
+  const remainingLength = length - requiredCharacters.length
+  const randomCharacters = Array.from({ length: remainingLength }, () => getRandomCharacter(all))
+  const password = shuffleArray([...requiredCharacters, ...randomCharacters]).join('')
+
+  return password
+}
+
+function getRandomCharacter(source: string): string {
+  return source.charAt(getRandomInt(source.length))
+}
+
+function getRandomInt(maxExclusive: number): number {
+  const cryptoObj = globalThis.crypto
+  if (cryptoObj?.getRandomValues) {
+    const random = new Uint32Array(1)
+    cryptoObj.getRandomValues(random)
+    return random[0]! % maxExclusive
+  }
+
+  return Math.floor(Math.random() * maxExclusive)
+}
+
+function shuffleArray<T>(items: T[]): T[] {
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const randomIndex = getRandomInt(index + 1)
+    const temp = result[index]!
+    result[index] = result[randomIndex]!
+    result[randomIndex] = temp
+  }
+
+  return result
 }
 
 function parseFilters(searchParams: URLSearchParams): UserFilters {
