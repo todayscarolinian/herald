@@ -29,17 +29,7 @@ import { createMiddleware } from 'hono/factory'
  * - Only add a route here when it must be accessible without the internal key.
  * - Prefer narrow exact paths over broad prefixes whenever possible.
  */
-const ALLOWLIST_EXACT_PATHS = new Set([
-  '/',
-  '/health',
-  '/auth/login/credentials',
-  '/auth/login/google',
-  '/auth/logout',
-  '/auth/forgot-password',
-  '/auth/reset-password',
-  '/auth/verify-session',
-  '/auth/change-password',
-])
+const ALLOWLIST_EXACT_PATHS = new Set(['/', '/health'])
 
 /**
  * Prefix-based allowlist.
