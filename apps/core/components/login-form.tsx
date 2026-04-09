@@ -4,8 +4,8 @@ import { useForm } from '@tanstack/react-form'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -26,6 +26,33 @@ export function LoginForm() {
   const credentialsLogin = useCredentialsSignIn()
   const googleLogin = useGoogleSignIn()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (!error) {
+      return
+    }
+
+    const errorDescription = searchParams.get('error_description')
+    const errorMessageMap: Record<string, string> = {
+      signup_disabled: 'Email does not exist. Please contact the administrator.',
+    }
+
+    // Use setTimeout to ensure the toast is shown after the component has mounted
+    const timer = window.setTimeout(() => {
+      toast.error(errorMessageMap[error] ?? errorDescription ?? error)
+    }, 0)
+
+    const nextParams = new URLSearchParams(searchParams.toString())
+    nextParams.delete('error')
+    nextParams.delete('error_description')
+    const nextQuery = nextParams.toString()
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname)
+
+    return () => window.clearTimeout(timer)
+  }, [pathname, router, searchParams])
 
   const form = useForm({
     defaultValues: {

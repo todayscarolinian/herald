@@ -21,7 +21,12 @@ export async function googleSignIn(): Promise<void> {
     throw new Error('NEXT_PUBLIC_CORE_URL is not defined')
   }
 
-  await signIn.social({ provider: 'google', callbackURL })
+  const normalizedCallbackURL = callbackURL.endsWith('/') ? callbackURL.slice(0, -1) : callbackURL
+  await signIn.social({
+    provider: 'google',
+    callbackURL: normalizedCallbackURL,
+    errorCallbackURL: `${normalizedCallbackURL}/login`,
+  })
 }
 
 export async function googleGuardCheck(email: string): Promise<void> {
