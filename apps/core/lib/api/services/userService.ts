@@ -25,6 +25,9 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   const searchParams = new URLSearchParams()
 
   // Add filters
+  if (params.filters?.search) {
+    searchParams.append('search', params.filters.search)
+  }
   if (params.filters?.positionId) {
     searchParams.append('positionId', params.filters.positionId)
   }
