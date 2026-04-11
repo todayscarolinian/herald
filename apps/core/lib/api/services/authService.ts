@@ -2,7 +2,6 @@ import type {
   APIResponse,
   ForgotPasswordRequest,
   LoginRequest,
-  LoginResponse,
   ResetPasswordRequest,
 } from '@herald/types'
 
@@ -10,8 +9,16 @@ import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import { signIn } from '@/lib/auth-client'
 
-export function credentialsSignIn(credentials: LoginRequest): Promise<LoginResponse> {
-  return post<LoginResponse>(ENDPOINTS.auth.loginCredentials, credentials)
+export async function credentialsSignIn(credentials: LoginRequest): Promise<APIResponse> {
+  await post<APIResponse>('/api/login', credentials)
+
+  signIn.email({
+    email: credentials.email,
+    password: credentials.password,
+    rememberMe: credentials.rememberMe,
+  })
+
+  return { success: true, data: { message: 'Login successful' } }
 }
 
 export async function googleSignIn(): Promise<void> {
