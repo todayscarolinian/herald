@@ -460,13 +460,7 @@ async function fetchPaginatedUsers(
 
   const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
   const snapshot = await getDocs(pageQuery)
-  console.log(
-    `Fetched first page of users with limit ${pageLimit}, total fetched: ${snapshot.size}`
-  )
-  console.log(
-    'User IDs on first page:',
-    snapshot.docs.map((doc) => doc.id)
-  )
+
   return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
 }
 
@@ -477,8 +471,6 @@ async function fetchSearchUsers(
   pageLimit: number
 ): Promise<{ users: UserDTO[]; total: number }> {
   const snapshot = await getDocs(baseQuery)
-  console.log('Snapshot')
-  console.log(snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() })))
   const matchingUsers = snapshot.docs
     .map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
     .filter((user) => matchesSearch(user, search))
