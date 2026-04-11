@@ -9,7 +9,7 @@ import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import { signIn } from '@/lib/auth-client'
 
-export async function credentialsSignIn(credentials: LoginRequest): Promise<APIResponse> {
+export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
   await post<APIResponse>('/api/login', credentials)
 
   signIn.email({
@@ -17,8 +17,6 @@ export async function credentialsSignIn(credentials: LoginRequest): Promise<APIR
     password: credentials.password,
     rememberMe: credentials.rememberMe,
   })
-
-  return { success: true, data: { message: 'Login successful' } }
 }
 
 export async function googleSignIn(): Promise<void> {
