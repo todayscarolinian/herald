@@ -1,5 +1,6 @@
 export * from './auth/index.ts'
 export * from './dtos/index.ts'
+export * from './permission/index.ts'
 export * from './ports/index.ts'
 export * from './responses/index.ts'
 export * from './shared/index.ts'
