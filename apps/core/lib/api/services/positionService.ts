@@ -37,7 +37,7 @@ export function createPosition(params: CreatePositionInput): Promise<APIResponse
 }
 
 export function updatePosition(params: UpdatePositionInput): Promise<APIResponse<PositionDTO>> {
-  return put<APIResponse<PositionDTO>, UpdatePositionInput>(`/api/position/${params.id}`, params)
+  return put<APIResponse<PositionDTO>, UpdatePositionInput>(`/api/positions/${params.id}`, params)
 }
 
 export function deletePosition(
