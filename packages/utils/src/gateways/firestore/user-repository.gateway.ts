@@ -30,7 +30,9 @@ import {
 } from 'firebase/firestore'
 import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
 
+import { dispatchCreateAuditLog } from '../../domain-events/create-audit-log.domain-event.ts'
 import { createPaginatedResult } from '../../dto.ts'
+import { createFirebaseAuditLogRepository } from './auditLog-repository.gateway.ts'
 
 const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: UserSortField = 'createdAt'
@@ -146,7 +148,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       }
     },
 
-    async findAll(params: Parameters<IUserRepository['findAll']>[0]) {
+    async findAll(params) {
       try {
         const { page, limit: pageLimit } = normalizePagination(params.pagination)
         const sortField = validateSortField(params.sort?.field)
@@ -185,7 +187,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
     async create(params) {
       try {
-        const { id, firstName, middleName, lastName, email, positions } = params
+        const { id, firstName, middleName, lastName, email, positions, createdById } = params
 
         const validatedEmail = validateEmail(email)
         const trimmedFirstName = firstName?.trim()
@@ -203,7 +205,8 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           throw new TypeError('Invalid input: "positions" must be an array')
         }
 
-        const userId = typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined
+        const userId = validateUserId(id)
+        const validatedCreatedById = validateUserId(createdById)
 
         const now = Timestamp.now()
 
@@ -225,6 +228,17 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           : doc(collection(firestore, COLLECTION_NAME))
         await setDoc(docRef, userDoc)
 
+        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
+
+        dispatchCreateAuditLog(auditLogRepository, {
+          type: 'audit-log.create.requested',
+          payload: {
+            action: 'USER_CREATED',
+            targetId: docRef.id,
+            performerId: validatedCreatedById,
+          },
+        })
+
         return mapUserDocToDTO(docRef.id, userDoc)
       } catch (error) {
         console.error('Error creating user:', error)
@@ -235,6 +249,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async update(user) {
       try {
         const validatedId = validateUserId(user.id)
+        const validatedUpdatedById = validateUserId(user.updatedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -248,7 +263,6 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           lastName: user.lastName,
           middleName: user.middleName ?? null,
           email: user.email,
-          password: user.password,
           positions: user.positions,
           updatedAt: now,
         }
@@ -260,6 +274,17 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           throw new Error(`User with ID "${validatedId}" not found after update`)
         }
 
+        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
+
+        dispatchCreateAuditLog(auditLogRepository, {
+          type: 'audit-log.create.requested',
+          payload: {
+            action: 'USER_UPDATED',
+            targetId: docRef.id,
+            performerId: validatedUpdatedById,
+          },
+        })
+
         return mapUserDocToDTO(updatedSnap.id, updatedSnap.data())
       } catch (error) {
         console.error('Error updating user:', error)
@@ -270,6 +295,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async delete(params) {
       try {
         const validatedId = validateUserId(params.id)
+        const validatedDeletedById = validateUserId(params.deletedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -278,6 +304,17 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
         }
 
         await deleteDoc(docRef)
+
+        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
+
+        dispatchCreateAuditLog(auditLogRepository, {
+          type: 'audit-log.create.requested',
+          payload: {
+            action: 'USER_DELETED',
+            targetId: docRef.id,
+            performerId: validatedDeletedById,
+          },
+        })
 
         const sessionsQuery = query(
           collection(firestore, SESSIONS_COLLECTION),
@@ -305,6 +342,7 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async disable(params) {
       try {
         const validatedId = validateUserId(params.id)
+        const validatedDisabledById = validateUserId(params.deletedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -315,6 +353,17 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
         await updateDoc(docRef, {
           disabled: true,
           updatedAt: new Date().toISOString(),
+        })
+
+        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
+
+        dispatchCreateAuditLog(auditLogRepository, {
+          type: 'audit-log.create.requested',
+          payload: {
+            action: 'USER_DISABLED',
+            targetId: docRef.id,
+            performerId: validatedDisabledById,
+          },
         })
 
         const sessionsQuery = query(
