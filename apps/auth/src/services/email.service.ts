@@ -1,6 +1,5 @@
-import { resend } from '../lib/resend.ts'
-
-type VerificationEmailUser = {
+import { sendEmail } from '../lib/email-worker.ts'
+export type VerificationEmailUser = {
   email: string
   name?: string | null
   firstName?: string
@@ -11,38 +10,40 @@ type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(
-    to: string,
-    tempPassword: string,
-    userName: string
-  ) {
-    const result = await resend.emails.send({
-      from: this.fromEmail,
-      to,
-      subject: 'Welcome to Herald!',
-      html: this.getWelcomeTemplate(userName, tempPassword),
-    })
-    return result
+  async sendWelcomeEmail(to: string, tempPassword: string, userName: string) {
+    await sendEmail(
+      {
+        from: this.fromEmail,
+        to,
+        subject: 'Welcome to Herald!',
+        html: this.getWelcomeTemplate(userName, tempPassword),
+      },
+      'welcome-email'
+    )
   }
 
   async sendVerificationEmail(user: VerificationEmailUser, url: string) {
-    const result = await resend.emails.send({
-      from: this.fromEmail,
-      to: user.email,
-      subject: 'Verify Your Email Address',
-      html: this.getVerificationTemplate(user, url),
-    })
-    return result
+    await sendEmail(
+      {
+        from: this.fromEmail,
+        to: user.email,
+        subject: 'Verify Your Email Address',
+        html: this.getVerificationTemplate(user, url),
+      },
+      'verification-email'
+    )
   }
 
   async sendPasswordReset(to: string, resetLink: string) {
-    const result = await resend.emails.send({
-      from: this.fromEmail,
-      to,
-      subject: 'Reset Your Password',
-      html: this.getPasswordResetTemplate(resetLink),
-    })
-    return result
+    await sendEmail(
+      {
+        from: this.fromEmail,
+        to,
+        subject: 'Reset Your Password',
+        html: this.getPasswordResetTemplate(resetLink),
+      },
+      'password-email'
+    )
   }
 
   private getWelcomeTemplate(name: string, password: string) {
