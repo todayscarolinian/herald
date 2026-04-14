@@ -29,6 +29,15 @@ import {
   where,
 } from 'firebase/firestore'
 import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
+// Structural type for the Firebase Admin Storage bucket — avoids a direct
+// dependency on @google-cloud/storage while remaining compatible with it.
+type StorageFile = {
+  save(data: Buffer, options?: { metadata?: { contentType?: string } }): Promise<void>
+  makePublic(): Promise<unknown>
+  publicUrl(): string
+  delete(): Promise<unknown>
+}
+type StorageBucket = { file(path: string): StorageFile }
 
 import { createPaginatedResult } from '../../dto.ts'
 
@@ -97,7 +106,18 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
   }
 }
 
-export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
+type UploadProfilePicture = {
+  uploadProfilePicture(
+    userId: string,
+    imageBuffer: Buffer,
+    contentType: string,
+    bucket: StorageBucket
+  ): Promise<string>
+}
+
+export function createFirebaseUserRepository(
+  firestore: Firestore
+): IUserRepository & UploadProfilePicture {
   const COLLECTION_NAME = 'users'
   const SESSIONS_COLLECTION = 'sessions'
   const ACCOUNTS_COLLECTION = 'accounts'
