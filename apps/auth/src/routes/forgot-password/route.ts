@@ -1,11 +1,37 @@
-import { APIResponse } from '@herald/types'
+import { APIResponse, RATE_LIMIT_THRESHOLDS } from '@herald/types'
 import { forgotPasswordSchema } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
 import { auth } from '../../lib/auth.ts'
+import { checkRateLimit, isLimited } from '../../lib/rate-limiter.ts'
 
 const app = new Hono()
+
+function getClientIp(c: {
+  req: { header: (name: string) => string | undefined }
+}): string | undefined {
+  const forwardedFor = c.req.header('x-forwarded-for')
+  if (forwardedFor) {return forwardedFor.split(',')[0]?.trim()}
+
+  const cfIp = c.req.header('cf-connecting-ip')
+  if (cfIp) {return cfIp.trim()}
+
+  return c.req.header('x-real-ip') ?? undefined
+}
+
+function rateLimitErrorResponse(c: { json: <T>(body: T, status?: number) => Response }) {
+  return c.json<APIResponse>(
+    {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Unable to apply rate limiting at this time. Please try again later.',
+      },
+    },
+    500
+  )
+}
 
 app.post('/forgot-password', async (c) => {
   let body: unknown
@@ -36,6 +62,43 @@ app.post('/forgot-password', async (c) => {
     )
   }
   const { email } = parsed.data
+
+  let rateLimitResult
+  try {
+    rateLimitResult = await checkRateLimit(
+      {
+        route: '/auth/forgot-password',
+        method: 'POST',
+        ip: getClientIp(c),
+        now: Date.now(),
+      },
+      {
+        ...RATE_LIMIT_THRESHOLDS.FORGOT_PASSWORD,
+        methodScope: 'perIP',
+        keyPrefix: 'forgot-password',
+      }
+    )
+  } catch (err) {
+    console.error('[forgot-password] Rate limiter failed:', err)
+    return rateLimitErrorResponse(c)
+  }
+
+  if (isLimited(rateLimitResult)) {
+    if (rateLimitResult.retryAfterSeconds) {
+      c.header('Retry-After', String(rateLimitResult.retryAfterSeconds))
+    }
+
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: {
+          code: 'TOO_MANY_REQUESTS',
+          message: 'Too many requests - please try again later',
+        },
+      },
+      429
+    )
+  }
 
   try {
     await auth.api.requestPasswordReset({

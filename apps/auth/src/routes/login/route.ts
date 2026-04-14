@@ -1,13 +1,39 @@
 import type { APIResponse, LoginResponse, Position } from '@herald/types'
+import { RATE_LIMIT_THRESHOLDS } from '@herald/types'
 import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { auth } from '../../lib/auth.js'
+import { checkRateLimit, isLimited } from '../../lib/rate-limiter.ts'
 import { authService } from '../../services/auth.service.ts'
-
 const loginRouter = new Hono()
+
+function getClientIp(c: {
+  req: { header: (name: string) => string | undefined }
+}): string | undefined {
+  const forwardedFor = c.req.header('x-forwarded-for')
+  if (forwardedFor) {return forwardedFor.split(',')[0]?.trim()}
+
+  const cfIp = c.req.header('cf-connecting-ip')
+  if (cfIp) {return cfIp.trim()}
+
+  return c.req.header('x-real-ip') ?? undefined
+}
+
+function rateLimitErrorResponse(c: { json: <T>(body: T, status?: number) => Response }) {
+  return c.json<APIResponse>(
+    {
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Unable to apply rate limiting at this time. Please try again later.',
+      },
+    },
+    500
+  )
+}
 
 // ---------------------------------------------------------------------------
 // POST /auth/login/credentials
@@ -43,6 +69,43 @@ loginRouter.post('/credentials', async (c) => {
   }
 
   const { email, password, rememberMe } = parsed.data
+
+  let rateLimitResult
+  try {
+    rateLimitResult = await checkRateLimit(
+      {
+        route: '/auth/login/credentials',
+        method: 'POST',
+        ip: getClientIp(c),
+        now: Date.now(),
+      },
+      {
+        ...RATE_LIMIT_THRESHOLDS.LOGIN,
+        methodScope: 'perIP',
+        keyPrefix: 'login',
+      }
+    )
+  } catch (err) {
+    console.error('[login/credentials] Rate limiter failed:', err)
+    return rateLimitErrorResponse(c)
+  }
+
+  if (isLimited(rateLimitResult)) {
+    if (rateLimitResult.retryAfterSeconds) {
+      c.header('Retry-After', String(rateLimitResult.retryAfterSeconds))
+    }
+
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: {
+          code: 'TOO_MANY_REQUESTS',
+          message: 'Too many login attempts. Please try again later',
+        },
+      },
+      429
+    )
+  }
 
   // Authenticate via BetterAuth -- passes rememberMe so BetterAuth sets the
   // correct cookie duration (30-day when true, default 5-day when false/unset).
@@ -223,6 +286,43 @@ loginRouter.post('/google', async (c) => {
   }
 
   const { email } = parsed.data
+
+  let googleRateLimitResult
+  try {
+    googleRateLimitResult = await checkRateLimit(
+      {
+        route: '/auth/login/google',
+        method: 'POST',
+        ip: getClientIp(c),
+        now: Date.now(),
+      },
+      {
+        ...RATE_LIMIT_THRESHOLDS.LOGIN,
+        methodScope: 'perIP',
+        keyPrefix: 'login-google',
+      }
+    )
+  } catch (err) {
+    console.error('[login/google] Rate limiter failed:', err)
+    return rateLimitErrorResponse(c)
+  }
+
+  if (isLimited(googleRateLimitResult)) {
+    if (googleRateLimitResult.retryAfterSeconds) {
+      c.header('Retry-After', String(googleRateLimitResult.retryAfterSeconds))
+    }
+
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: {
+          code: 'TOO_MANY_REQUESTS',
+          message: 'Too many login attempts. Please try again later',
+        },
+      },
+      429
+    )
+  }
 
   // Look up user in Firestore by email
   const isUserExists = await authService.isUserExists(email)
