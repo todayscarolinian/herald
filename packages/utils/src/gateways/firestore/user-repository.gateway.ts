@@ -366,6 +366,55 @@ export function createFirebaseUserRepository(
     async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },
+
+    async uploadProfilePicture(
+      userId: string,
+      imageBuffer: Buffer,
+      contentType: string,
+      bucket: StorageBucket
+    ): Promise<string> {
+      try {
+        const validatedId = validateUserId(userId)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        const previousUrl: string | undefined = docSnap.data()?.profilePictureURL
+
+        const filePath = `users/${validatedId}/avatar.jpg`
+        const file = bucket.file(filePath)
+        await file.save(imageBuffer, { metadata: { contentType } })
+        await file.makePublic()
+        const publicUrl = file.publicUrl()
+
+        await updateDoc(docRef, {
+          profilePictureURL: publicUrl,
+          updatedAt: Timestamp.now(),
+        })
+
+        if (previousUrl) {
+          try {
+            const url = new URL(previousUrl)
+            const oldPath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] ?? '')
+            if (oldPath && oldPath !== filePath) {
+              await bucket.file(oldPath).delete()
+            }
+          } catch {
+            console.error(
+              `[uploadProfilePicture] Failed to delete old image for user ${validatedId}`
+            )
+          }
+        }
+
+        return publicUrl
+      } catch (error) {
+        console.error('Error uploading profile picture:', error)
+        throw error
+      }
+    },
   }
 }
 
@@ -515,6 +564,8 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
     positions,
     emailVerified,
     disabled,
+    profilePictureURL:
+      typeof docSnap.profilePictureURL === 'string' ? docSnap.profilePictureURL : undefined,
     createdAt,
     updatedAt,
   }
