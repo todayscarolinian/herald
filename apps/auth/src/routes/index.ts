@@ -6,6 +6,7 @@ import forgotPasswordRoutes from './forgot-password/route.ts'
 import loginRouter from './login/route.ts'
 import { logout } from './logout/route.ts'
 import resetPasswordRoute from './reset-password/route.ts'
+import sendVerificationEmailRoutes from './send-verification-email/route.ts'
 import sendWelcomeEmailRoute from './send-welcome-email/route.ts'
 import verifySessionRoutes from './verify-session/route.ts'
 
@@ -25,6 +26,7 @@ const endpoints = {
   forgotPassword: '/auth/forgot-password',
   resetPassword: '/auth/reset-password',
   changePassword: '/auth/change-password',
+  sendVerificationEmail: '/auth/send-verification-email',
 }
 
 app.get('/', (c) => {
@@ -59,6 +61,7 @@ authRouter.route('/', logout)
 authRouter.route('/', forgotPasswordRoutes)
 authRouter.route('/', resetPasswordRoute)
 authRouter.route('/', sendWelcomeEmailRoute)
+authRouter.route('/', sendVerificationEmailRoutes)
 authRouter.route('/', verifySessionRoutes)
 authRouter.route('/', changePasswordRoute)
 
