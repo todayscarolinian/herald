@@ -21,10 +21,10 @@ interface Props {
 
 export function PositionsTable({ positions }: Props) {
   return (
-    <div className="rounded-none border">
+    <div className="rounded-none">
       <Table>
-        <TableHeader>
-          <TableRow className="bg-tc_grayscale-100">
+        <TableHeader className="[&_tr]:border-b-0">
+          <TableRow className="bg-tc_grayscale-100 border-b-0">
             <TableHead className="text-tc_grayscale-900 px-4 py-2 text-xs font-semibold">
               Name
             </TableHead>
@@ -40,7 +40,7 @@ export function PositionsTable({ positions }: Props) {
           </TableRow>
         </TableHeader>
 
-        <TableBody>
+        <TableBody className="[&_tr:last-child]:border-b">
           {positions.map((position) => (
             <TableRow
               key={position.id}
