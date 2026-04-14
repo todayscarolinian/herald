@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { ArrowDownUp, Search,SlidersHorizontal } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import { PositionsTable } from '@/components/positions/positions-table'
 import {
@@ -11,6 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Input } from '@/components/ui/input'
 
 const MOCK_POSITIONS = [
   { id: '1', name: 'Editor-in-Chief', abbreviation: 'EIC', userCount: 1, createdOn: '01/01/26' },
@@ -53,6 +55,18 @@ const MOCK_POSITIONS = [
 
 export default function PositionsPage() {
   const [positions] = useState(MOCK_POSITIONS)
+  const [search, setSearch] = useState('')
+
+  // 🔍 filtering logic (core of this commit)
+  const filteredPositions = useMemo(() => {
+    const query = search.toLowerCase().trim()
+
+    if (!query) {return positions}
+
+    return positions.filter(
+      (p) => p.name.toLowerCase().includes(query) || p.abbreviation.toLowerCase().includes(query)
+    )
+  }, [positions, search])
 
   return (
     <main className="bg-background flex min-h-screen flex-col">
@@ -77,7 +91,32 @@ export default function PositionsPage() {
           <h1 className="text-foreground text-2xl font-bold">Positions</h1>
         </div>
 
-        <PositionsTable positions={positions} />
+        {/* 🔍 Toolbar */}
+        <div className="mb-6 flex items-center gap-3">
+          {/* Search */}
+          <div className="relative h-12 flex-1">
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 h-6 w-4 w-6 -translate-y-1/2" />
+            <Input
+              placeholder="Search positions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-tc_grayscale-900 h-12 pl-11 text-base font-semibold"
+            />
+          </div>
+
+          <button className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors">
+            <SlidersHorizontal className="h-6 w-6" />
+            <span className="text-sm leading-none font-bold">Filter</span>
+          </button>
+
+          <button className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors">
+            <ArrowDownUp className="h-6 w-6" />
+            <span className="text-sm leading-none font-bold">Sort</span>
+          </button>
+        </div>
+
+        {/* Table */}
+        <PositionsTable positions={filteredPositions} />
       </div>
     </main>
   )
