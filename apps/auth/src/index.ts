@@ -5,7 +5,7 @@ import { auth } from './lib/auth.ts'
 import { serializeError } from './lib/errors/serialize-error.ts'
 import corsMiddleware from './middleware/cors.ts'
 import internalApiKeyMiddleware from './middleware/internal-api-key.ts'
-import rateLimiterMiddleware from './middleware/rateLimiter.ts'
+import rateLimiterMiddleware from './middleware/rate-limiter.ts'
 import routes from './routes/index.ts'
 
 const app = new Hono()
