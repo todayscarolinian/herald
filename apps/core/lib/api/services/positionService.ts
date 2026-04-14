@@ -3,6 +3,7 @@ import type {
   CreatePositionInput,
   DeletePositionInput,
   ListPositionInput,
+  PaginatedResult,
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
