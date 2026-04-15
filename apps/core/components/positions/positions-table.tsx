@@ -46,7 +46,7 @@ export function PositionsTable({ positions }: Props) {
               key={position.id}
               className="hover:bg-muted/50 text-tc_grayscale-900 cursor-pointer bg-white text-base"
             >
-              <TableCell className="px-4 py-[18px] font-medium">{position.name}</TableCell>
+              <TableCell className="px-4 py-[18px] font-semibold">{position.name}</TableCell>
 
               <TableCell className="px-4 py-[18px]">{position.abbreviation}</TableCell>
 
