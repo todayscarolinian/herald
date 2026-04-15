@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DesktopToolbar } from '@/components/positions/desktop-toolbar'
@@ -80,28 +81,43 @@ export default function PositionsPage() {
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
+  // MOBILE PAGINATION STATE
+  const MOBILE_PAGE_SIZE = 10
+  const [mobilePage, setMobilePage] = useState(0)
+
   useEffect(() => {
     const check = () => {
       const width = window.innerWidth
-      setIsMobile(width <= 440)
-      setIsTablet(width > 440 && width < 1024)
+      setIsMobile(width <= 470)
+      setIsTablet(width > 470 && width < 1024)
     }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // reset mobile page on search change
+  useEffect(() => {
+    setMobilePage(0)
+  }, [search])
+
   const filteredPositions = useMemo(() => {
     const query = search.toLowerCase().trim()
 
-    if (!query) {
-      return positions
-    }
+    if (!query) {return positions}
 
     return positions.filter(
       (p) => p.name.toLowerCase().includes(query) || p.abbreviation.toLowerCase().includes(query)
     )
   }, [positions, search])
+
+  // MOBILE PAGINATION DATA
+  const mobileTotalPages = Math.ceil(filteredPositions.length / MOBILE_PAGE_SIZE)
+
+  const mobilePaginated = useMemo(() => {
+    const start = mobilePage * MOBILE_PAGE_SIZE
+    return filteredPositions.slice(start, start + MOBILE_PAGE_SIZE)
+  }, [filteredPositions, mobilePage])
 
   const handleOpenDetails = (position: Position) => {
     setSelectedPosition(position)
@@ -109,7 +125,7 @@ export default function PositionsPage() {
   }
 
   return (
-    <main className="font-roboto flex min-h-screen flex-col bg-[#f9fafb]">
+    <main className="font-roboto flex min-h-screen flex-col !bg-[#f9fafb]">
       <div className="px-6 py-4">
         {!isMobile && !isTablet && (
           <Breadcrumb>
@@ -144,10 +160,37 @@ export default function PositionsPage() {
 
         {isMobile ? (
           <>
-            <div className="pb-20">
-              {filteredPositions.map((p) => (
+            <div>
+              {mobilePaginated.map((p) => (
                 <PositionCard key={p.id} position={p} onClick={() => handleOpenDetails(p)} />
               ))}
+            </div>
+
+            <div className="mt-4 mb-12 flex items-center justify-between px-0 py-3">
+              <button
+                onClick={() => setMobilePage((p) => Math.max(p - 1, 0))}
+                disabled={mobilePage === 0}
+                className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
+              >
+                <ChevronLeft className="h-6 w-6 text-black/60" strokeWidth={1.5} />
+              </button>
+
+              <div className="text-sm text-black">
+                {filteredPositions.length === 0
+                  ? '0 of 0'
+                  : `${mobilePage * MOBILE_PAGE_SIZE + 1}–${Math.min(
+                      (mobilePage + 1) * MOBILE_PAGE_SIZE,
+                      filteredPositions.length
+                    )} of ${filteredPositions.length}`}
+              </div>
+
+              <button
+                onClick={() => setMobilePage((p) => Math.min(p + 1, mobileTotalPages - 1))}
+                disabled={mobilePage >= mobileTotalPages - 1}
+                className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
+              >
+                <ChevronRight className="h-6 w-6 text-black/60" strokeWidth={1.5} />
+              </button>
             </div>
 
             <MobileToolbar
