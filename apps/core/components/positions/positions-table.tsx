@@ -17,9 +17,10 @@ export type Position = {
 
 interface Props {
   positions: Position[]
+  onRowClick?: (position: Position) => void
 }
 
-export function PositionsTable({ positions }: Props) {
+export function PositionsTable({ positions, onRowClick }: Props) {
   return (
     <div className="rounded-none">
       <Table>
@@ -44,6 +45,7 @@ export function PositionsTable({ positions }: Props) {
           {positions.map((position) => (
             <TableRow
               key={position.id}
+              onClick={() => onRowClick?.(position)}
               className="hover:bg-muted/50 text-tc_grayscale-900 cursor-pointer bg-white text-base"
             >
               <TableCell className="px-4 py-[18px] font-semibold">{position.name}</TableCell>
