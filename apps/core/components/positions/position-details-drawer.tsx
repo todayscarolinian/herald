@@ -34,17 +34,17 @@ export function PositionDetailsDrawer({ position, open, onOpenChange, isMobile }
       <SheetContent
         side={isMobile ? 'bottom' : 'right'}
         className={[
-          'flex flex-col bg-white p-0',
+          'flex flex-col overflow-hidden bg-white p-0',
           'border-[1px] border-black/40',
           !isMobile && '[&>button]:hidden',
-          isMobile ? 'h-[92vh] rounded-t-2xl' : 'h-full',
+          isMobile ? 'h-[92vh] rounded-t-[8px]' : 'h-full rounded-l-[8px]',
         ].join(' ')}
         style={{
           width: isMobile ? '100%' : '490px',
           maxWidth: isMobile ? '100%' : '490px',
         }}
       >
-        <SheetHeader className="px-4 pt-4 pb-0">
+        <SheetHeader className="font-roboto px-4 pt-4 pb-0">
           {!isMobile && (
             <div className="mb-4 flex flex-col gap-[10px] text-left">
               <button
@@ -54,20 +54,22 @@ export function PositionDetailsDrawer({ position, open, onOpenChange, isMobile }
                 <ChevronRight className="h-6 w-6 text-black" />
               </button>
 
-              <h2 className="text-[24px] leading-tight font-bold text-black">{position.name}</h2>
+              <h2 className="font-roboto-condensed text-[24px] leading-tight font-bold text-black">
+                {position.name}
+              </h2>
 
               <div className="text-tc_grayscale-800 flex items-center justify-between text-[14px]">
                 <span>
                   {position.userCount} {position.userCount === 1 ? 'user' : 'users'}
                 </span>
-                <span>{position.createdOn}</span>
+                <span>created {position.createdOn}</span>
               </div>
 
               <div className="mt-2 h-[1px] w-full bg-black opacity-60" />
             </div>
           )}
 
-          <SheetTitle className="pb-0 text-left text-[16px] font-bold text-black">
+          <SheetTitle className="font-roboto-condensed pb-0 text-left text-[16px] font-bold text-black">
             Position Details
           </SheetTitle>
         </SheetHeader>

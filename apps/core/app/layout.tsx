@@ -1,11 +1,21 @@
 import './globals.css'
 
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Inter } from 'next/font/google'
+import { Geist, Geist_Mono, Inter, Roboto, Roboto_Condensed } from 'next/font/google'
 import { Toaster } from 'sonner'
 
 import CoreProvider from '@/components/providers/CoreProvider'
 import { cn } from '@/lib/utils'
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  variable: '--font-roboto',
+})
+
+const robotoCondensed = Roboto_Condensed({
+  subsets: ['latin'],
+  variable: '--font-roboto-condensed',
+})
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -30,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={cn('font-sans', inter.variable)}>
+    <html
+      lang="en"
+      className={cn('font-sans', inter.variable, roboto.variable, robotoCondensed.variable)}
+    >
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <CoreProvider>{children}</CoreProvider>
         <Toaster richColors position="top-right" />

@@ -87,7 +87,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
   }, [position])
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="font-roboto flex h-full flex-col">
       <div className="flex-1 space-y-6 overflow-y-auto px-1 pb-4">
         <div className="flex flex-col gap-[10px]">
           <Label className="text-[12px] font-bold text-black">

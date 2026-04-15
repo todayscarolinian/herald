@@ -24,7 +24,9 @@ export function PositionCard({ position, onClick }: Props) {
     >
       <CardHeader className="px-4 py-0">
         <div className="flex min-w-0 items-baseline gap-1">
-          <h3 className="text-foreground truncate text-base font-bold">{position.name}</h3>
+          <h3 className="text-foreground font-roboto-condensed truncate text-base font-bold">
+            {position.name}
+          </h3>
           <span className="text-tc_grayscale-800 text-muted-foreground shrink-0 text-[10px] whitespace-nowrap">
             {position.abbreviation}
           </span>

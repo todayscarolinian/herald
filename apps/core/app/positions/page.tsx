@@ -109,7 +109,7 @@ export default function PositionsPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f9fafb]">
+    <main className="font-roboto flex min-h-screen flex-col bg-[#f9fafb]">
       <div className="px-6 py-4">
         {!isMobile && !isTablet && (
           <Breadcrumb>
@@ -130,7 +130,7 @@ export default function PositionsPage() {
 
       <div className="flex-1 px-6 py-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-foreground text-2xl font-bold">Positions</h1>
+          <h1 className="text-foreground font-roboto-condensed text-2xl font-bold">Positions</h1>
         </div>
 
         {!isMobile && (
