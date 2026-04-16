@@ -78,6 +78,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   useEffect(() => {
     if (position) {
+       
       setForm({
         name: position.name,
         abbreviation: position.abbreviation,

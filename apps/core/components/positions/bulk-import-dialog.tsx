@@ -72,13 +72,13 @@ export function BulkImportDialog({ open, mode, onOpenChange, onSubmit }: Props) 
 
             <div className="space-y-1 text-sm text-black">
               <p>
-                <span className="font-bold">name</span> — The position’s name
+                <span className="font-bold">name</span> — The positions name
               </p>
               <p>
-                <span className="font-bold">abbreviation</span> — The position’s abbreviation
+                <span className="font-bold">abbreviation</span> — The position&apos;s abbreviation
               </p>
               <p>
-                <span className="font-bold">permissions</span> — The position’s permission IDs
+                <span className="font-bold">permissions</span> — The position&apos;s permission IDs
                 separated by commas (view available permissions in dashboard)
               </p>
             </div>

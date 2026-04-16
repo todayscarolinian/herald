@@ -99,10 +99,6 @@ export default function PositionsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  useEffect(() => {
-    setMobilePage(0)
-  }, [search])
-
   const filteredPositions = useMemo(() => {
     const query = search.toLowerCase().trim()
 
@@ -163,7 +159,10 @@ export default function PositionsPage() {
         {!isMobile && (
           <DesktopToolbar
             search={search}
-            onSearchChange={setSearch}
+            onSearchChange={(val) => {
+              setSearch(val)
+              setMobilePage(0)
+            }}
             onFilterClick={() => {}}
             onSortClick={() => {}}
           />
@@ -206,7 +205,10 @@ export default function PositionsPage() {
 
             <MobileToolbar
               search={search}
-              onSearchChange={setSearch}
+              onSearchChange={(val) => {
+                setSearch(val)
+                setMobilePage(0)
+              }}
               onFilterClick={() => {}}
               onSortClick={() => {}}
             />
@@ -231,7 +233,7 @@ export default function PositionsPage() {
             setBulkMode(null)
           }
         }}
-        onSubmit={(file, mode) => {
+        onSubmit={(_file, mode) => {
           if (mode === 'create') {
             // T0 DO: parse CSV → add new positions
           } else {

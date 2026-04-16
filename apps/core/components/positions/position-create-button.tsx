@@ -98,7 +98,7 @@ export function CreatePositionButton() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold uppercase">Create Position</DialogTitle>
             <DialogDescription className="text-base">
-              Creates a new organizational position. Click Create Position when you're done.
+              Creates a new organizational position. Click Create Position when you&apos;re done.
             </DialogDescription>
           </DialogHeader>
 
