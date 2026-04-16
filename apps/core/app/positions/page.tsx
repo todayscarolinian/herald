@@ -3,10 +3,13 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { BulkImportDialog } from '@/components/positions/bulk-import-dialog'
 import { DesktopToolbar } from '@/components/positions/desktop-toolbar'
 import { MobileToolbar } from '@/components/positions/mobile-toolbar'
 import { PositionCard } from '@/components/positions/position-card'
+import { CreatePositionButton } from '@/components/positions/position-create-button'
 import { PositionDetailsDrawer } from '@/components/positions/position-details-drawer'
+import { ImportPositionButton } from '@/components/positions/position-import-button'
 import { PositionsTable } from '@/components/positions/positions-table'
 import {
   Breadcrumb,
@@ -80,8 +83,8 @@ export default function PositionsPage() {
   const [isTablet, setIsTablet] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [bulkMode, setBulkMode] = useState<null | 'create' | 'update'>(null)
 
-  // MOBILE PAGINATION STATE
   const MOBILE_PAGE_SIZE = 10
   const [mobilePage, setMobilePage] = useState(0)
 
@@ -96,7 +99,6 @@ export default function PositionsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // reset mobile page on search change
   useEffect(() => {
     setMobilePage(0)
   }, [search])
@@ -104,14 +106,15 @@ export default function PositionsPage() {
   const filteredPositions = useMemo(() => {
     const query = search.toLowerCase().trim()
 
-    if (!query) {return positions}
+    if (!query) {
+      return positions
+    }
 
     return positions.filter(
       (p) => p.name.toLowerCase().includes(query) || p.abbreviation.toLowerCase().includes(query)
     )
   }, [positions, search])
 
-  // MOBILE PAGINATION DATA
   const mobileTotalPages = Math.ceil(filteredPositions.length / MOBILE_PAGE_SIZE)
 
   const mobilePaginated = useMemo(() => {
@@ -147,6 +150,14 @@ export default function PositionsPage() {
       <div className="flex-1 px-6 py-6">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-foreground font-roboto-condensed text-2xl font-bold">Positions</h1>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ImportPositionButton
+              onCreateBulk={() => setBulkMode('create')}
+              onUpdateBulk={() => setBulkMode('update')}
+            />
+            <CreatePositionButton />
+          </div>
         </div>
 
         {!isMobile && (
@@ -210,6 +221,23 @@ export default function PositionsPage() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         isMobile={isMobile}
+      />
+
+      <BulkImportDialog
+        open={!!bulkMode}
+        mode={bulkMode ?? 'create'}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkMode(null)
+          }
+        }}
+        onSubmit={(file, mode) => {
+          if (mode === 'create') {
+            // T0 DO: parse CSV → add new positions
+          } else {
+            // T0 D0: parse CSV → update existing positions
+          }
+        }}
       />
     </main>
   )

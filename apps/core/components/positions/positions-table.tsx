@@ -7,7 +7,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -105,7 +104,7 @@ export function PositionsTable({ positions, onRowClick }: Props) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-6 px-4 py-4">
+      <div className="mt-3 flex items-center justify-end space-x-6 px-4 py-4">
         <div className="flex items-center space-x-2">
           <p className="mr-[10px] text-sm">Rows per page</p>
           <Select

@@ -18,7 +18,6 @@ type Props = {
 export function PositionCard({ position, onClick }: Props) {
   return (
     <Card
-      // onClick={() => onClick?.(position)}
       onClick={onClick}
       className="mb-5 flex h-[83px] min-w-[250px] cursor-pointer flex-col justify-center gap-2 overflow-hidden rounded-[8px] border border-black/40 bg-white p-0 transition hover:shadow-md"
     >
