@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import {
   AlertDialog,
@@ -55,11 +55,15 @@ type Props = {
 }
 
 export function PositionDetailsContent({ position, onClose }: Props) {
-  const [form, setForm] = useState({
-    name: '',
-    abbreviation: '',
-    permissions: [] as string[],
-  })
+  if (!position) {
+    return null
+  }
+
+  const [form, setForm] = useState(() => ({
+    name: position.name,
+    abbreviation: position.abbreviation,
+    permissions: position.permissions ?? [],
+  }))
 
   const [touched, setTouched] = useState({
     name: false,
@@ -75,17 +79,6 @@ export function PositionDetailsContent({ position, onClose }: Props) {
     form.name.trim() !== '' && form.abbreviation.trim() !== '' && form.permissions.length > 0
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-  useEffect(() => {
-    if (position) {
-       
-      setForm({
-        name: position.name,
-        abbreviation: position.abbreviation,
-        permissions: position.permissions ?? [], // TODO: load permissions
-      })
-    }
-  }, [position])
 
   return (
     <div className="font-roboto flex h-full flex-col">

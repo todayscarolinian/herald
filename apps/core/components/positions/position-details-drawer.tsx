@@ -75,7 +75,7 @@ export function PositionDetailsDrawer({ position, open, onOpenChange, isMobile }
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-3 pb-4">
-          <PositionDetailsContent position={position} onClose={handleClose} />
+          <PositionDetailsContent key={position.id} position={position} onClose={handleClose} />
         </div>
       </SheetContent>
     </Sheet>
