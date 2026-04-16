@@ -1,7 +1,7 @@
 'use client'
 
 import { FileDown, Trash2, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -33,17 +33,19 @@ export function BulkImportDialog({ open, mode, onOpenChange, onSubmit }: Props) 
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 
-  useEffect(() => {
-    if (!open) {
-      setFile(null)
-      if (inputRef.current) {
-        inputRef.current.value = ''
-      }
-    }
-  }, [open])
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setFile(null)
+          if (inputRef.current) {
+            inputRef.current.value = ''
+          }
+        }
+        onOpenChange(v)
+      }}
+    >
       <DialogContent className="font-roboto flex h-[auto] max-h-[90dvh] !max-w-xl min-w-[320px] flex-col rounded-none p-0 [&>button]:text-white">
         <div className="bg-tc_primary-500 flex flex-none items-center justify-between px-6 py-4">
           <DialogTitle className="text-lg font-bold text-white">{title}</DialogTitle>

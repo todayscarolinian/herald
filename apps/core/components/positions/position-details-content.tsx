@@ -55,14 +55,12 @@ type Props = {
 }
 
 export function PositionDetailsContent({ position, onClose }: Props) {
-  if (!position) {
-    return null
-  }
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const [form, setForm] = useState(() => ({
-    name: position.name,
-    abbreviation: position.abbreviation,
-    permissions: position.permissions ?? [],
+    name: position?.name ?? '',
+    abbreviation: position?.abbreviation ?? '',
+    permissions: position?.permissions ?? [],
   }))
 
   const [touched, setTouched] = useState({
@@ -78,7 +76,9 @@ export function PositionDetailsContent({ position, onClose }: Props) {
   const isFormValid =
     form.name.trim() !== '' && form.abbreviation.trim() !== '' && form.permissions.length > 0
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  if (!position) {
+    return null
+  }
 
   return (
     <div className="font-roboto flex h-full flex-col">
