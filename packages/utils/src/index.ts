@@ -1,5 +1,6 @@
 export * from './constants.ts'
 export * from './dto.ts'
 export * from './email.ts'
+export * from './gateways/firestore/permission-repository.gateway.ts'
 export * from './gateways/firestore/user-repository.gateway.ts'
 export * from './validation.ts'

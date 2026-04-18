@@ -217,17 +217,13 @@ function shuffleArray<T>(items: T[]): T[] {
 
 function parseFilters(searchParams: URLSearchParams): UserFilters {
   const search = searchParams.get('search')?.trim()
-  const positionId = searchParams.get('positionId')?.trim()
   const positionIds = parseListParam(searchParams, 'positionIds')
-  const permissions = parseListParam(searchParams, 'permissions')
   const disabled = parseBooleanParam(searchParams.get('disabled'))
   const emailVerified = parseBooleanParam(searchParams.get('emailVerified'))
 
   return {
     ...(search ? { search } : {}),
-    ...(positionId ? { positionId } : {}),
     ...(positionIds.length ? { positionIds } : {}),
-    ...(permissions.length ? { permissions } : {}),
     ...(disabled !== undefined ? { disabled } : {}),
     ...(emailVerified !== undefined ? { emailVerified } : {}),
   }

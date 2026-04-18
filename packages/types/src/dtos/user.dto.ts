@@ -53,9 +53,7 @@ export interface ListUsersInput {
 
 export interface UserFilters {
   search?: string
-  positionId?: UUID
   positionIds?: UUID[]
-  permissions?: string[]
   disabled?: boolean
   emailVerified?: boolean
 }
