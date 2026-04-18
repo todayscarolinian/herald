@@ -1,22 +1,14 @@
 'use client'
 
+import { PositionDTO } from '@herald/types'
 import { ChevronRight } from 'lucide-react'
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 import { PositionDetailsContent } from './position-details-content'
 
-type Position = {
-  id: string
-  name: string
-  abbreviation: string
-  userCount: number
-  createdOn: string
-  permissions?: string[]
-}
-
 type Props = {
-  position: Position | null
+  position: PositionDTO | null
   open: boolean
   onOpenChange: (open: boolean) => void
   isMobile: boolean
@@ -62,7 +54,7 @@ export function PositionDetailsDrawer({ position, open, onOpenChange, isMobile }
                 <span>
                   {position.userCount} {position.userCount === 1 ? 'user' : 'users'}
                 </span>
-                <span>created {position.createdOn}</span>
+                <span>created {position.createdAt}</span>
               </div>
 
               <div className="mt-2 h-[1px] w-full bg-black opacity-60" />

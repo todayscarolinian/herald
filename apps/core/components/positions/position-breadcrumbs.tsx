@@ -7,17 +7,20 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
-export function UserBreadcrumbs() {
+import { SidebarTrigger } from '../ui/sidebar'
+
+export function PositionBreadcrumbs() {
   return (
-    <div className="ml-6 w-full rounded-lg p-4">
+    <div className="flex w-full items-center gap-2 rounded-lg sm:hidden">
+      <SidebarTrigger className="h-10 w-10 bg-transparent" />
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/Dashboard">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Users</BreadcrumbPage>
+            <BreadcrumbPage>Positions</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

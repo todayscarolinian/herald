@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { AppSidebar } from '@/components/app-sidebar'
+import { AppNavigation } from '@/components/shared'
 import { SidebarProvider } from '@/components/ui/sidebar'
 
 export const metadata: Metadata = {
@@ -15,8 +15,8 @@ export default function UsersLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <main className="w-full min-w-0 flex-1">
+      <main className="flex w-full min-w-0 flex-col md:flex-row">
+        <AppNavigation />
         <div className="w-full pl-4">{children}</div>
       </main>
     </SidebarProvider>

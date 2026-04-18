@@ -1,5 +1,6 @@
 'use client'
 
+import { Position } from '@herald/types'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
@@ -39,15 +40,6 @@ const PERMISSIONS = [
   'PUBLISH_ARTICLE',
   'MANAGE_POSITIONS',
 ]
-
-type Position = {
-  id: string
-  name: string
-  abbreviation: string
-  userCount: number
-  createdOn: string
-  permissions?: string[]
-}
 
 type Props = {
   position: Position | null

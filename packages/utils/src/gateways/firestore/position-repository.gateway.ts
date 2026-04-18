@@ -37,9 +37,10 @@ const DEFAULT_SORT_DIRECTION = 'desc'
 
 export function createPositionRepositoryGateway(firestore: Firestore): IPositionRepository {
   const POSITIONS_COLLECTION = 'positions'
+  const USERS_COLLECTION = 'users'
 
   return {
-    async findById(id) {
+    async findById({ id }) {
       try {
         const validatedId = validatePositionId(id)
         const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
@@ -49,7 +50,8 @@ export function createPositionRepositoryGateway(firestore: Firestore): IPosition
           return null
         }
 
-        return mapPositionDocToDTO(validatedId, docSnap.data())
+        const userCount = await getPositionUserCount(firestore, USERS_COLLECTION, validatedId)
+        return mapPositionDocToDTO(validatedId, docSnap.data(), userCount)
       } catch (error) {
         console.error('Error in findById:', error)
         throw error
@@ -75,7 +77,14 @@ export function createPositionRepositoryGateway(firestore: Firestore): IPosition
 
         const positions = await fetchPaginatedPositions(baseQuery, page, pageLimit)
 
-        return createPaginatedResult(positions, total, {
+        const positionsWithUserCount = await Promise.all(
+          positions.map(async (position) => ({
+            ...position,
+            userCount: await getPositionUserCount(firestore, USERS_COLLECTION, position.id),
+          }))
+        )
+
+        return createPaginatedResult(positionsWithUserCount, total, {
           page,
           limit: pageLimit,
         })
@@ -117,7 +126,7 @@ export function createPositionRepositoryGateway(firestore: Firestore): IPosition
         const docRef = doc(collection(firestore, POSITIONS_COLLECTION))
         await setDoc(docRef, positionDoc)
 
-        return mapPositionDocToDTO(docRef.id, positionDoc)
+        return mapPositionDocToDTO(docRef.id, positionDoc, 0)
       } catch (error) {
         console.error('Error creating position:', error)
         throw error
@@ -149,7 +158,8 @@ export function createPositionRepositoryGateway(firestore: Firestore): IPosition
           throw new Error(`Position with id ${validatedId} was not found after update`)
         }
 
-        return mapPositionDocToDTO(validatedId, updatedDocSnap.data()!)
+        const userCount = await getPositionUserCount(firestore, USERS_COLLECTION, validatedId)
+        return mapPositionDocToDTO(validatedId, updatedDocSnap.data()!, userCount)
       } catch (error) {
         console.error('Error updating position:', error)
         throw error
@@ -321,7 +331,7 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
   }
 }
 
-function mapPositionDocToDTO(id: string, docSnap: DocumentData): PositionDTO {
+function mapPositionDocToDTO(id: string, docSnap: DocumentData, userCount = 0): PositionDTO {
   const name = requireStringField(docSnap, 'name', id)
   const abbreviation = requireStringField(docSnap, 'abbreviation', id)
   const permissions = requirePermissionsField(docSnap, id)
@@ -335,7 +345,21 @@ function mapPositionDocToDTO(id: string, docSnap: DocumentData): PositionDTO {
     permissions,
     createdAt,
     updatedAt,
+    userCount,
   }
+}
+
+async function getPositionUserCount(
+  firestore: Firestore,
+  usersCollection: string,
+  positionId: string
+): Promise<number> {
+  const usersWithPositionQuery = query(
+    collection(firestore, usersCollection),
+    where('positionIds', 'array-contains', positionId)
+  )
+  const usersCountSnapshot = await getCountFromServer(usersWithPositionQuery)
+  return usersCountSnapshot.data().count
 }
 
 function requireStringField(docSnap: DocumentData, field: string, positionId: string): string {

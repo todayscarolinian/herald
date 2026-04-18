@@ -29,7 +29,7 @@ export function ImportPositionButton({
             </div>
           </NavigationMenuTrigger>
           <NavigationMenuContent className="font-roboto w-auto p-4">
-            <p className="text-muted-foreground p-1 text-base font-medium tracking-wide text-black/60 uppercase">
+            <p className="text-muted-foreground p-1 text-sm font-medium tracking-wide text-black/60 uppercase">
               Import Position List
             </p>
             <ul className="font-roboto w-full max-w-[90vw] sm:w-96">

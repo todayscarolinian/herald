@@ -1,11 +1,6 @@
 import { Position, UserProfile } from '@herald/types'
 
-import { UserBreadcrumbs } from '@/components/user-breadcrumbs'
-import { CreateButton } from '@/components/user-create-button'
-import { DataTable } from '@/components/user-data-table'
-import { ImportButton } from '@/components/user-import-button'
-
-import { columns } from './columns'
+import { columns, CreateButton, DataTable, ImportButton, UserBreadcrumbs } from '@/components/users'
 
 const sample1: Position[] = [
   {

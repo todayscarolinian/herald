@@ -1,13 +1,20 @@
 'use client'
+import type { PositionSortField } from '@herald/types'
 import {
   ColumnDef,
+  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
   useReactTable,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 
+import { DesktopToolbar } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -25,43 +32,94 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-export type Position = {
-  id: string
-  name: string
-  abbreviation: string
-  userCount: number
-  createdOn: string
+interface PositionsTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  onRowClick?: (data: TData) => void
 }
-
-interface Props {
-  positions: Position[]
-  onRowClick?: (position: Position) => void
-}
-
-const columns: ColumnDef<Position>[] = [
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'abbreviation', header: 'Abbreviation' },
-  { accessorKey: 'userCount', header: 'User Count' },
-  { accessorKey: 'createdOn', header: 'Created On' },
-]
 
 const pageSizes = [5, 10, 20, 50]
 
-export function PositionsTable({ positions, onRowClick }: Props) {
+export function PositionsTable<TData, TValue>({
+  data,
+  columns,
+  onRowClick,
+}: PositionsTableProps<TData, TValue>) {
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
   const table = useReactTable({
-    data: positions,
+    data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      columnFilters,
+      sorting,
+    },
     initialState: {
       pagination: {
         pageSize: 10,
       },
+      columnVisibility: {
+        permissions: false,
+      },
     },
   })
 
+  const availableFilters = [
+    'CREATE_ARTICLE',
+    'EDIT_ARTICLE',
+    'DELETE_ARTICLE',
+    'PUBLISH_ARTICLE',
+    'MANAGE_USERS',
+  ]
+
+  const availableSortFields = ['name', 'createdAt', 'updatedAt'].filter((field) =>
+    table.getColumn(field)
+  ) as PositionSortField[]
+
+  const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as PositionSortField) : 'name'
+  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
+  const selectedPermissions = (table.getColumn('permissions')?.getFilterValue() ?? []) as string[]
+
+  const applySort = (field: string, direction: 'asc' | 'desc') => {
+    if (!table.getColumn(field)) {
+      return
+    }
+
+    table.setSorting([
+      {
+        id: field,
+        desc: direction === 'desc',
+      },
+    ])
+    table.setPageIndex(0)
+  }
+
+  const applyPermissionsFilter = (permissions: string[]) => {
+    table.getColumn('permissions')?.setFilterValue(permissions)
+    table.setPageIndex(0)
+  }
+
   return (
     <div className="w-full">
+      <DesktopToolbar
+        title="Positions"
+        search={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
+        onSearchChange={(search) => table.getColumn('name')?.setFilterValue(search)}
+        availableFilters={availableFilters}
+        selectedFilters={selectedPermissions}
+        onApplyFilters={applyPermissionsFilter}
+        availableSortFields={availableSortFields}
+        selectedSortField={selectedSortField}
+        selectedSortDirection={selectedSortDirection}
+        onApplySort={applySort}
+      />
       <div className="rounded-none border-b">
         <Table>
           <TableHeader className="bg-tc_grayscale-100">

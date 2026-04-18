@@ -11,7 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowDownUp, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PositionsCombobox } from '@/components/user-positions-combobox'
+import { PositionsCombobox } from '@/components/users/user-positions-combobox'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -60,50 +60,46 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
   })
 
   return (
-    <div className="overflow-hidden p-4 pt-0 pb-0">
-      <div className="p flex items-center pt-4 pb-4">
-        <div className="relative w-full">
+    <div className="overflow-hidden">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="relative h-12 flex-1">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
 
           <Input
             placeholder="Search users..."
             value={(table.getColumn('firstName')?.getFilterValue() as string) ?? ''}
             onChange={(event) => table.getColumn('firstName')?.setFilterValue(event.target.value)}
-            className="pl-10"
+            className="border-tc_grayscale-900 h-12 pl-10 text-base font-medium placeholder:text-base"
           />
         </div>
 
-        <div className="ml-4 flex flex-col items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-1"
-            onClick={() =>
-              table
-                .getColumn('createdAt')
-                ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
-            }
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">Filter</span>
-        </div>
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={() =>
+            table
+              .getColumn('createdAt')
+              ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
+          }
+          className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors"
+        >
+          <SlidersHorizontal className="h-6 w-6" />
+          <span className="text-sm font-bold">Filter</span>
+        </Button>
 
-        <div className="ml-4 flex flex-col items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto p-1"
-            onClick={() =>
-              table
-                .getColumn('createdAt')
-                ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
-            }
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">Sort</span>
-        </div>
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={() =>
+            table
+              .getColumn('createdAt')
+              ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
+          }
+          className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors"
+        >
+          <ArrowDownUp className="h-6 w-6" />
+          <span className="text-sm font-bold">Sort</span>
+        </Button>
       </div>
       <div className="rounded-md">
         <Table>

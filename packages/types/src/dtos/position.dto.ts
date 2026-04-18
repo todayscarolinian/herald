@@ -55,7 +55,9 @@ export type PositionSortField = 'name' | 'createdAt' | 'updatedAt'
 // OUTPUT DTOs
 // =============================================================================
 
-export type PositionDTO = Position
+export type PositionDTO = Position & {
+  userCount: number
+}
 
 export type PositionListDTO = PaginatedResult<PositionDTO>
 

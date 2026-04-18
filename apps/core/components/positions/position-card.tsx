@@ -1,17 +1,11 @@
 'use client'
 
+import { PositionDTO } from '@herald/types'
+
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
-type Position = {
-  id: string
-  name: string
-  abbreviation: string
-  userCount: number
-  createdOn: string
-}
-
 type Props = {
-  position: Position
+  position: PositionDTO
   onClick?: () => void
 }
 
@@ -19,7 +13,7 @@ export function PositionCard({ position, onClick }: Props) {
   return (
     <Card
       onClick={onClick}
-      className="mb-5 flex h-[83px] min-w-[250px] cursor-pointer flex-col justify-center gap-2 overflow-hidden rounded-[8px] border border-black/40 bg-white p-0 transition hover:shadow-md"
+      className="mb-5 flex h-[83px] cursor-pointer flex-col justify-center gap-2 overflow-hidden bg-white p-0 shadow-md transition"
     >
       <CardHeader className="px-4 py-0">
         <div className="flex min-w-0 items-baseline gap-1">
@@ -38,7 +32,7 @@ export function PositionCard({ position, onClick }: Props) {
         </span>
 
         <span className="text-tc_grayscale-800 min-w-0 truncate text-right">
-          created {position.createdOn}
+          created {position.createdAt}
         </span>
       </CardContent>
     </Card>
