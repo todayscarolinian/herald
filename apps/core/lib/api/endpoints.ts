@@ -8,4 +8,5 @@ export const ENDPOINTS = {
     forgotPassword: '/auth/forgot-password',
   },
   users: '/api/users',
+  positions: '/api/positions',
 } as const
