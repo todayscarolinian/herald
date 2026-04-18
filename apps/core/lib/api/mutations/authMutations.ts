@@ -1,5 +1,5 @@
 import type { APIResponse, ForgotPasswordRequest, ResetPasswordRequest } from '@herald/types'
-import { LoginRequest, LoginResponse } from '@herald/types'
+import { LoginRequest } from '@herald/types'
 import { useMutation } from '@tanstack/react-query'
 
 import {
@@ -12,7 +12,7 @@ import {
 } from '@/lib/api/services/authService'
 
 export function useCredentialsSignIn() {
-  return useMutation<LoginResponse, Error, LoginRequest>({
+  return useMutation<void, Error, LoginRequest>({
     mutationFn: credentialsSignIn,
   })
 }

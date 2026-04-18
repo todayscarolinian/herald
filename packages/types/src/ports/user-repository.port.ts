@@ -17,7 +17,6 @@ export interface IUserRepository {
   findByEmail(email: GetUserByEmailInput): Promise<UserDTO | null>
   findAll(params: ListUsersInput): Promise<PaginatedResult<UserDTO>>
   findByPosition(positionId: UUID): Promise<PaginatedResult<UserDTO>>
-  findByPermissions(permissions: string[]): Promise<PaginatedResult<UserDTO>>
 
   create(user: CreateUserInput): Promise<UserDTO>
   update(user: UpdateUserInput): Promise<UserDTO>
