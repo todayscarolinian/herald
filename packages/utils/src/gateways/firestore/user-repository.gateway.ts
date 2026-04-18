@@ -149,9 +149,9 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async findAll(params: Parameters<IUserRepository['findAll']>[0]) {
       try {
         const { page, limit: pageLimit } = normalizePagination(params.pagination)
+        const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
-
         const baseQuery = buildUserQuery(
           firestore,
           COLLECTION_NAME,
@@ -159,6 +159,14 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           sortField,
           sortDirection
         )
+
+        if (search) {
+          const { users, total } = await fetchSearchUsers(baseQuery, search, page, pageLimit)
+          return createPaginatedResult(users, total, {
+            page,
+            limit: pageLimit,
+          })
+        }
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
@@ -386,6 +394,15 @@ function validateSortDirection(direction: unknown): 'asc' | 'desc' {
   return direction === 'asc' ? 'asc' : DEFAULT_SORT_DIRECTION
 }
 
+function normalizeSearchTerm(search: unknown): string | undefined {
+  if (typeof search !== 'string') {
+    return undefined
+  }
+
+  const normalizedSearch = search.trim().toLowerCase()
+  return normalizedSearch.length > 0 ? normalizedSearch : undefined
+}
+
 function buildUserQuery(
   firestore: Firestore,
   collectionName: string,
@@ -429,7 +446,28 @@ async function fetchPaginatedUsers(
 
   const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
   const snapshot = await getDocs(pageQuery)
+
   return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+}
+
+async function fetchSearchUsers(
+  baseQuery: Query<DocumentData>,
+  search: string,
+  page: number,
+  pageLimit: number
+): Promise<{ users: UserDTO[]; total: number }> {
+  const snapshot = await getDocs(baseQuery)
+  const matchingUsers = snapshot.docs
+    .map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+    .filter((user) => matchesSearch(user, search))
+
+  const startIndex = (page - 1) * pageLimit
+  const users = matchingUsers.slice(startIndex, startIndex + pageLimit)
+
+  return {
+    users,
+    total: matchingUsers.length,
+  }
 }
 
 async function getPageCursor(
@@ -484,6 +522,22 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
     createdAt,
     updatedAt,
   }
+}
+
+function matchesSearch(user: UserDTO, search: string): boolean {
+  const firstName = user.firstName.toLowerCase()
+  const middleName = user.middleName?.toLowerCase() ?? ''
+  const lastName = user.lastName.toLowerCase()
+  const email = user.email.toLowerCase()
+  const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim()
+
+  return (
+    firstName.includes(search) ||
+    middleName.includes(search) ||
+    lastName.includes(search) ||
+    email.includes(search) ||
+    fullName.includes(search)
+  )
 }
 
 function requireStringField(docSnap: DocumentData, field: string, userId: string): string {
