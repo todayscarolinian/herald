@@ -14,7 +14,7 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
-import { DesktopToolbar } from '@/components/shared'
+import { DesktopToolbar } from '@/components/positions'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -71,18 +71,6 @@ export function PositionsTable<TData, TValue>({
     },
   })
 
-  const availableFilters = [
-    'CREATE_ARTICLE',
-    'EDIT_ARTICLE',
-    'DELETE_ARTICLE',
-    'PUBLISH_ARTICLE',
-    'MANAGE_USERS',
-  ]
-
-  const availableSortFields = ['name', 'createdAt', 'updatedAt'].filter((field) =>
-    table.getColumn(field)
-  ) as PositionSortField[]
-
   const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as PositionSortField) : 'name'
   const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
   const selectedPermissions = (table.getColumn('permissions')?.getFilterValue() ?? []) as string[]
@@ -112,10 +100,8 @@ export function PositionsTable<TData, TValue>({
         title="Positions"
         search={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
         onSearchChange={(search) => table.getColumn('name')?.setFilterValue(search)}
-        availableFilters={availableFilters}
         selectedFilters={selectedPermissions}
         onApplyFilters={applyPermissionsFilter}
-        availableSortFields={availableSortFields}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
         onApplySort={applySort}

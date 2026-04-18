@@ -12,7 +12,13 @@ import {
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
 
-export function ImportButton() {
+export function ImportButton({
+  onCreateBulk,
+  onUpdateBulk,
+}: {
+  onCreateBulk: () => void
+  onUpdateBulk: () => void
+}) {
   return (
     <NavigationMenu>
       <NavigationMenuList>
@@ -28,10 +34,24 @@ export function ImportButton() {
               Import User List
             </p>
             <ul className="w-96">
-              <ListItem href="/docs" title="Create Users">
+              <ListItem
+                href="#"
+                title="Create Users"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onCreateBulk()
+                }}
+              >
                 Create multiple users all at once via CSV upload
               </ListItem>
-              <ListItem href="/docs/installation" title="Update Users">
+              <ListItem
+                href="#"
+                title="Update Users"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onUpdateBulk()
+                }}
+              >
                 Update multiple users all at once via CSV upload
               </ListItem>
             </ul>

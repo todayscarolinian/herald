@@ -1,5 +1,6 @@
 'use client'
 
+import type { UserFilters, UserSortField } from '@herald/types'
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -11,7 +12,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ArrowDownUp, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -37,7 +38,9 @@ import {
 } from '@/components/ui/table'
 import { PositionsCombobox } from '@/components/users/user-positions-combobox'
 
-interface DataTableProps<TData, TValue> {
+import { DesktopToolbar } from './user-desktop-toolbar'
+
+type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
 }
@@ -46,6 +49,22 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
   const [selectedRow, setSelectedRow] = React.useState<TData | null>(null)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [userFilters, setUserFilters] = React.useState<UserFilters>({})
+
+  const availablePositions = [
+    {
+      id: 'CTO',
+      label: 'Chief Technology Officer',
+    },
+    {
+      id: 'WR',
+      label: 'Writer',
+    },
+    {
+      id: 'EIC',
+      label: 'Editor-in-Chief',
+    },
+  ]
 
   const table = useReactTable({
     data,
@@ -57,50 +76,72 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     state: { sorting, columnFilters },
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
   })
+
+  const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as UserSortField) : 'createdAt'
+  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
+  const searchValue = (table.getColumn('firstName')?.getFilterValue() as string) ?? ''
+
+  const applySort = (field: UserSortField, direction: 'asc' | 'desc') => {
+    if (!table.getColumn(field)) {
+      return
+    }
+
+    table.setSorting([
+      {
+        id: field,
+        desc: direction === 'desc',
+      },
+    ])
+    table.setPageIndex(0)
+  }
+
+  const applyFilters = (filters: UserFilters) => {
+    setUserFilters(filters)
+    table.setPageIndex(0)
+
+    if (filters.positionIds) {
+      table.getColumn('positions')?.setFilterValue(filters.positionIds)
+    } else {
+      table.getColumn('positions')?.setFilterValue(undefined)
+    }
+
+    if (filters.disabled !== undefined) {
+      table.getColumn('disabled')?.setFilterValue(filters.disabled)
+    } else {
+      table.getColumn('disabled')?.setFilterValue(undefined)
+    }
+
+    if (filters.emailVerified !== undefined) {
+      table.getColumn('emailVerified')?.setFilterValue(filters.emailVerified)
+    } else {
+      table.getColumn('emailVerified')?.setFilterValue(undefined)
+    }
+
+    table.setPageIndex(0)
+  }
 
   return (
     <div className="overflow-hidden">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="relative h-12 flex-1">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-
-          <Input
-            placeholder="Search users..."
-            value={(table.getColumn('firstName')?.getFilterValue() as string) ?? ''}
-            onChange={(event) => table.getColumn('firstName')?.setFilterValue(event.target.value)}
-            className="border-tc_grayscale-900 h-12 pl-10 text-base font-medium placeholder:text-base"
-          />
-        </div>
-
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={() =>
-            table
-              .getColumn('createdAt')
-              ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
-          }
-          className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors"
-        >
-          <SlidersHorizontal className="h-6 w-6" />
-          <span className="text-sm font-bold">Filter</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={() =>
-            table
-              .getColumn('createdAt')
-              ?.toggleSorting(table.getColumn('createdAt')?.getIsSorted() === 'asc')
-          }
-          className="text-muted-foreground hover:text-foreground flex h-12 flex-col items-center justify-center gap-1 px-3 transition-colors"
-        >
-          <ArrowDownUp className="h-6 w-6" />
-          <span className="text-sm font-bold">Sort</span>
-        </Button>
-      </div>
+      <DesktopToolbar
+        title="Users"
+        search={searchValue}
+        onSearchChange={(value) => {
+          table.getColumn('firstName')?.setFilterValue(value)
+          table.setPageIndex(0)
+        }}
+        selectedFilters={userFilters}
+        availablePositions={availablePositions}
+        onApplyFilters={applyFilters}
+        selectedSortField={selectedSortField}
+        selectedSortDirection={selectedSortDirection}
+        onApplySort={applySort}
+      />
       <div className="rounded-md">
         <Table>
           <TableHeader className="bg-tc_grayscale-100">

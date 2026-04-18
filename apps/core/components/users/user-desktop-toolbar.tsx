@@ -1,5 +1,6 @@
 'use client'
 
+import type { UserFilters, UserSortField, UUID } from '@herald/types'
 import { ArrowDownUp, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
@@ -8,47 +9,67 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PositionsCombobox } from '@/components/users/user-positions-combobox'
 
 type DesktopToolbarProps = {
   title: string
   search: string
   onSearchChange: (value: string) => void
-  availableFilters: string[]
-  selectedFilters: string[]
-  onApplyFilters: (filters: string[]) => void
-  availableSortFields: string[]
-  selectedSortField: string
+  selectedFilters: UserFilters
+  availablePositions: { id: UUID; label: string }[]
+  onApplyFilters: (filters: UserFilters) => void
+  selectedSortField: UserSortField
   selectedSortDirection: 'asc' | 'desc'
-  onApplySort: (field: string, direction: 'asc' | 'desc') => void
+  onApplySort: (field: UserSortField, direction: 'asc' | 'desc') => void
 }
 
 export function DesktopToolbar({
   title,
   search,
   onSearchChange,
-  availableFilters,
   selectedFilters,
+  availablePositions,
   onApplyFilters,
-  availableSortFields,
   selectedSortField,
   selectedSortDirection,
   onApplySort,
 }: DesktopToolbarProps) {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
-  const [draftFilters, setDraftFilters] = useState<string[]>([])
+  const [draftFilters, setDraftFilters] = useState<UserFilters>({})
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
-  const [draftSortField, setDraftSortField] = useState<string>('')
+  const [draftSortField, setDraftSortField] = useState<UserSortField>('firstName')
   const [draftSortDirection, setDraftSortDirection] = useState<'asc' | 'desc'>('asc')
 
+  const availableSortFields: UserSortField[] = [
+    'firstName',
+    'lastName',
+    'email',
+    'createdAt',
+    'updatedAt',
+  ]
+
+  const activeFilterCount =
+    (selectedFilters.positionIds?.length ? 1 : 0) +
+    (selectedFilters.disabled !== undefined ? 1 : 0) +
+    (selectedFilters.emailVerified !== undefined ? 1 : 0)
+
   const openFilterDialog = () => {
-    setDraftFilters(selectedFilters)
+    setDraftFilters({ ...selectedFilters })
     setFilterDialogOpen(true)
   }
 
-  const toggleDraftFilter = (filter: string) => {
-    setDraftFilters((current) =>
-      current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]
-    )
+  const setDraftPositions = (positionIds: UUID[]) => {
+    setDraftFilters((current) => ({
+      ...current,
+      positionIds,
+    }))
+  }
+
+  const setDraftBooleanFilter = (key: 'disabled' | 'emailVerified', value: boolean | undefined) => {
+    setDraftFilters((current) => ({
+      ...current,
+      [key]: value,
+    }))
   }
 
   const applyFilters = () => {
@@ -57,7 +78,7 @@ export function DesktopToolbar({
   }
 
   const clearFilter = () => {
-    setDraftFilters([])
+    setDraftFilters({})
   }
 
   const openSortDialog = () => {
@@ -72,7 +93,7 @@ export function DesktopToolbar({
   }
 
   const clearSort = () => {
-    const fallbackSortField = availableSortFields[0] ?? ''
+    const fallbackSortField = availableSortFields[0] ?? 'firstName'
     setDraftSortField(fallbackSortField)
     setDraftSortDirection('asc')
   }
@@ -97,7 +118,7 @@ export function DesktopToolbar({
         <SlidersHorizontal className="h-6 w-6" />
         <span className="text-sm font-bold">
           Filter
-          {selectedFilters.length > 0 ? ` (${selectedFilters.length})` : ''}
+          {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
         </span>
       </button>
 
@@ -113,9 +134,10 @@ export function DesktopToolbar({
         title={title}
         open={filterDialogOpen}
         onOpenChange={setFilterDialogOpen}
-        availableFilters={availableFilters}
+        availablePositions={availablePositions}
         selectedFilters={draftFilters}
-        onToggleFilter={toggleDraftFilter}
+        onSetPositions={setDraftPositions}
+        onSetBooleanFilter={setDraftBooleanFilter}
         onApply={applyFilters}
         onClear={clearFilter}
       />
@@ -142,9 +164,10 @@ type FilterDialogProps = {
   title: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  availableFilters: string[]
-  selectedFilters: string[]
-  onToggleFilter: (filter: string) => void
+  availablePositions: { id: UUID; label: string }[]
+  selectedFilters: UserFilters
+  onSetPositions: (positionIds: UUID[]) => void
+  onSetBooleanFilter: (key: 'disabled' | 'emailVerified', value: boolean | undefined) => void
   onApply: () => void
   onClear: () => void
 }
@@ -153,9 +176,10 @@ function FilterDialog({
   title,
   open,
   onOpenChange,
-  availableFilters,
+  availablePositions,
   selectedFilters,
-  onToggleFilter,
+  onSetPositions,
+  onSetBooleanFilter,
   onApply,
   onClear,
 }: FilterDialogProps) {
@@ -168,29 +192,46 @@ function FilterDialog({
 
         <div className="space-y-6 overflow-y-auto px-6 py-5">
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-black">Available Filters</h3>
-            <p className="text-muted-foreground text-xs">Select one or more filters.</p>
+            <h3 className="text-sm font-bold text-black">Positions</h3>
+            <p className="text-muted-foreground text-xs">Filter by one or more positions.</p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {availableFilters.map((filter) => {
-                const checked = selectedFilters.includes(filter)
+            <PositionsCombobox
+              options={availablePositions}
+              value={selectedFilters.positionIds ?? []}
+              defaultValue={[]}
+              onValueChange={onSetPositions}
+            />
+          </div>
 
-                return (
-                  <Label
-                    key={filter}
-                    className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={() => onToggleFilter(filter)}
-                      aria-label={`Filter by ${filter}`}
-                    />
-                    <span className="text-xs font-semibold">
-                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    </span>
-                  </Label>
-                )
-              })}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-black">Status</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="w-full space-y-2">
+                <Label className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2">
+                  <Checkbox
+                    checked={selectedFilters.disabled === true}
+                    onCheckedChange={(checked) => {
+                      onSetBooleanFilter('disabled', checked === true ? true : undefined)
+                    }}
+                    aria-label="Filter disabled users"
+                  />
+                  <span className="text-xs font-semibold">Disabled</span>
+                </Label>
+              </div>
+
+              <div className="w-full space-y-2">
+                <Label className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2">
+                  <Checkbox
+                    checked={selectedFilters.emailVerified === true}
+                    onCheckedChange={(checked) => {
+                      onSetBooleanFilter('emailVerified', checked === true ? true : undefined)
+                    }}
+                    aria-label="Filter email verified users"
+                  />
+                  <span className="text-xs font-semibold">Email Verified</span>
+                </Label>
+              </div>
             </div>
           </div>
         </div>
@@ -218,10 +259,10 @@ type SortDialogProps = {
   title: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  availableSortFields: string[]
-  selectedSort: string
+  availableSortFields: UserSortField[]
+  selectedSort: UserSortField
   direction: 'asc' | 'desc'
-  onSelectSort: (field: string) => void
+  onSelectSort: (field: UserSortField) => void
   onToggleDirection: () => void
   onApply: () => void
   onClear: () => void
@@ -267,9 +308,7 @@ function SortDialog({
                       onCheckedChange={() => onSelectSort(field)}
                       aria-label={`Sort by ${field}`}
                     />
-                    <span className="text-xs font-semibold">
-                      {field.charAt(0).toUpperCase() + field.slice(1)}
-                    </span>
+                    <span className="text-xs font-semibold">{field}</span>
                   </Label>
                 )
               })}

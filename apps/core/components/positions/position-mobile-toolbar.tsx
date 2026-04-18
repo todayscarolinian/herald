@@ -13,10 +13,8 @@ type MobileToolbarProps = {
   title: string
   search: string
   onSearchChange: (value: string) => void
-  availableFilters: string[]
   selectedFilters: string[]
   onApplyFilters: (filters: string[]) => void
-  availableSortFields: string[]
   selectedSortField: string
   selectedSortDirection: 'asc' | 'desc'
   onApplySort: (field: string, direction: 'asc' | 'desc') => void
@@ -26,10 +24,8 @@ export function MobileToolbar({
   title,
   search,
   onSearchChange,
-  availableFilters,
   selectedFilters,
   onApplyFilters,
-  availableSortFields,
   selectedSortField,
   selectedSortDirection,
   onApplySort,
@@ -39,6 +35,16 @@ export function MobileToolbar({
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const [draftSortField, setDraftSortField] = useState<string>('')
   const [draftSortDirection, setDraftSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const availableFilters = [
+    'CREATE_ARTICLE',
+    'EDIT_ARTICLE',
+    'DELETE_ARTICLE',
+    'PUBLISH_ARTICLE',
+    'MANAGE_USERS',
+  ]
+
+  const availableSortFields = ['name', 'createdAt', 'updatedAt']
 
   const openFilterDialog = () => {
     setDraftFilters(selectedFilters)

@@ -1,11 +1,11 @@
 'use client'
 
-import { Position, UserProfile } from '@herald/types'
+import { Position, UserDTO } from '@herald/types'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
 
-export const columns: ColumnDef<UserProfile>[] = [
+export const columns: ColumnDef<UserDTO>[] = [
   {
     accessorKey: 'firstName',
     header: 'User',

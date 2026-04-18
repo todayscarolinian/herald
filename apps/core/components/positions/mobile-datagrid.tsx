@@ -4,8 +4,8 @@ import { PositionDTO, PositionListDTO } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { MobileToolbar } from '../shared/MobileToolbar'
 import { PositionCard } from './position-card'
+import { MobileToolbar } from './position-mobile-toolbar'
 
 const MOBILE_PAGE_SIZE = 10
 
@@ -27,16 +27,6 @@ export default function MobileDatagrid({ positions, onClick }: MobileDatagridPro
     const start = mobilePage * MOBILE_PAGE_SIZE
     return filteredPositions.slice(start, start + MOBILE_PAGE_SIZE)
   }, [filteredPositions, mobilePage])
-
-  const availableFilters = [
-    'CREATE_ARTICLE',
-    'EDIT_ARTICLE',
-    'DELETE_ARTICLE',
-    'PUBLISH_ARTICLE',
-    'MANAGE_USERS',
-  ]
-
-  const availableSortFields = ['name', 'createdAt', 'userCount']
 
   const handleSearchChange = (val: string) => {
     setSearch(val)
@@ -125,9 +115,7 @@ export default function MobileDatagrid({ positions, onClick }: MobileDatagridPro
         title="Positions"
         search={search}
         onSearchChange={handleSearchChange}
-        availableFilters={availableFilters}
         selectedFilters={selectedFilters}
-        availableSortFields={availableSortFields}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
         onApplyFilters={applyFilters}
