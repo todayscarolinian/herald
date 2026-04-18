@@ -83,9 +83,9 @@ export async function PUT(
 
     const updateData: UpdatePositionInput = {
       id,
-      ...(body.name !== undefined ? { name: body.name } : {}),
-      ...(body.abbreviation !== undefined ? { abbreviation: body.abbreviation } : {}),
-      ...(body.permissions !== undefined ? { permissions: body.permissions } : {}),
+      name: body.name ?? '',
+      abbreviation: body.abbreviation ?? '',
+      permissions: body.permissions ?? [],
     }
 
     // TODO: Repository implementation is still WIP.
@@ -100,6 +100,7 @@ export async function PUT(
       permissions: updateData.permissions ?? [],
       createdAt: now,
       updatedAt: now,
+      userCount: 0,
     }
 
     return NextResponse.json<APIResponse<PositionDTO>>(
@@ -125,7 +126,7 @@ export async function DELETE(
       )
     }
 
-    const deleteData: DeletePositionInput = { id }
+    const deleteData: DeletePositionInput = { id, deletedBy: 'system' } // TODO: Replace 'system' with actual user ID performing the deletion
 
     // TODO: Repository implementation is still WIP.
     // const repository = createFirebasePositionRepository(getServerFirestore())

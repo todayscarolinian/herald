@@ -2,7 +2,7 @@ import type {
   APIResponse,
   CreatePositionInput,
   DeletePositionInput,
-  ListPositionInput,
+  ListPositionsInput,
   PaginatedResult,
   PositionDTO,
   UpdatePositionInput,
@@ -11,7 +11,7 @@ import type {
 import { del, get, post, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
-export function fetchPositions(params: ListPositionInput): Promise<PaginatedResult<PositionDTO>> {
+export function fetchPositions(params: ListPositionsInput): Promise<PaginatedResult<PositionDTO>> {
   const searchParams = new URLSearchParams()
 
   // Add filters

@@ -91,6 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       permissions: createData.permissions,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      userCount: 0,
     }
 
     return NextResponse.json<APIResponse<PositionDTO>>(
