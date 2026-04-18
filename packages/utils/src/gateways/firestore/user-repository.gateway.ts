@@ -179,10 +179,6 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
       throw new Error('Not implemented: findByPosition')
     },
 
-    async findByPermissions(/*permissions*/) {
-      throw new Error('Not implemented: findByPermissions')
-    },
-
     async create(params) {
       try {
         const { id, firstName, middleName, lastName, email, positions } = params
@@ -402,16 +398,6 @@ function buildUserQuery(
 
   if (filters?.positionIds?.length) {
     constraints.push(where('positions', 'array-contains-any', filters.positionIds.slice(0, 10)))
-  } else if (filters?.positionId) {
-    constraints.push(where('positions', 'array-contains', filters.positionId))
-  }
-
-  if (Array.isArray(filters?.permissions) && filters.permissions.length > 0) {
-    if (filters.permissions.length === 1) {
-      constraints.push(where('permissions', 'array-contains', filters.permissions[0]))
-    } else {
-      constraints.push(where('permissions', 'array-contains-any', filters.permissions.slice(0, 10)))
-    }
   }
 
   if (typeof filters?.disabled === 'boolean') {

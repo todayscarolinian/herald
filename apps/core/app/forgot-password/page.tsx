@@ -1,5 +1,5 @@
-import { Footer } from '@/components/footer'
 import { ForgotPasswordForm } from '@/components/forgot-password-form'
+import { Footer } from '@/components/shared/Footer'
 
 export default function ForgotPasswordPage() {
   return (
