@@ -30,10 +30,16 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 
   const rawBuffer = Buffer.from(await file.arrayBuffer())
 
-  const resizedBuffer = await sharp(rawBuffer)
-    .resize(400, 400, { fit: 'cover' })
-    .jpeg({ quality: 85 })
-    .toBuffer()
+  let resizedBuffer: Buffer
+
+  try {
+    resizedBuffer = await sharp(rawBuffer)
+      .resize(400, 400, { fit: 'cover' })
+      .jpeg({ quality: 85 })
+      .toBuffer()
+  } catch {
+    throw new UserServiceError('IMAGE_PROCESSING_FAILED', 'Failed to process avatar image')
+  }
 
   const bucket = getFirebaseStorageBucket()
   const firestore = getServerFirestore()
