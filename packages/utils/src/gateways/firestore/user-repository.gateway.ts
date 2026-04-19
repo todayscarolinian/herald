@@ -29,6 +29,15 @@ import {
   where,
 } from 'firebase/firestore'
 import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
+// Structural type for the Firebase Admin Storage bucket — avoids a direct
+// dependency on @google-cloud/storage while remaining compatible with it.
+type StorageFile = {
+  save(data: Buffer, options?: { metadata?: { contentType?: string } }): Promise<void>
+  makePublic(): Promise<unknown>
+  publicUrl(): string
+  delete(): Promise<unknown>
+}
+type StorageBucket = { file(path: string): StorageFile }
 
 import { createPaginatedResult } from '../../dto.ts'
 
@@ -97,7 +106,18 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
   }
 }
 
-export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
+type UploadProfilePicture = {
+  uploadProfilePicture(
+    userId: string,
+    imageBuffer: Buffer,
+    contentType: string,
+    bucket: StorageBucket
+  ): Promise<string>
+}
+
+export function createFirebaseUserRepository(
+  firestore: Firestore
+): IUserRepository & UploadProfilePicture {
   const COLLECTION_NAME = 'users'
   const SESSIONS_COLLECTION = 'sessions'
   const ACCOUNTS_COLLECTION = 'accounts'
@@ -350,6 +370,55 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },
+
+    async uploadProfilePicture(
+      userId: string,
+      imageBuffer: Buffer,
+      contentType: string,
+      bucket: StorageBucket
+    ): Promise<string> {
+      try {
+        const validatedId = validateUserId(userId)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        const previousUrl: string | undefined = docSnap.data()?.profilePictureURL
+
+        const filePath = `users/${validatedId}/avatar.jpg`
+        const file = bucket.file(filePath)
+        await file.save(imageBuffer, { metadata: { contentType } })
+        await file.makePublic()
+        const publicUrl = file.publicUrl()
+
+        await updateDoc(docRef, {
+          profilePictureURL: publicUrl,
+          updatedAt: Timestamp.now(),
+        })
+
+        if (previousUrl) {
+          try {
+            const url = new URL(previousUrl)
+            const oldPath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] ?? '')
+            if (oldPath && oldPath !== filePath) {
+              await bucket.file(oldPath).delete()
+            }
+          } catch {
+            console.error(
+              `[uploadProfilePicture] Failed to delete old image for user ${validatedId}`
+            )
+          }
+        }
+
+        return publicUrl
+      } catch (error) {
+        console.error('Error uploading profile picture:', error)
+        throw error
+      }
+    },
   }
 }
 
@@ -519,6 +588,8 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
     positions,
     emailVerified,
     disabled,
+    profilePictureURL:
+      typeof docSnap.profilePictureURL === 'string' ? docSnap.profilePictureURL : undefined,
     createdAt,
     updatedAt,
   }

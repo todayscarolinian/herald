@@ -13,6 +13,7 @@
                 "FIREBASE_PROJECT_ID",
                 "FIREBASE_CLIENT_EMAIL",
                 "FIREBASE_PRIVATE_KEY",
+                "FIREBASE_STORAGE_BUCKET",
                 "RESEND_API_KEY",
                 "GOOGLE_CLIENT_ID",
                 "GOOGLE_CLIENT_SECRET",
