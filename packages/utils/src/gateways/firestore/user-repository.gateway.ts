@@ -29,6 +29,15 @@ import {
   where,
 } from 'firebase/firestore'
 import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
+// Structural type for the Firebase Admin Storage bucket — avoids a direct
+// dependency on @google-cloud/storage while remaining compatible with it.
+type StorageFile = {
+  save(data: Buffer, options?: { metadata?: { contentType?: string } }): Promise<void>
+  makePublic(): Promise<unknown>
+  publicUrl(): string
+  delete(): Promise<unknown>
+}
+type StorageBucket = { file(path: string): StorageFile }
 
 import { createPaginatedResult } from '../../dto.ts'
 
@@ -97,7 +106,18 @@ export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
   }
 }
 
-export function createFirebaseUserRepository(firestore: Firestore): IUserRepository {
+type UploadProfilePicture = {
+  uploadProfilePicture(
+    userId: string,
+    imageBuffer: Buffer,
+    contentType: string,
+    bucket: StorageBucket
+  ): Promise<string>
+}
+
+export function createFirebaseUserRepository(
+  firestore: Firestore
+): IUserRepository & UploadProfilePicture {
   const COLLECTION_NAME = 'users'
   const SESSIONS_COLLECTION = 'sessions'
   const ACCOUNTS_COLLECTION = 'accounts'
@@ -149,9 +169,9 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async findAll(params: Parameters<IUserRepository['findAll']>[0]) {
       try {
         const { page, limit: pageLimit } = normalizePagination(params.pagination)
+        const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
-
         const baseQuery = buildUserQuery(
           firestore,
           COLLECTION_NAME,
@@ -159,6 +179,14 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
           sortField,
           sortDirection
         )
+
+        if (search) {
+          const { users, total } = await fetchSearchUsers(baseQuery, search, page, pageLimit)
+          return createPaginatedResult(users, total, {
+            page,
+            limit: pageLimit,
+          })
+        }
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
@@ -177,10 +205,6 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
 
     async findByPosition(/*positionId*/) {
       throw new Error('Not implemented: findByPosition')
-    },
-
-    async findByPermissions(/*permissions*/) {
-      throw new Error('Not implemented: findByPermissions')
     },
 
     async create(params) {
@@ -346,6 +370,55 @@ export function createFirebaseUserRepository(firestore: Firestore): IUserReposit
     async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },
+
+    async uploadProfilePicture(
+      userId: string,
+      imageBuffer: Buffer,
+      contentType: string,
+      bucket: StorageBucket
+    ): Promise<string> {
+      try {
+        const validatedId = validateUserId(userId)
+        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          throw new Error(`User with ID "${validatedId}" not found`)
+        }
+
+        const previousUrl: string | undefined = docSnap.data()?.profilePictureURL
+
+        const filePath = `users/${validatedId}/avatar.jpg`
+        const file = bucket.file(filePath)
+        await file.save(imageBuffer, { metadata: { contentType } })
+        await file.makePublic()
+        const publicUrl = file.publicUrl()
+
+        await updateDoc(docRef, {
+          profilePictureURL: publicUrl,
+          updatedAt: Timestamp.now(),
+        })
+
+        if (previousUrl) {
+          try {
+            const url = new URL(previousUrl)
+            const oldPath = decodeURIComponent(url.pathname.split('/o/')[1]?.split('?')[0] ?? '')
+            if (oldPath && oldPath !== filePath) {
+              await bucket.file(oldPath).delete()
+            }
+          } catch {
+            console.error(
+              `[uploadProfilePicture] Failed to delete old image for user ${validatedId}`
+            )
+          }
+        }
+
+        return publicUrl
+      } catch (error) {
+        console.error('Error uploading profile picture:', error)
+        throw error
+      }
+    },
   }
 }
 
@@ -390,6 +463,15 @@ function validateSortDirection(direction: unknown): 'asc' | 'desc' {
   return direction === 'asc' ? 'asc' : DEFAULT_SORT_DIRECTION
 }
 
+function normalizeSearchTerm(search: unknown): string | undefined {
+  if (typeof search !== 'string') {
+    return undefined
+  }
+
+  const normalizedSearch = search.trim().toLowerCase()
+  return normalizedSearch.length > 0 ? normalizedSearch : undefined
+}
+
 function buildUserQuery(
   firestore: Firestore,
   collectionName: string,
@@ -402,16 +484,6 @@ function buildUserQuery(
 
   if (filters?.positionIds?.length) {
     constraints.push(where('positions', 'array-contains-any', filters.positionIds.slice(0, 10)))
-  } else if (filters?.positionId) {
-    constraints.push(where('positions', 'array-contains', filters.positionId))
-  }
-
-  if (Array.isArray(filters?.permissions) && filters.permissions.length > 0) {
-    if (filters.permissions.length === 1) {
-      constraints.push(where('permissions', 'array-contains', filters.permissions[0]))
-    } else {
-      constraints.push(where('permissions', 'array-contains-any', filters.permissions.slice(0, 10)))
-    }
   }
 
   if (typeof filters?.disabled === 'boolean') {
@@ -443,7 +515,28 @@ async function fetchPaginatedUsers(
 
   const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
   const snapshot = await getDocs(pageQuery)
+
   return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+}
+
+async function fetchSearchUsers(
+  baseQuery: Query<DocumentData>,
+  search: string,
+  page: number,
+  pageLimit: number
+): Promise<{ users: UserDTO[]; total: number }> {
+  const snapshot = await getDocs(baseQuery)
+  const matchingUsers = snapshot.docs
+    .map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+    .filter((user) => matchesSearch(user, search))
+
+  const startIndex = (page - 1) * pageLimit
+  const users = matchingUsers.slice(startIndex, startIndex + pageLimit)
+
+  return {
+    users,
+    total: matchingUsers.length,
+  }
 }
 
 async function getPageCursor(
@@ -495,9 +588,27 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
     positions,
     emailVerified,
     disabled,
+    profilePictureURL:
+      typeof docSnap.profilePictureURL === 'string' ? docSnap.profilePictureURL : undefined,
     createdAt,
     updatedAt,
   }
+}
+
+function matchesSearch(user: UserDTO, search: string): boolean {
+  const firstName = user.firstName.toLowerCase()
+  const middleName = user.middleName?.toLowerCase() ?? ''
+  const lastName = user.lastName.toLowerCase()
+  const email = user.email.toLowerCase()
+  const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim()
+
+  return (
+    firstName.includes(search) ||
+    middleName.includes(search) ||
+    lastName.includes(search) ||
+    email.includes(search) ||
+    fullName.includes(search)
+  )
 }
 
 function requireStringField(docSnap: DocumentData, field: string, userId: string): string {

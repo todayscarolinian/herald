@@ -10,6 +10,7 @@ export interface UserProfile {
   positions: Position[]
   emailVerified: boolean
   disabled: boolean
+  profilePictureURL?: string
   createdAt: string
   updatedAt: string
 }

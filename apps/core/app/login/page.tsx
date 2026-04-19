@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 
-import { Footer } from '@/components/footer'
 import { LoginForm } from '@/components/login-form'
+import { Footer } from '@/components/shared/Footer'
 
 export default function LoginPage() {
   return (
