@@ -10,8 +10,8 @@ export type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(to: string, tempPassword: string, userName: string) {
-    await sendEmail(
+  async sendWelcomeEmail(to: string, tempPassword: string, userName: string): Promise<unknown> {
+    const emailResult = await sendEmail(
       {
         from: this.fromEmail,
         to,
@@ -20,10 +20,11 @@ export class EmailService {
       },
       'welcome-email'
     )
+    return emailResult
   }
 
-  async sendVerificationEmail(user: VerificationEmailUser, url: string) {
-    await sendEmail(
+  async sendVerificationEmail(user: VerificationEmailUser, url: string): Promise<unknown> {
+    const emailResult = await sendEmail(
       {
         from: this.fromEmail,
         to: user.email,
@@ -32,10 +33,11 @@ export class EmailService {
       },
       'verification-email'
     )
+    return emailResult
   }
 
-  async sendPasswordReset(to: string, resetLink: string) {
-    await sendEmail(
+  async sendPasswordReset(to: string, resetLink: string): Promise<unknown> {
+    const emailResult = await sendEmail(
       {
         from: this.fromEmail,
         to,
@@ -44,6 +46,7 @@ export class EmailService {
       },
       'password-email'
     )
+    return emailResult
   }
 
   private getWelcomeTemplate(name: string, password: string) {
