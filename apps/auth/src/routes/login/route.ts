@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 import { auth } from '../../lib/auth.js'
 import { authService } from '../../services/auth.service.ts'
-
 const loginRouter = new Hono()
 
 // ---------------------------------------------------------------------------
