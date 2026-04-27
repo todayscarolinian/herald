@@ -4,6 +4,7 @@ import type { AuditLogDTO } from '@herald/types'
 import { ChevronRight } from 'lucide-react'
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 import { AuditLogDetailsContent } from './audit-log-details-content'
 
@@ -25,12 +26,11 @@ export function AuditLogDetailsDrawer({ auditLog, open, onOpenChange, isMobile }
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={isMobile ? 'bottom' : 'right'}
-        className={[
-          'flex flex-col overflow-hidden bg-white p-0',
-          'border-[1px] border-black/40',
+        className={cn(
+          'flex flex-col overflow-hidden border-[1px] border-black/40 bg-white p-0',
           !isMobile && '[&>button]:hidden',
-          isMobile ? 'h-[92vh] rounded-t-[8px]' : 'h-full rounded-l-[8px]',
-        ].join(' ')}
+          isMobile ? 'h-[92vh] rounded-t-[8px]' : 'h-full rounded-l-[8px]'
+        )}
         style={{
           width: isMobile ? '100%' : '490px',
           maxWidth: isMobile ? '100%' : '490px',
