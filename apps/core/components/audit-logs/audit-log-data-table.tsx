@@ -65,9 +65,14 @@ export function DataTable({ columns, data }: DataTableProps) {
     },
   })
 
-  const selectedSortField =
-    sorting[0]?.id === 'timestamp' ? 'timestamp' : (sorting[0]?.id as AuditLogSortField) || 'action'
-  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
+  const allowedSortFields: AuditLogSortField[] = ['action', 'timestamp']
+  const activeSort = sorting.find(
+    (sort): sort is SortingState[number] & { id: AuditLogSortField } =>
+      allowedSortFields.includes(sort.id as AuditLogSortField)
+  )
+  const selectedSortField = activeSort?.id ?? 'action'
+  const selectedSortDirection = activeSort?.desc ? 'desc' : 'asc'
+
   const searchValue = (table.getColumn('action')?.getFilterValue() as string) ?? ''
 
   const applySort = (field: AuditLogSortField, direction: 'asc' | 'desc') => {
