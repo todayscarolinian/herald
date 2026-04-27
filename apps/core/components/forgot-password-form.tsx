@@ -3,47 +3,28 @@
 import { forgotPasswordSchema } from '@herald/utils'
 import { useForm } from '@tanstack/react-form'
 import Image from 'next/image'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useForgotPassword } from '@/lib/api/mutations/authMutations'
 
-const RATE_LIMIT_WINDOW_MS = 60_000 * 5 // 5 minutes
-const RATE_LIMIT_STORAGE_KEY = 'forgot-password-next-allowed-at'
-
 export function ForgotPasswordForm() {
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-
   const forgotPasswordMutation = useForgotPassword()
 
   const handleForgotPassword = useCallback(
     async (email: string) => {
-      const nextAllowedAt = Number(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '0')
-      if (nextAllowedAt > Date.now()) {
-        const remainingSeconds = Math.ceil((nextAllowedAt - Date.now()) / 1000)
-        setError(`Please wait ${remainingSeconds} seconds before requesting again.`)
-        setSuccess(null)
-        return
-      }
-
-      setError(null)
-      setSuccess(null)
-
-      const newNextAllowedAt = Date.now() + RATE_LIMIT_WINDOW_MS
-      localStorage.setItem(RATE_LIMIT_STORAGE_KEY, String(newNextAllowedAt))
-
       try {
         const response = await forgotPasswordMutation.mutateAsync({ email })
         if (response.success && response.data) {
-          setSuccess(response.data.message)
+          toast.success(response.data.message || 'Password reset email sent successfully.')
         } else {
-          setError(response.error?.message || 'Failed to send password reset email.')
+          toast.error(response.error?.message || 'Failed to send password reset email.')
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred.')
+        toast.error(err instanceof Error ? err.message : 'An unexpected error occurred.')
       }
     },
     [forgotPasswordMutation]
@@ -121,10 +102,6 @@ export function ForgotPasswordForm() {
               </div>
             )}
           </form.Field>
-
-          {error && <p className="text-tc_error-500 text-sm">{error}</p>}
-
-          {success && <p className="text-tc_success-500 text-sm">{success}</p>}
 
           <form.Subscribe selector={(state) => state.isSubmitting}>
             {(isSubmitting) => (

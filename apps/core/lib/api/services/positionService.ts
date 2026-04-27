@@ -29,19 +29,22 @@ export function fetchPositions(params: ListPositionsInput): Promise<PaginatedRes
     searchParams.append('sortDirection', params.sort.direction)
   }
 
-  return get<PaginatedResult<PositionDTO>>(`${ENDPOINTS.positions}?${searchParams.toString()}`)
+  return get<PaginatedResult<PositionDTO>>(`${ENDPOINTS.api.positions}?${searchParams.toString()}`)
 }
 
 export function createPosition(params: CreatePositionInput): Promise<APIResponse<PositionDTO>> {
-  return post<APIResponse<PositionDTO>, CreatePositionInput>('/api/positions', params)
+  return post<APIResponse<PositionDTO>, CreatePositionInput>(ENDPOINTS.api.positions, params)
 }
 
 export function updatePosition(params: UpdatePositionInput): Promise<APIResponse<PositionDTO>> {
-  return put<APIResponse<PositionDTO>, UpdatePositionInput>(`/api/positions/${params.id}`, params)
+  return put<APIResponse<PositionDTO>, UpdatePositionInput>(
+    `${ENDPOINTS.api.positions}/${params.id}`,
+    params
+  )
 }
 
 export function deletePosition(
   params: DeletePositionInput
 ): Promise<APIResponse<{ message: string }>> {
-  return del<APIResponse<{ message: string }>>(`/api/positions/${params.id}`)
+  return del<APIResponse<{ message: string }>>(`${ENDPOINTS.api.positions}/${params.id}`)
 }
