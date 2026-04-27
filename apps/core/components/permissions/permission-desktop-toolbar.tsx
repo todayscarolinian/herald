@@ -5,10 +5,10 @@ import { ArrowDownUp, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 const DOMAIN_OPTIONS = [
   'TC Official Website',
@@ -178,27 +178,23 @@ function FilterDialog({
             <h3 className="text-sm font-bold text-black">Domain</h3>
             <p className="text-muted-foreground text-xs">Filter permissions by domain.</p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <RadioGroup
+              value={selectedFilters.domain ?? ''}
+              onValueChange={(value) => onSetFilter('domain', value)}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
               {DOMAIN_OPTIONS.map((domain) => {
-                const checked = selectedFilters.domain === domain
-
                 return (
                   <Label
                     key={domain}
                     className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2"
                   >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(nextChecked) => {
-                        onSetFilter('domain', nextChecked ? domain : '')
-                      }}
-                      aria-label={`Filter by ${domain}`}
-                    />
+                    <RadioGroupItem value={domain} aria-label={`Filter by ${domain}`} />
                     <span className="text-xs font-semibold">{domain}</span>
                   </Label>
                 )
               })}
-            </div>
+            </RadioGroup>
           </div>
         </div>
 
@@ -260,25 +256,23 @@ function SortDialog({
               Choose which column to sort by, then set the direction.
             </p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <RadioGroup
+              value={selectedSort}
+              onValueChange={(value) => onSelectSort(value as PermissionSortField)}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
               {availableSortFields.map((field) => {
-                const checked = selectedSort === field
-
                 return (
                   <Label
                     key={field}
                     className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2"
                   >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={() => onSelectSort(field)}
-                      aria-label={`Sort by ${field}`}
-                    />
+                    <RadioGroupItem value={field} aria-label={`Sort by ${field}`} />
                     <span className="text-xs font-semibold">{field}</span>
                   </Label>
                 )
               })}
-            </div>
+            </RadioGroup>
           </div>
 
           <div className="space-y-3">

@@ -18,7 +18,7 @@ export function PermissionDetailsContent({ permission, onClose }: Props) {
 
   return (
     <div className="font-roboto flex h-full flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto px-1 pb-4">
+      <div className="flex-1 space-y-4 px-1 pb-4">
         <Badge className="bg-tc_primary-500 text-white">{permission.domain}</Badge>
 
         <Field orientation="horizontal" className="justify-between border-b pb-2">
