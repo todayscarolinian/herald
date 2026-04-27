@@ -8,4 +8,6 @@ export const authClient: AuthClient = createAuthClient({
   ...(baseURL ? { baseURL } : {}),
 })
 
-export const { signIn, signUp, useSession } = authClient
+export const signIn: AuthClient['signIn'] = authClient.signIn
+export const signUp: AuthClient['signUp'] = authClient.signUp
+export const useSession: AuthClient['useSession'] = authClient.useSession

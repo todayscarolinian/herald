@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 
-import { Footer } from '@/components/footer'
 import { ResetPasswordForm } from '@/components/reset-password-form'
+import { Footer } from '@/components/shared/Footer'
 import { Card } from '@/components/ui/card'
 
 export default function ResetPasswordPage() {

@@ -1,9 +1,5 @@
 import type { APIResponse, DeleteUserInput, UpdateUserInput, UserDTO } from '@herald/types'
-import {
-  createFirebaseUserRepository,
-  isValidPassword,
-  PASSWORD_STRENGTH_REQUIREMENTS,
-} from '@herald/utils'
+import { createFirebaseUserRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
@@ -21,9 +17,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const body = (await request.json()) as Partial<DeleteUserInput>
 
+    if (!body.deletedById || typeof body.deletedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
     const disableData: DeleteUserInput = {
       id,
-      deletedBy: body.deletedBy ?? id,
+      deletedById: body.deletedById,
     }
 
     const userRepository = createFirebaseUserRepository(getServerFirestore())
@@ -63,13 +69,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = (await request.json()) as Partial<UpdateUserInput>
 
-    if (!body.firstName || !body.lastName || !body.email || !body.password || !body.positions) {
+    if (!body.firstName || !body.lastName || !body.email || !body.positions || !body.updatedById) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
           error: {
             code: 'BAD_REQUEST',
-            message: 'Missing required fields: firstName, lastName, email, password, positions',
+            message: 'Missing required fields: firstName, lastName, email, positions, updatedById',
           },
         },
         { status: 400 }
@@ -97,14 +103,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
-    if (!body.password || typeof body.password !== 'string' || !isValidPassword(body.password)) {
+    if (!body.updatedById || typeof body.updatedById !== 'string') {
       return NextResponse.json<APIResponse>(
         {
           success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: `"password" is required. ${PASSWORD_STRENGTH_REQUIREMENTS}`,
-          },
+          error: { code: 'VALIDATION_ERROR', message: '"updatedById" is required' },
         },
         { status: 422 }
       )
@@ -126,8 +129,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       middleName: body.middleName,
       lastName: body.lastName,
       email: body.email,
-      password: body.password,
       positions: body.positions,
+      updatedById: body.updatedById,
     }
 
     const userRepository = createFirebaseUserRepository(getServerFirestore())
@@ -155,7 +158,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -168,8 +171,20 @@ export async function DELETE(
       )
     }
 
+    const body = (await request.json()) as Partial<DeleteUserInput>
+
+    if (!body.deletedById || typeof body.deletedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
     const userRepository = createFirebaseUserRepository(getServerFirestore())
-    await userRepository.delete({ id, deletedBy: id })
+    await userRepository.delete({ id, deletedById: body.deletedById })
 
     return NextResponse.json<APIResponse<{ message: string }>>(
       { success: true, data: { message: `User ${id} has been deleted` } },

@@ -1,22 +1,20 @@
 import './globals.css'
 
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Inter } from 'next/font/google'
+import { Roboto, Roboto_Condensed } from 'next/font/google'
 import { Toaster } from 'sonner'
 
 import CoreProvider from '@/components/providers/CoreProvider'
 import { cn } from '@/lib/utils'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const roboto = Roboto({
   subsets: ['latin'],
+  variable: '--font-roboto',
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const robotoCondensed = Roboto_Condensed({
   subsets: ['latin'],
+  variable: '--font-roboto-condensed',
 })
 
 export const metadata: Metadata = {
@@ -30,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={cn('font-sans', inter.variable)}>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={cn('font-sans', roboto.variable, robotoCondensed.variable)}>
+      <body className="antialiased">
         <CoreProvider>{children}</CoreProvider>
         <Toaster richColors position="top-right" />
       </body>

@@ -25,14 +25,11 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   const searchParams = new URLSearchParams()
 
   // Add filters
-  if (params.filters?.positionId) {
-    searchParams.append('positionId', params.filters.positionId)
+  if (params.filters?.search) {
+    searchParams.append('search', params.filters.search)
   }
   if (params.filters?.positionIds?.length) {
     searchParams.append('positionIds', params.filters.positionIds.join(','))
-  }
-  if (params.filters?.permissions?.length) {
-    searchParams.append('permissions', params.filters.permissions.join(','))
   }
   if (params.filters?.disabled !== undefined) {
     searchParams.append('disabled', String(params.filters.disabled))
@@ -51,23 +48,26 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
     searchParams.append('sortDirection', params.sort.direction)
   }
 
-  return get<PaginatedResult<UserDTO>>(`${ENDPOINTS.users}?${searchParams.toString()}`)
+  return get<PaginatedResult<UserDTO>>(`${ENDPOINTS.api.users}?${searchParams.toString()}`)
 }
 
 export function createUser(params: CreateUserInput): Promise<APIResponse<UserDTO>> {
-  return post<APIResponse<UserDTO>, CreateUserInput>('/api/users', params)
+  return post<APIResponse<UserDTO>, CreateUserInput>(ENDPOINTS.api.users, params)
 }
 
 export function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO>> {
-  return put<APIResponse<UserDTO>, UpdateUserInput>(`/api/users/${params.id}`, params)
+  return put<APIResponse<UserDTO>, UpdateUserInput>(`${ENDPOINTS.api.users}/${params.id}`, params)
 }
 
 export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
-  return post<APIResponse<{ message: string }>, DeleteUserInput>(`/api/users/${params.id}`, params)
+  return post<APIResponse<{ message: string }>, DeleteUserInput>(
+    `${ENDPOINTS.api.users}/${params.id}`,
+    params
+  )
 }
 
 export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
-  return del<APIResponse<{ message: string }>>(`/api/users/${params.id}`)
+  return del<APIResponse<{ message: string }>>(`${ENDPOINTS.api.users}/${params.id}`)
 }
 
 export async function signUpInBetterAuth(params: {

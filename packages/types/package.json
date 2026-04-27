@@ -30,6 +30,16 @@
             "import": "./dist/user/index.js",
             "default": "./dist/user/index.js"
         },
+        "./auditLog": {
+            "types": "./dist/auditLog/index.d.ts",
+            "import": "./dist/auditLog/index.js",
+            "default": "./dist/auditLog/index.js"
+        },
+        "./permission": {
+            "types": "./dist/permission/index.d.ts",
+            "import": "./dist/permission/index.js",
+            "default": "./dist/permission/index.js"
+        },
         "./shared": {
             "types": "./dist/shared/index.d.ts",
             "import": "./dist/shared/index.js",
