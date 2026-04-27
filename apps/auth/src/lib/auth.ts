@@ -41,6 +41,13 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await emailService.sendVerificationEmail(user, url)
     },
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await emailService.sendVerificationEmail(user, url)
+    },
+    sendOnSignIn: true,
   },
   advanced: {
     cookiePrefix: SESSION_COOKIE_NAME,

@@ -7,6 +7,14 @@ export type VerificationEmailUser = {
   lastName?: string
 }
 
+type VerificationEmailUser = {
+  email: string
+  name?: string | null
+  firstName?: string
+  middleName?: string
+  lastName?: string
+}
+
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
