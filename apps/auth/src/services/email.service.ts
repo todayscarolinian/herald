@@ -1,11 +1,4 @@
 import { sendEmail } from '../lib/email-worker.ts'
-export type VerificationEmailUser = {
-  email: string
-  name?: string | null
-  firstName?: string
-  middleName?: string
-  lastName?: string
-}
 
 type VerificationEmailUser = {
   email: string
