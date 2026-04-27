@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = (await req.json()) as Partial<CreateUserInput>
 
-  const { firstName, middleName, lastName, email, positions } = body
+  const { firstName, middleName, lastName, email, positions, createdById } = body
   const password = generateRandomStrongPassword()
 
   if (!firstName || !lastName || !email || !positions) {
@@ -78,6 +78,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
+  if (!createdById || typeof createdById !== 'string') {
+    return NextResponse.json<APIResponse>(
+      { success: false, error: { code: 'VALIDATION_ERROR', message: '"createdById" is required' } },
+      { status: 422 }
+    )
+  }
+
   if (!Array.isArray(positions)) {
     return NextResponse.json<APIResponse>(
       {
@@ -110,16 +117,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       name: `${firstName} ${lastName}`,
     })
 
-    // Then sets additional user details in Firestore
-    user = await firebaseUserRepository.create({
+    const userData: CreateUserInput = {
       id: authUser.id,
       firstName,
       middleName: typeof middleName === 'string' ? middleName : undefined,
       lastName,
       email,
-      password,
       positions,
-    })
+      createdById,
+    }
+
+    // Then sets additional user details in Firestore
+    user = await firebaseUserRepository.create(userData)
 
     await sendWelcomeEmail(authUser.id, password)
   } catch (error) {
