@@ -13,13 +13,17 @@
                 "FIREBASE_PROJECT_ID",
                 "FIREBASE_CLIENT_EMAIL",
                 "FIREBASE_PRIVATE_KEY",
+                "FIREBASE_STORAGE_BUCKET",
                 "RESEND_API_KEY",
                 "GOOGLE_CLIENT_ID",
                 "GOOGLE_CLIENT_SECRET",
                 "NEXT_PUBLIC_CORE_URL",
                 "NEXT_PUBLIC_AUTH_URL",
                 "HERALD_INTERNAL_API_KEY",
-                "NODE_ENV"
+                "NODE_ENV",
+                "REDIS_HOST",
+                "REDIS_PORT",
+                "USE_EMAIL_QUEUE"
             ],
             "dependsOn": [
                 "^build"
@@ -45,6 +49,10 @@
             ]
         },
         "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "worker": {
             "cache": false,
             "persistent": true
         }

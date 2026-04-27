@@ -25,14 +25,11 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   const searchParams = new URLSearchParams()
 
   // Add filters
-  if (params.filters?.positionId) {
-    searchParams.append('positionId', params.filters.positionId)
+  if (params.filters?.search) {
+    searchParams.append('search', params.filters.search)
   }
   if (params.filters?.positionIds?.length) {
     searchParams.append('positionIds', params.filters.positionIds.join(','))
-  }
-  if (params.filters?.permissions?.length) {
-    searchParams.append('permissions', params.filters.permissions.join(','))
   }
   if (params.filters?.disabled !== undefined) {
     searchParams.append('disabled', String(params.filters.disabled))
