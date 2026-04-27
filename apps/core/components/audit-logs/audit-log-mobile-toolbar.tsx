@@ -105,6 +105,7 @@ export function MobileToolbar({
       <button
         onClick={openSortDialog}
         className="bg-background flex h-10 w-10 items-center justify-center rounded-lg border border-black/40"
+        aria-label="Sort"
       >
         <ArrowDownUp size={16} />
       </button>
