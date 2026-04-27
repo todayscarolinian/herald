@@ -1,3 +1,4 @@
+export * from './auditLog.dto.ts'
 export * from './common.dto.ts'
 export * from './permission.dto.ts'
 export * from './position.dto.ts'
