@@ -101,6 +101,7 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
           onClick={() => setMobilePage((p) => Math.max(p - 1, 0))}
           disabled={mobilePage === 0}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
+          aria-label="Previous Page"
         >
           <ChevronLeft className="h-6 w-6 text-black/60" strokeWidth={1.5} />
         </button>
@@ -118,6 +119,7 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
           onClick={() => setMobilePage((p) => Math.min(p + 1, mobileTotalPages - 1))}
           disabled={mobilePage >= mobileTotalPages - 1}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
+          aria-label="Next Page"
         >
           <ChevronRight className="h-6 w-6 text-black/60" strokeWidth={1.5} />
         </button>
