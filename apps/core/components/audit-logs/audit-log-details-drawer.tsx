@@ -42,6 +42,7 @@ export function AuditLogDetailsDrawer({ auditLog, open, onOpenChange, isMobile }
               <button
                 onClick={handleClose}
                 className="hover:bg-tc_grayscale-100 -ml-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md opacity-60 transition-all hover:opacity-100"
+                aria-label="Close details"
               >
                 <ChevronRight className="h-6 w-6 text-black" />
               </button>
