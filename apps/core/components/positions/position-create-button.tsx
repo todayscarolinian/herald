@@ -86,25 +86,25 @@ export function CreatePositionButton() {
         }
       }}
     >
-      <DialogTrigger className="font-roboto p-2">
+      <DialogTrigger className="p-2">
         <div className="text-tc_primary-500 hover:text-tc_primary-300 flex h-auto flex-col items-center gap-1 p-2">
           <Plus className="h-5 w-5" />
           <span className="text-sm font-medium">Create</span>
         </div>
       </DialogTrigger>
 
-      <DialogContent className="font-roboto min-w-[300px] p-9 sm:max-w-2xl [&>button]:top-9 [&>button]:right-8">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold uppercase">Create Position</DialogTitle>
-            <DialogDescription className="text-base">
+            <DialogTitle className="text-lg font-semibold">Create Position</DialogTitle>
+            <DialogDescription>
               Creates a new organizational position. Click Create Position when you&apos;re done.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="pos-name" className="text-base font-bold">
+              <Label htmlFor="pos-name" className="font-bold">
                 Position Name <span className="text-tc_primary-500">*</span>
               </Label>
               <Input
@@ -118,7 +118,7 @@ export function CreatePositionButton() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="pos-abbr" className="text-base font-bold">
+              <Label htmlFor="pos-abbr" className="font-bold">
                 Abbreviation <span className="text-tc_primary-500">*</span>
               </Label>
               <Input
@@ -132,7 +132,7 @@ export function CreatePositionButton() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label className="text-base font-bold">
+              <Label className="font-bold">
                 Permissions <span className="text-tc_primary-500">*</span>
               </Label>
               <Combobox
@@ -181,21 +181,19 @@ export function CreatePositionButton() {
               </Combobox>
             </div>
           </div>
-
-          <DialogFooter className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
-            <DialogClose className="border-tc_primary-600 text-tc_primary-600 hover:bg-tc_primary-600 flex h-12 w-full items-center justify-center rounded-sm border text-base font-bold transition-none hover:text-white sm:w-[97px]">
-              Cancel
-            </DialogClose>
-
-            <Button
-              type="submit"
-              disabled={!isFormValid}
-              className="bg-tc_primary-600 hover:bg-tc_primary-700 h-12 w-full rounded-sm text-base font-bold text-white transition-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-[157px]"
-            >
-              Create Position
-            </Button>
-          </DialogFooter>
         </form>
+
+        <DialogFooter>
+          <DialogClose className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 rounded-sm border-2 px-4 py-2 hover:text-white">
+            Cancel
+          </DialogClose>
+          <Button
+            type="submit"
+            className="bg-tc_primary-600 py-2a hover:bg-tc_primary-400 h-full rounded-sm border-2 px-6 text-white"
+          >
+            Create User
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Footer } from '@/components/shared/Footer'
 import { Button } from '@/components/ui/button'
@@ -20,8 +21,6 @@ export function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
   const resetPasswordMutation = useResetPassword()
 
@@ -65,21 +64,19 @@ export function ResetPasswordForm() {
               className="w-full"
               onSubmit={(e) => {
                 e.preventDefault()
-                setError(null)
-                setSuccess(null)
 
                 if (!token) {
-                  setError('Reset token is missing from this link.')
+                  toast.error('Reset token is missing from this link.')
                   return
                 }
 
                 if (!isValidPassword(newPassword)) {
-                  setError(PASSWORD_STRENGTH_REQUIREMENTS)
+                  toast.error(PASSWORD_STRENGTH_REQUIREMENTS)
                   return
                 }
 
                 if (newPassword !== confirmPassword) {
-                  setError("Passwords don't match.")
+                  toast.error("Passwords don't match.")
                   return
                 }
 
@@ -87,15 +84,14 @@ export function ResetPasswordForm() {
                   { token, newPassword, confirmPassword },
                   {
                     onSuccess: (res) => {
-                      setError(null)
-                      setSuccess(res.data?.message ?? 'Password reset successfully')
+                      toast.success(res.data?.message ?? 'Password reset successfully')
 
                       setTimeout(() => {
                         router.push('/login')
                       }, 2000)
                     },
                     onError: (err) => {
-                      setError(err?.message ?? 'Something went wrong')
+                      toast.error(err?.message ?? 'Something went wrong')
                     },
                   }
                 )
@@ -175,11 +171,6 @@ export function ResetPasswordForm() {
                 >
                   {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
                 </Button>
-
-                {error ? <p className="text-tc_error-600 text-base font-medium">{error}</p> : null}
-                {success ? (
-                  <p className="text-tc_success-700 text-base font-medium">{success}</p>
-                ) : null}
               </div>
             </form>
           </div>

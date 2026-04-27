@@ -10,7 +10,7 @@ import { ENDPOINTS } from '@/lib/api/endpoints'
 import { signIn } from '@/lib/auth-client'
 
 export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
-  await post<APIResponse>('/api/login', credentials)
+  await post<APIResponse>(ENDPOINTS.api.login, credentials)
 
   signIn.email({
     email: credentials.email,
@@ -45,11 +45,11 @@ export async function signOut(): Promise<void> {
 export function forgotPassword(
   request: ForgotPasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.forgotPassword, request)
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.forgotPassword, request)
 }
 
 export function resetPassword(
   request: ResetPasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.resetPassword, request)
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.resetPassword, request)
 }

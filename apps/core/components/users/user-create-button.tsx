@@ -29,30 +29,32 @@ export function CreateButton() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create User</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">Create User</DialogTitle>
             <DialogDescription>
               Creates a new user. Click Create User when youre done.
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Field>
-              <Label htmlFor="name-1">
+              <Label htmlFor="name-1" className="font-bold">
                 First Name<span className="text-tc_primary-500">*</span>
               </Label>
               <Input id="name-1" name="name" placeholder="Jose" />
             </Field>
             <Field>
-              <Label htmlFor="username-1">Middle Name</Label>
+              <Label htmlFor="username-1" className="font-bold">
+                Middle Name
+              </Label>
               <Input id="username-1" name="username" placeholder="Protacio" />
             </Field>
             <Field>
-              <Label htmlFor="name-1">
+              <Label htmlFor="name-1" className="font-bold">
                 Last Name<span className="text-tc_primary-500">*</span>
               </Label>
               <Input id="name-1" name="name" placeholder="Rizal Mercado y Alonso Realonda" />
             </Field>
             <Field>
-              <Label htmlFor="username-1">
+              <Label htmlFor="username-1" className="font-bold">
                 Email<span className="text-tc_primary-500">*</span>
               </Label>
               <Input
@@ -62,7 +64,7 @@ export function CreateButton() {
               />
             </Field>
             <Field>
-              <Label htmlFor="username-1">
+              <Label htmlFor="username-1" className="font-bold">
                 Position<span className="text-tc_primary-500">*</span>
               </Label>
               <PositionsCombobox />
