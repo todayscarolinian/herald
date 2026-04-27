@@ -75,6 +75,52 @@ interface VerifySessionRequest {
 
 - `token` - Session token to verify
 
+#### `AuthSessionPayload`
+
+Public session data returned by auth endpoints.
+
+```typescript
+interface AuthSessionPayload {
+  token: string
+  expiresAt: number
+}
+```
+
+**Properties:**
+
+- `token` - Session token string
+- `expiresAt` - Unix millisecond timestamp when the session expires
+
+#### `AuthUserPayload`
+
+Safe user data returned by auth endpoints (no password or internal fields).
+
+```typescript
+interface AuthUserPayload {
+  id: string
+  email: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  emailVerified: boolean
+  disabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+```
+
+**Properties:**
+
+- `id` - Unique user identifier
+- `email` - User's email address
+- `firstName` - User's first name
+- `middleName` - Optional middle name
+- `lastName` - User's last name
+- `emailVerified` - Whether email has been verified
+- `disabled` - Whether account is disabled
+- `createdAt` - ISO 8601 timestamp of account creation
+- `updatedAt` - ISO 8601 timestamp of last update
+
 #### `VerifySessionResponse`
 
 Response from session verification.
@@ -82,14 +128,40 @@ Response from session verification.
 ```typescript
 interface VerifySessionResponse {
   valid: boolean
-  user?: UserProfile
+  session?: AuthSessionPayload
+  user?: AuthUserPayload
 }
 ```
 
 **Properties:**
 
 - `valid` - Whether the session token is valid
-- `user` - User profile if session is valid
+- `session` - Session payload if session is valid
+- `session.token` - Session token string
+- `session.expiresAt` - Unix millisecond timestamp when the session expires
+- `user` - Safe user payload if session is valid
+
+**Example:**
+
+```typescript
+const response: APIResponse<VerifySessionResponse> = {
+  success: true,
+  data: {
+    valid: true,
+    session: { token: 'abc123', expiresAt: 1234567890000 },
+    user: {
+      id: 'user-uuid',
+      email: 'user@example.com',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      emailVerified: true,
+      disabled: false,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-06-01T00:00:00.000Z',
+    },
+  },
+}
+```
 
 #### `ForgotPasswordRequest`
 

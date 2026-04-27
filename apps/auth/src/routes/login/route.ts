@@ -5,8 +5,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { auth } from '../../lib/auth.js'
-import { firestore } from '../../lib/firestore.js'
-
+import { authService } from '../../services/auth.service.ts'
 const loginRouter = new Hono()
 
 // ---------------------------------------------------------------------------
@@ -105,12 +104,28 @@ loginRouter.post('/credentials', async (c) => {
     )
   }
 
-  // BetterAuth successfully signed them in. Now check if the user is disabled
-  // in Firestore before returning a successful response.
-  const userDoc = await firestore.collection('users').doc(signInResult.user.id).get()
-  const userData = userDoc.data()
+  const isUserExists = await authService.isUserExists(signInResult.user.email)
+  const isUserActive = await authService.isUserActive(signInResult.user.email)
 
-  if (userData?.disabled === true) {
+  if (!isUserExists) {
+    // This should never happen since the user was just authenticated successfully via BetterAuth,
+    // but we check just in case of a data inconsistency between BetterAuth and Firestore.
+    console.warn(
+      `[login/credentials] No Firestore user data found for authenticated user email ${signInResult.user.email}`
+    )
+    return c.json<APIResponse>(
+      {
+        success: false,
+        error: {
+          code: 'USER_DATA_NOT_FOUND',
+          message: 'User data not found. Please contact support.',
+        },
+      },
+      500
+    )
+  }
+
+  if (!isUserActive) {
     // Revoke the session we just created
     try {
       await auth.api.revokeSession({
@@ -136,12 +151,12 @@ loginRouter.post('/credentials', async (c) => {
   }
 
   const user = signInResult.user
+  // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
+  const userRecord = user as Record<string, unknown>
+
   const expiresAt = rememberMe
     ? Date.now() + 30 * 24 * 60 * 60 * 1000
     : Date.now() + 5 * 24 * 60 * 60 * 1000
-
-  // Cast to Record to access custom Firestore fields not defined in BetterAuth's user type
-  const userRecord = user as Record<string, unknown>
 
   return c.json<LoginResponse>({
     success: true,
@@ -157,7 +172,7 @@ loginRouter.post('/credentials', async (c) => {
       lastName: userRecord.lastName as string,
       positions: (userRecord.positions as Position[]) ?? [],
       emailVerified: user.emailVerified,
-      disabled: userData?.disabled === true,
+      disabled: user.disabled,
       createdAt:
         user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
       updatedAt:
@@ -209,9 +224,10 @@ loginRouter.post('/google', async (c) => {
   const { email } = parsed.data
 
   // Look up user in Firestore by email
-  const snapshot = await firestore.collection('users').where('email', '==', email).limit(1).get()
+  const isUserExists = await authService.isUserExists(email)
+  const isUserActive = await authService.isUserActive(email)
 
-  if (snapshot.empty) {
+  if (!isUserExists) {
     // Return generic 401 instead of 404 to avoid leaking email existence
     return c.json<APIResponse>(
       {
@@ -222,9 +238,7 @@ loginRouter.post('/google', async (c) => {
     )
   }
 
-  const userData = snapshot.docs[0]!.data()
-
-  if (userData.disabled === true) {
+  if (!isUserActive) {
     return c.json<APIResponse>(
       {
         success: false,

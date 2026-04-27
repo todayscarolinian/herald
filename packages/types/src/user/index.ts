@@ -6,10 +6,10 @@ export interface UserProfile {
   middleName?: string
   lastName: string
   email: string
-  password: string
   positions: Position[]
   emailVerified: boolean
   disabled: boolean
+  profilePictureURL?: string
   createdAt: string
   updatedAt: string
 }
@@ -18,7 +18,6 @@ export interface Position {
   id: UUID
   name: string
   abbreviation: string
-  description?: string
   permissions: string[]
   createdAt: string
   updatedAt: string

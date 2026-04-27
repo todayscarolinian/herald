@@ -1,15 +1,37 @@
-import type { APIResponse, LoginRequest, LoginResponse, ResetPasswordRequest } from '@herald/types'
+import type {
+  APIResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  ResetPasswordRequest,
+} from '@herald/types'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import { signIn } from '@/lib/auth-client'
 
-export function credentialsSignIn(credentials: LoginRequest): Promise<LoginResponse> {
-  return post<LoginResponse>(ENDPOINTS.auth.loginCredentials, credentials)
+export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
+  await post<APIResponse>(ENDPOINTS.api.login, credentials)
+
+  signIn.email({
+    email: credentials.email,
+    password: credentials.password,
+    rememberMe: credentials.rememberMe,
+  })
 }
 
 export async function googleSignIn(): Promise<void> {
-  await signIn.social({ provider: 'google', callbackURL: '/auth/google/callback' })
+  const callbackURL = process.env.NEXT_PUBLIC_CORE_URL
+
+  if (!callbackURL) {
+    throw new Error('NEXT_PUBLIC_CORE_URL is not defined')
+  }
+
+  const normalizedCallbackURL = callbackURL.endsWith('/') ? callbackURL.slice(0, -1) : callbackURL
+  await signIn.social({
+    provider: 'google',
+    callbackURL: normalizedCallbackURL,
+    errorCallbackURL: `${normalizedCallbackURL}/login`,
+  })
 }
 
 export async function googleGuardCheck(email: string): Promise<void> {
@@ -20,9 +42,14 @@ export async function signOut(): Promise<void> {
   await post<void>(ENDPOINTS.auth.logout, {})
 }
 
+export function forgotPassword(
+  request: ForgotPasswordRequest
+): Promise<APIResponse<{ message: string }>> {
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.forgotPassword, request)
+}
+
 export function resetPassword(
   request: ResetPasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  // Backend expects: { token, newPassword }
-  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.resetPassword, request)
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.resetPassword, request)
 }

@@ -2,9 +2,9 @@ import { auth } from '../lib/auth.ts'
 
 export class SessionService {
   async verifySession(headers: Headers) {
-    // BetterAuth handles session caching automatically
     const session = await auth.api.getSession({
       headers,
+      query: { disableCookieCache: true },
     })
 
     return session

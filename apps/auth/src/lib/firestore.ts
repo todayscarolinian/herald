@@ -11,3 +11,5 @@ export const firestore = initFirestore({
   projectId: process.env.FIREBASE_PROJECT_ID!,
   name: 'better-auth',
 })
+
+firestore.settings({ ignoreUndefinedProperties: true })

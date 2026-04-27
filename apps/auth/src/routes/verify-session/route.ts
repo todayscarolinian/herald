@@ -1,14 +1,9 @@
-import type { APIResponse } from '@herald/types'
+import type { APIResponse, VerifySessionResponse } from '@herald/types'
 import { Hono } from 'hono'
 
-import { sessionService } from '../../services/session.service.js'
+import { sessionService } from '../../services/session.service.ts'
 
 const verifySessionRoutes = new Hono()
-
-type VerifySessionPayload = {
-  valid: boolean
-  user?: unknown
-}
 
 const getErrorStatus = (error: unknown): number | null => {
   if (!error || typeof error !== 'object') {
@@ -29,7 +24,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
     const { session, user } = result ?? {}
 
     if (!session || !user) {
-      return c.json<APIResponse<VerifySessionPayload>>(
+      return c.json<APIResponse<VerifySessionResponse>>(
         {
           success: false,
           error: {
@@ -41,18 +36,32 @@ verifySessionRoutes.get('/verify-session', async (c) => {
       )
     }
 
-    return c.json<APIResponse<VerifySessionPayload>>({
+    return c.json<APIResponse<VerifySessionResponse>>({
       success: true,
       data: {
         valid: true,
-        user,
+        session: {
+          token: session.token,
+          expiresAt: session.expiresAt.getTime(),
+        },
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          middleName: user.middleName ?? undefined,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+          disabled: user.disabled ?? false,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
+        },
       },
     })
   } catch (error) {
     // Auth/session failure
     const status = getErrorStatus(error)
     if (status === 401 || status === 403) {
-      return c.json<APIResponse<VerifySessionPayload>>(
+      return c.json<APIResponse<VerifySessionResponse>>(
         {
           success: false,
           error: {
@@ -65,7 +74,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
     }
 
     // Unexpected internal failure
-    return c.json<APIResponse<VerifySessionPayload>>(
+    return c.json<APIResponse<VerifySessionResponse>>(
       {
         success: false,
         error: {
