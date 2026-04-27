@@ -63,14 +63,13 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
     [processedAuditLogs.length]
   )
 
-  const mobilePaginated = useMemo(() => {
-    const start = mobilePage * MOBILE_PAGE_SIZE
-    return processedAuditLogs.slice(start, start + MOBILE_PAGE_SIZE)
-  }, [mobilePage, processedAuditLogs])
+  const maxMobilePage = mobileTotalPages - 1
+  const mobileCurrentPage = Math.min(mobilePage, maxMobilePage)
 
-  if (mobilePage > mobileTotalPages - 1) {
-    setMobilePage(Math.max(0, mobileTotalPages - 1))
-  }
+  const mobilePaginated = useMemo(() => {
+    const start = mobileCurrentPage * MOBILE_PAGE_SIZE
+    return processedAuditLogs.slice(start, start + MOBILE_PAGE_SIZE)
+  }, [mobileCurrentPage, processedAuditLogs])
 
   const handleSearchChange = (val: string) => {
     setSearch(val)
@@ -98,8 +97,8 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
 
       <div className="mt-4 mb-12 flex items-center justify-between px-0 py-3">
         <button
-          onClick={() => setMobilePage((p) => Math.max(p - 1, 0))}
-          disabled={mobilePage === 0}
+          onClick={() => setMobilePage(Math.max(mobileCurrentPage - 1, 0))}
+          disabled={mobileCurrentPage === 0}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
           aria-label="Previous Page"
         >
@@ -109,15 +108,15 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
         <div className="text-sm text-black">
           {processedAuditLogs.length === 0
             ? '0 of 0'
-            : `${mobilePage * MOBILE_PAGE_SIZE + 1}-${Math.min(
-                (mobilePage + 1) * MOBILE_PAGE_SIZE,
+            : `${mobileCurrentPage * MOBILE_PAGE_SIZE + 1}-${Math.min(
+                (mobileCurrentPage + 1) * MOBILE_PAGE_SIZE,
                 processedAuditLogs.length
               )} of ${processedAuditLogs.length}`}
         </div>
 
         <button
-          onClick={() => setMobilePage((p) => Math.min(p + 1, mobileTotalPages - 1))}
-          disabled={mobilePage >= mobileTotalPages - 1}
+          onClick={() => setMobilePage(Math.min(mobileCurrentPage + 1, maxMobilePage))}
+          disabled={mobileCurrentPage >= maxMobilePage}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
           aria-label="Next Page"
         >
