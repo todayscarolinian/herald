@@ -9,6 +9,8 @@
 import type { AuditLog } from '../auditLog/index.ts'
 import type { UUID } from '../shared/uid.ts'
 import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.ts'
+import type { PositionDTO } from './position.dto.ts'
+import type { UserDTO } from './user.dto.ts'
 
 // =============================================================================
 // INPUT DTOs
@@ -32,17 +34,43 @@ export interface ListAuditLogsInput {
 
 export interface AuditLogFilters {
   action?: string
-  targetId?: UUID
-  performerId?: UUID
 }
 
-export type AuditLogSortField = 'action' | 'targetId' | 'performerId' | 'timestamp'
+export type AuditLogSortField = 'action' | 'timestamp'
 
 // =============================================================================
 // OUTPUT DTOs
 // =============================================================================
 
-export type AuditLogDTO = AuditLog
+export type AuditLogTargetUserDTO = Pick<
+  UserDTO,
+  'id' | 'firstName' | 'middleName' | 'lastName' | 'email' | 'positions' | 'createdAt'
+>
+
+export type AuditLogTargetPositionDTO = Pick<
+  PositionDTO,
+  'id' | 'name' | 'abbreviation' | 'permissions' | 'createdAt'
+>
+
+export type AuditLogTargetDTO =
+  | {
+      type: 'user'
+      data: AuditLogTargetUserDTO
+    }
+  | {
+      type: 'position'
+      data: AuditLogTargetPositionDTO
+    }
+
+export type AuditLogPerformerDTO = Pick<
+  UserDTO,
+  'id' | 'firstName' | 'middleName' | 'lastName' | 'email'
+>
+
+export type AuditLogDTO = AuditLog & {
+  target: AuditLogTargetDTO | null
+  performer: AuditLogPerformerDTO | null
+}
 
 export type AuditLogListDTO = PaginatedResult<AuditLogDTO>
 
