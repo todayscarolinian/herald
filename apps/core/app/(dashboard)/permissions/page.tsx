@@ -1,8 +1,9 @@
 'use client'
 
-import { PermissionDTO, PermissionListDTO } from '@herald/types'
-import { createPaginatedResult } from '@herald/utils'
-import { useState } from 'react'
+import { PermissionDTO } from '@herald/types'
+import { FolderOpen, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   columns,
@@ -11,130 +12,74 @@ import {
   PermissionDetailsDrawer,
   PermissionMobileDatagrid,
 } from '@/components/permissions'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
-
-const MOCK_PERMISSIONS: PermissionDTO[] = [
-  {
-    id: 'perm-1',
-    name: 'CREATE_ARTICLE',
-    domain: 'TC Official Website',
-    description: 'Create a new article draft.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-2',
-    name: 'EDIT_ARTICLE',
-    domain: 'TC Official Website',
-    description: 'Edit existing article content before publication.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-3',
-    name: 'PUBLISH_ARTICLE',
-    domain: 'TC Official Website',
-    description: 'Publish approved articles to the public site.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-4',
-    name: 'ARCHIVE_ARTICLE',
-    domain: 'TC Official Website',
-    description: 'Archive outdated or retired articles.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-5',
-    name: 'CREATE_USER',
-    domain: 'TC Herald',
-    description: 'Create user accounts in the system.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-6',
-    name: 'UPDATE_USER',
-    domain: 'TC Herald',
-    description: 'Update profile and role details for existing users.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-7',
-    name: 'DELETE_USER',
-    domain: 'TC Herald',
-    description: 'Remove users and revoke their active access.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-8',
-    name: 'CREATE_POSITION',
-    domain: 'TC Herald',
-    description: 'Create positions and assign permission sets.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-9',
-    name: 'UPDATE_POSITION',
-    domain: 'TC Herald',
-    description: 'Modify position details and linked permissions.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-10',
-    name: 'DELETE_POSITION',
-    domain: 'TC Herald',
-    description: 'Delete positions that are no longer in use.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-11',
-    name: 'VIEW_AUDIT_LOGS',
-    domain: 'TC Herald',
-    description: 'View all audit records across protected resources.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-12',
-    name: 'EXPORT_AUDIT_LOGS',
-    domain: 'TC Herald',
-    description: 'Export audit log data for reporting and compliance.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-  {
-    id: 'perm-13',
-    name: 'MANAGE_SPORTS',
-    domain: 'USC Days',
-    description: 'Create and manage USC days activities and sports for the calendar.',
-    createdAt: '01/01/26',
-    updatedAt: '01/01/26',
-  },
-]
-
-const MOCK_PERMISSIONS_LIST: PermissionListDTO = createPaginatedResult(
-  MOCK_PERMISSIONS,
-  MOCK_PERMISSIONS.length,
-  { page: 1, limit: 10 }
-)
+import { usePermissions } from '@/lib/api/queries/permissionQueries'
 
 export default function PermissionsPage() {
-  const [permissions] = useState(MOCK_PERMISSIONS_LIST)
   const isMobile = useIsMobile()
   const [selectedPermission, setSelectedPermission] = useState<PermissionDTO | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
+  const { data, isLoading, isError, error, refetch } = usePermissions({
+    filters: {},
+    pagination: { page: 1, limit: 200 },
+  })
+
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(error.message)
+    }
+  }, [isError, error])
+
   const handleOpenDetails = (permission: PermissionDTO) => {
     setSelectedPermission(permission)
     setIsDrawerOpen(true)
+  }
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3 pt-4">
+          {Array.from({ length: 8 }, (_, i) => `skeleton-row-${i}`).map((key) => (
+            <Skeleton key={key} className="h-10 w-full rounded-md" />
+          ))}
+        </div>
+      )
+    }
+
+    if (isError) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+          <p className="text-muted-foreground text-sm">Failed to load permissions.</p>
+          <Button variant="outline" onClick={() => void refetch()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      )
+    }
+
+    const permissions = data?.items ?? []
+
+    if (permissions.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+          <FolderOpen className="text-muted-foreground h-10 w-10" />
+          <p className="text-lg font-semibold">No permissions yet</p>
+          <p className="text-muted-foreground text-sm">No permissions have been configured.</p>
+        </div>
+      )
+    }
+
+    if (isMobile) {
+      return <PermissionMobileDatagrid permissions={data!} onClick={handleOpenDetails} />
+    }
+
+    return (
+      <PermissionDataTable columns={columns} data={permissions} onRowClick={handleOpenDetails} />
+    )
   }
 
   return (
@@ -145,17 +90,7 @@ export default function PermissionsPage() {
         <span className="text-2xl font-extrabold">Permissions</span>
       </div>
 
-      <div className="mt-8 mb-10 h-full w-full rounded-lg">
-        {isMobile ? (
-          <PermissionMobileDatagrid permissions={permissions} onClick={handleOpenDetails} />
-        ) : (
-          <PermissionDataTable
-            columns={columns}
-            data={permissions.items}
-            onRowClick={handleOpenDetails}
-          />
-        )}
-      </div>
+      <div className="mt-8 mb-10 h-full w-full rounded-lg">{renderContent()}</div>
 
       <PermissionDetailsDrawer
         permission={selectedPermission}

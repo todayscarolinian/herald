@@ -13,5 +13,7 @@ export const ENDPOINTS = {
     resetPassword: '/api/reset-password',
     users: '/api/users',
     positions: '/api/positions',
+    permissions: '/api/permissions',
+    auditLogs: '/api/audit-logs',
   },
 } as const

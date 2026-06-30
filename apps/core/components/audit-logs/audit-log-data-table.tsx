@@ -40,9 +40,10 @@ import { DesktopToolbar } from './audit-log-desktop-toolbar'
 type DataTableProps = {
   columns: ColumnDef<AuditLogDTO, unknown>[]
   data: AuditLogDTO[]
+  onRowClick?: (auditLog: AuditLogDTO) => void
 }
 
-export function DataTable({ columns, data }: DataTableProps) {
+export function DataTable({ columns, data, onRowClick }: DataTableProps) {
   const [selectedRow, setSelectedRow] = React.useState<AuditLogDTO | null>(null)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -141,7 +142,9 @@ export function DataTable({ columns, data }: DataTableProps) {
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   className="cursor-pointer"
-                  onClick={() => setSelectedRow(row.original)}
+                  onClick={() =>
+                    onRowClick ? onRowClick(row.original) : setSelectedRow(row.original)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
