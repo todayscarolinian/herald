@@ -250,11 +250,15 @@ export function createFirebaseUserRepository(
         const validatedCreatedById = validateUserId(createdById)
 
         const now = Timestamp.now()
+        const trimmedMiddleName = typeof middleName === 'string' ? middleName.trim() : undefined
+        const derivedName = [trimmedFirstName, trimmedMiddleName, trimmedLastName]
+          .filter(Boolean)
+          .join(' ')
 
         const userDoc = {
+          name: derivedName,
           firstName: trimmedFirstName,
-          ...(typeof middleName === 'string' &&
-            middleName.trim() && { middleName: middleName.trim() }),
+          ...(trimmedMiddleName && { middleName: trimmedMiddleName }),
           lastName: trimmedLastName,
           email: validatedEmail,
           positions,
@@ -300,7 +304,11 @@ export function createFirebaseUserRepository(
         }
 
         const now = Timestamp.now()
+        const derivedName = [user.firstName, user.middleName, user.lastName]
+          .filter(Boolean)
+          .join(' ')
         const updateData = {
+          name: derivedName,
           firstName: user.firstName,
           lastName: user.lastName,
           middleName: user.middleName ?? null,
@@ -514,7 +522,9 @@ async function buildPositionsMap(
   positionsCollection: string,
   positionIds: string[]
 ): Promise<Record<string, Position>> {
-  if (positionIds.length === 0) {return {}}
+  if (positionIds.length === 0) {
+    return {}
+  }
 
   const uniqueIds = [...new Set(positionIds)]
   const positionDocs = await Promise.all(
@@ -541,8 +551,12 @@ function extractPositionIds(docSnap: DocumentData, userId: string): string[] {
     throw new Error(`Invalid or missing required user field "positions" for user ${userId}`)
   }
   return positions.map((p) => {
-    if (typeof p === 'string') {return p}
-    if (typeof p?.id === 'string') {return p.id}
+    if (typeof p === 'string') {
+      return p
+    }
+    if (typeof p?.id === 'string') {
+      return p.id
+    }
     throw new Error(`Invalid position entry in user document ${userId}`)
   })
 }

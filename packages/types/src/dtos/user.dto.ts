@@ -85,3 +85,34 @@ export interface PositionDistributionDTO extends TotalUsersDTO {
     userCount: number
   }[]
 }
+
+// =============================================================================
+// BULK OPERATION DTOs
+// =============================================================================
+
+export interface BulkCreateUserRowInput {
+  firstName: string
+  middleName?: string
+  lastName: string
+  email: string
+  positionNames: string[]
+}
+
+export interface BulkUpdateUserRowInput {
+  email: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  positionNames: string[]
+}
+
+export interface BulkOperationFailure {
+  row: number
+  email: string
+  error: string
+}
+
+export interface BulkUserResult {
+  succeeded: UserDTO[]
+  failed: BulkOperationFailure[]
+}
