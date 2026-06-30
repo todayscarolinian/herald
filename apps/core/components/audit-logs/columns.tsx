@@ -4,6 +4,7 @@ import type { AuditLogDTO } from '@herald/types'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
+import { formatDate } from '@/lib/utils'
 
 export const columns: ColumnDef<AuditLogDTO>[] = [
   {
@@ -52,5 +53,6 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
   {
     accessorKey: 'timestamp',
     header: 'Timestamp',
+    cell: ({ row }) => formatDate(row.original.timestamp),
   },
 ]

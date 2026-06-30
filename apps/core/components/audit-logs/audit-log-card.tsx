@@ -3,6 +3,7 @@
 import { AuditLogDTO } from '@herald/types'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { formatDate } from '@/lib/utils'
 
 type Props = {
   auditLog: AuditLogDTO
@@ -26,7 +27,9 @@ export function AuditLogCard({ auditLog, onClick }: Props) {
       ? target.data.email
       : (auditLog.performer?.email ?? auditLog.performerId)
 
-  const detailRight = isUserTarget ? `created ${target.data.createdAt}` : `at ${auditLog.timestamp}`
+  const detailRight = isUserTarget
+    ? `created ${formatDate(target.data.createdAt)}`
+    : `at ${formatDate(auditLog.timestamp)}`
 
   return (
     <Card

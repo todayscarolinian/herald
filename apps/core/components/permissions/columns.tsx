@@ -4,6 +4,7 @@ import type { PermissionDTO } from '@herald/types'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
+import { formatDate } from '@/lib/utils'
 
 export const columns: ColumnDef<PermissionDTO>[] = [
   {
@@ -32,9 +33,11 @@ export const columns: ColumnDef<PermissionDTO>[] = [
   {
     accessorKey: 'createdAt',
     header: 'Created',
+    cell: ({ row }) => formatDate(row.original.createdAt),
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
+    cell: ({ row }) => formatDate(row.original.updatedAt),
   },
 ]

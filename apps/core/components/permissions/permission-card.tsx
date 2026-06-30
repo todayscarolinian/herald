@@ -3,6 +3,7 @@
 import type { PermissionDTO } from '@herald/types'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { formatDate } from '@/lib/utils'
 
 type Props = {
   permission: PermissionDTO
@@ -29,7 +30,7 @@ export function PermissionCard({ permission, onClick }: Props) {
       <CardContent className="text-muted-foreground flex justify-between gap-4 px-4 py-0 text-sm">
         <span className="text-tc_grayscale-800 min-w-0 truncate">{permission.description}</span>
         <span className="text-tc_grayscale-800 shrink-0 whitespace-nowrap">
-          {permission.updatedAt}
+          {formatDate(permission.updatedAt)}
         </span>
       </CardContent>
     </Card>
