@@ -1,3 +1,4 @@
+export * from './audit-log/index.ts'
 export * from './constants.ts'
 export * from './domain-events/create-audit-log.domain-event.ts'
 export * from './dto.ts'

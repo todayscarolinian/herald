@@ -8,6 +8,7 @@ import {
   type UserSortField,
   UUID,
 } from '@herald/types'
+import type { AuditLogTargetSnapshot } from '@herald/types/auditLog'
 import {
   collection,
   deleteDoc,
@@ -40,9 +41,8 @@ type StorageFile = {
 }
 type StorageBucket = { file(path: string): StorageFile }
 
-import { dispatchCreateAuditLog } from '../../domain-events/create-audit-log.domain-event.ts'
+import { buildPositionSnapshots, createAuditLogService } from '../../audit-log/index.ts'
 import { createPaginatedResult } from '../../dto.ts'
-import { createFirebaseAuditLogRepository } from './auditLog-repository.gateway.ts'
 
 const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: UserSortField = 'createdAt'
@@ -273,18 +273,22 @@ export function createFirebaseUserRepository(
           : doc(collection(firestore, COLLECTION_NAME))
         await setDoc(docRef, userDoc)
 
-        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
-
-        dispatchCreateAuditLog(auditLogRepository, {
-          type: 'audit-log.create.requested',
-          payload: {
-            action: 'USER_CREATED',
-            targetId: docRef.id,
-            performerId: validatedCreatedById,
-          },
-        })
-
         const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positions)
+
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'user',
+          data: {
+            id: docRef.id,
+            firstName: trimmedFirstName,
+            middleName: trimmedMiddleName,
+            lastName: trimmedLastName,
+            email: validatedEmail,
+            positions: buildPositionSnapshots(positions, positionsMap),
+            createdAt: now.toDate().toISOString(),
+          },
+        }
+        createAuditLogService(firestore).log('USER_CREATED', targetSnapshot, validatedCreatedById)
+
         return rawToDTO(mapRawUserDoc(docRef.id, userDoc), positionsMap)
       } catch (error) {
         console.error('Error creating user:', error)
@@ -324,22 +328,31 @@ export function createFirebaseUserRepository(
           throw new Error(`User with ID "${validatedId}" not found after update`)
         }
 
-        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
-
-        dispatchCreateAuditLog(auditLogRepository, {
-          type: 'audit-log.create.requested',
-          payload: {
-            action: 'USER_UPDATED',
-            targetId: docRef.id,
-            performerId: validatedUpdatedById,
-          },
-        })
-
         const positionsMap = await buildPositionsMap(
           firestore,
           POSITIONS_COLLECTION,
           user.positions
         )
+
+        const updatedData = updatedSnap.data()
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'user',
+          data: {
+            id: docRef.id,
+            firstName: typeof updatedData?.firstName === 'string' ? updatedData.firstName : '',
+            middleName:
+              typeof updatedData?.middleName === 'string' ? updatedData.middleName : undefined,
+            lastName: typeof updatedData?.lastName === 'string' ? updatedData.lastName : '',
+            email: typeof updatedData?.email === 'string' ? updatedData.email : '',
+            positions: buildPositionSnapshots(user.positions, positionsMap),
+            createdAt:
+              updatedData?.createdAt instanceof Timestamp
+                ? updatedData.createdAt.toDate().toISOString()
+                : '',
+          },
+        }
+        createAuditLogService(firestore).log('USER_UPDATED', targetSnapshot, validatedUpdatedById)
+
         return rawToDTO(mapRawUserDoc(updatedSnap.id, updatedSnap.data()), positionsMap)
       } catch (error) {
         console.error('Error updating user:', error)
@@ -358,18 +371,36 @@ export function createFirebaseUserRepository(
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
+        const deleteData = docSnap.data()
+        const deletePositionIds = extractPositionIds(deleteData, validatedId)
+        const deletePositionsMap = await buildPositionsMap(
+          firestore,
+          POSITIONS_COLLECTION,
+          deletePositionIds
+        )
+        const deleteTargetSnapshot: AuditLogTargetSnapshot = {
+          type: 'user',
+          data: {
+            id: docRef.id,
+            firstName: typeof deleteData?.firstName === 'string' ? deleteData.firstName : '',
+            middleName:
+              typeof deleteData?.middleName === 'string' ? deleteData.middleName : undefined,
+            lastName: typeof deleteData?.lastName === 'string' ? deleteData.lastName : '',
+            email: typeof deleteData?.email === 'string' ? deleteData.email : '',
+            positions: buildPositionSnapshots(deletePositionIds, deletePositionsMap),
+            createdAt:
+              deleteData?.createdAt instanceof Timestamp
+                ? deleteData.createdAt.toDate().toISOString()
+                : '',
+          },
+        }
         await deleteDoc(docRef)
 
-        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
-
-        dispatchCreateAuditLog(auditLogRepository, {
-          type: 'audit-log.create.requested',
-          payload: {
-            action: 'USER_DELETED',
-            targetId: docRef.id,
-            performerId: validatedDeletedById,
-          },
-        })
+        createAuditLogService(firestore).log(
+          'USER_DELETED',
+          deleteTargetSnapshot,
+          validatedDeletedById
+        )
 
         const sessionsQuery = query(
           collection(firestore, SESSIONS_COLLECTION),
@@ -405,21 +436,39 @@ export function createFirebaseUserRepository(
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
+        const disableData = docSnap.data()
+        const disablePositionIds = extractPositionIds(disableData, validatedId)
+        const disablePositionsMap = await buildPositionsMap(
+          firestore,
+          POSITIONS_COLLECTION,
+          disablePositionIds
+        )
+        const disableTargetSnapshot: AuditLogTargetSnapshot = {
+          type: 'user',
+          data: {
+            id: docRef.id,
+            firstName: typeof disableData?.firstName === 'string' ? disableData.firstName : '',
+            middleName:
+              typeof disableData?.middleName === 'string' ? disableData.middleName : undefined,
+            lastName: typeof disableData?.lastName === 'string' ? disableData.lastName : '',
+            email: typeof disableData?.email === 'string' ? disableData.email : '',
+            positions: buildPositionSnapshots(disablePositionIds, disablePositionsMap),
+            createdAt:
+              disableData?.createdAt instanceof Timestamp
+                ? disableData.createdAt.toDate().toISOString()
+                : '',
+          },
+        }
         await updateDoc(docRef, {
           disabled: true,
           updatedAt: Timestamp.now(),
         })
 
-        const auditLogRepository = createFirebaseAuditLogRepository(firestore)
-
-        dispatchCreateAuditLog(auditLogRepository, {
-          type: 'audit-log.create.requested',
-          payload: {
-            action: 'USER_DISABLED',
-            targetId: docRef.id,
-            performerId: validatedDisabledById,
-          },
-        })
+        createAuditLogService(firestore).log(
+          'USER_DISABLED',
+          disableTargetSnapshot,
+          validatedDisabledById
+        )
 
         const sessionsQuery = query(
           collection(firestore, SESSIONS_COLLECTION),

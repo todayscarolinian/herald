@@ -60,10 +60,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
+    if (!body.createdById || typeof body.createdById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"createdById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
     const createData: CreatePositionInput = {
       name: body.name,
       abbreviation: body.abbreviation,
       permissions: body.permissions,
+      createdById: body.createdById,
     }
 
     const repository = createFirebasePositionRepository(getServerFirestore())

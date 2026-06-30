@@ -65,6 +65,16 @@ export async function PUT(
       )
     }
 
+    if (!body.updatedById || typeof body.updatedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"updatedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
     const hasNoUpdatableFields =
       body.name === undefined && body.abbreviation === undefined && body.permissions === undefined
 
@@ -81,14 +91,12 @@ export async function PUT(
       )
     }
 
-    const updateData: PositionDTO = {
+    const updateData: UpdatePositionInput = {
       id,
       name: body.name ?? '',
       abbreviation: body.abbreviation ?? '',
       permissions: body.permissions ?? [],
-      createdAt: '',
-      updatedAt: '',
-      userCount: 0,
+      updatedById: body.updatedById,
     }
 
     const repository = createFirebasePositionRepository(getServerFirestore())
@@ -104,7 +112,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -117,17 +125,24 @@ export async function DELETE(
       )
     }
 
-    // TODO: Replace 'system' with actual authenticated user ID
-    const deleteData: DeletePositionInput = { id, deletedBy: 'system' }
+    const text = await request.text()
+    const body = (text ? JSON.parse(text) : {}) as Partial<DeletePositionInput>
+
+    if (!body.deletedById || typeof body.deletedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
 
     const repository = createFirebasePositionRepository(getServerFirestore())
-    await repository.delete(deleteData.id)
+    await repository.delete({ id, deletedById: body.deletedById })
 
     return NextResponse.json<APIResponse<{ message: string }>>(
-      {
-        success: true,
-        data: { message: `Position ${deleteData.id} has been deleted` },
-      },
+      { success: true, data: { message: `Position ${id} has been deleted` } },
       { status: 200 }
     )
   } catch (error) {

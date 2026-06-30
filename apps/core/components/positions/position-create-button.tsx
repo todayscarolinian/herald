@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
 import { usePermissions } from '@/lib/api/queries/permissionQueries'
+import { useSession } from '@/lib/auth-client'
 
 export function CreatePositionButton() {
   const { data: permissionsData, isLoading: permissionsLoading } = usePermissions({
@@ -49,6 +50,7 @@ export function CreatePositionButton() {
     abbreviation: false,
   })
 
+  const { data: session } = useSession()
   const createPosition = useCreatePosition()
 
   const nameError = touched.name && form.name.trim() === ''
@@ -72,6 +74,7 @@ export function CreatePositionButton() {
         name: form.name.trim(),
         abbreviation: form.abbreviation.trim(),
         permissions: form.permissions,
+        createdById: session?.user.id ?? '',
       },
       {
         onSuccess: () => {

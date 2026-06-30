@@ -6,6 +6,7 @@ import {
   type PositionFilters,
   type PositionSortField,
 } from '@herald/types'
+import type { AuditLogTargetSnapshot } from '@herald/types/auditLog'
 import {
   collection,
   deleteDoc,
@@ -29,6 +30,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 
+import { createAuditLogService } from '../../audit-log/index.ts'
 import { createPaginatedResult } from '../../dto.ts'
 
 const MAX_PAGE_LIMIT = 10
@@ -96,7 +98,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
 
     async create(position) {
       try {
-        const { name, abbreviation, permissions } = position
+        const { name, abbreviation, permissions, createdById } = position
 
         const trimmedName = name.trim()
         const trimmedAbbreviation = abbreviation.trim()
@@ -126,6 +128,18 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         const docRef = doc(collection(firestore, POSITIONS_COLLECTION))
         await setDoc(docRef, positionDoc)
 
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'position',
+          data: {
+            id: docRef.id,
+            name: trimmedName,
+            abbreviation: trimmedAbbreviation,
+            permissions,
+            createdAt: now.toDate().toISOString(),
+          },
+        }
+        createAuditLogService(firestore).log('POSITION_CREATED', targetSnapshot, createdById)
+
         return mapPositionDocToDTO(docRef.id, positionDoc, 0)
       } catch (error) {
         console.error('Error creating position:', error)
@@ -143,10 +157,12 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           throw new Error(`Position with id ${validatedId} does not exist`)
         }
 
+        const trimmedName = position.name.trim()
+        const trimmedAbbreviation = position.abbreviation.trim()
         const now = Timestamp.now()
         const updateData = {
-          name: position.name.trim(),
-          abbreviation: position.abbreviation.trim(),
+          name: trimmedName,
+          abbreviation: trimmedAbbreviation,
           permissions: position.permissions,
           updatedAt: now,
         }
@@ -158,6 +174,25 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           throw new Error(`Position with id ${validatedId} was not found after update`)
         }
 
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'position',
+          data: {
+            id: validatedId,
+            name: trimmedName,
+            abbreviation: trimmedAbbreviation,
+            permissions: position.permissions,
+            createdAt:
+              docSnap.data().createdAt instanceof Timestamp
+                ? docSnap.data().createdAt.toDate().toISOString()
+                : '',
+          },
+        }
+        createAuditLogService(firestore).log(
+          'POSITION_UPDATED',
+          targetSnapshot,
+          position.updatedById
+        )
+
         const userCount = await getPositionUserCount(firestore, USERS_COLLECTION, validatedId)
         return mapPositionDocToDTO(validatedId, updatedDocSnap.data()!, userCount)
       } catch (error) {
@@ -166,9 +201,9 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
       }
     },
 
-    async delete(id) {
+    async delete(input) {
       try {
-        const validatedId = validatePositionId(id)
+        const validatedId = validatePositionId(input.id)
         const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -176,9 +211,23 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           throw new Error(`Position with id ${validatedId} does not exist`)
         }
 
-        await deleteDoc(docRef)
+        const data = docSnap.data()
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'position',
+          data: {
+            id: validatedId,
+            name: typeof data.name === 'string' ? data.name : '',
+            abbreviation: typeof data.abbreviation === 'string' ? data.abbreviation : '',
+            permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+            createdAt:
+              data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : '',
+          },
+        }
 
-        // Optionally, also remove this position from the positionsId array of any users that have it assigned
+        await deleteDoc(docRef)
+        createAuditLogService(firestore).log('POSITION_DELETED', targetSnapshot, input.deletedById)
+
+        // Remove this position from the positions array of any users that have it assigned
         const usersWithPositionQuery = query(
           collection(firestore, 'users'),
           where('positions', 'array-contains', validatedId)

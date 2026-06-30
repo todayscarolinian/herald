@@ -172,7 +172,8 @@ export async function DELETE(
       )
     }
 
-    const body = (await request.json()) as Partial<DeleteUserInput>
+    const text = await request.text()
+    const body = (text ? JSON.parse(text) : {}) as Partial<DeleteUserInput>
 
     if (!body.deletedById || typeof body.deletedById !== 'string') {
       return NextResponse.json<APIResponse>(

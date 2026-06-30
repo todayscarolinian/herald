@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDeletePosition, useUpdatePosition } from '@/lib/api/mutations/positionMutations'
 import { usePermissions } from '@/lib/api/queries/permissionQueries'
+import { useSession } from '@/lib/auth-client'
 
 type Props = {
   position: Position | null
@@ -40,6 +41,7 @@ type Props = {
 export function PositionDetailsContent({ position, onClose }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
+  const { data: session } = useSession()
   const updatePosition = useUpdatePosition()
   const deletePosition = useDeletePosition()
 
@@ -77,6 +79,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
         name: form.name.trim(),
         abbreviation: form.abbreviation.trim(),
         permissions: form.permissions,
+        updatedById: session?.user.id ?? '',
       },
       {
         onSuccess: () => toast.success('Position updated'),
@@ -87,7 +90,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   const handleDelete = () => {
     deletePosition.mutate(
-      { id: position.id, deletedBy: 'system' },
+      { id: position.id, deletedById: session?.user.id ?? '' },
       {
         onSuccess: () => {
           toast.success('Position deleted')
