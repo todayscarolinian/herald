@@ -1,10 +1,12 @@
 import {
   CreatePositionInput,
+  DeletePositionInput,
   GetPositionByIdInput,
   ListPositionsInput,
   PositionDTO,
   PositionListDTO,
   TotalPositionsDTO,
+  UpdatePositionInput,
 } from '../dtos/position.dto.ts'
 import { UUID } from '../shared/uid.ts'
 
@@ -13,8 +15,8 @@ export interface IPositionRepository {
   findAll(params: ListPositionsInput): Promise<PositionListDTO>
 
   create(position: CreatePositionInput): Promise<PositionDTO>
-  update(position: PositionDTO): Promise<PositionDTO>
-  delete(id: UUID): Promise<void>
+  update(position: UpdatePositionInput): Promise<PositionDTO>
+  delete(input: DeletePositionInput): Promise<void>
 
   getTotalCount(): Promise<TotalPositionsDTO>
 

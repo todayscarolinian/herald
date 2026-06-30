@@ -57,7 +57,13 @@ export function CreateButton() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isValid || !session?.user.id) {
+    if (!session || !session.user) {
+      toast.error('You must be logged in to create a user.')
+      return
+    }
+
+    if (!isValid) {
+      toast.error('Please fill in all required fields and select at least one position.')
       return
     }
 
@@ -89,14 +95,14 @@ export function CreateButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <form onSubmit={handleSubmit}>
-        <DialogTrigger className="p-2">
-          <div className="text-tc_primary-500 hover:text-tc_primary-300 flex h-auto flex-col items-center gap-1 p-2">
-            <Plus className="h-5 w-5" />
-            <span className="text-sm font-medium">Create</span>
-          </div>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-2xl">
+      <DialogTrigger className="p-2">
+        <div className="text-tc_primary-500 hover:text-tc_primary-300 flex h-auto flex-col items-center gap-1 p-2">
+          <Plus className="h-5 w-5" />
+          <span className="text-sm font-medium">Create</span>
+        </div>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">Create User</DialogTitle>
             <DialogDescription>
@@ -185,8 +191,8 @@ export function CreateButton() {
               {isPending ? 'Creating...' : 'Create User'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   )
 }

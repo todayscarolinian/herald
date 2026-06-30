@@ -17,22 +17,14 @@ export function AuditLogDetailsContent({ auditLog, onClose }: Props) {
     return null
   }
 
-  console.log('auditLog', auditLog)
-
   const performerLabel = auditLog.performer
     ? `${auditLog.performer.firstName} ${auditLog.performer.lastName}`.trim() ||
       auditLog.performer.email
-    : auditLog.performerId
+    : 'Unknown'
 
   const targetLabel = (() => {
-    if (!auditLog.target) {
-      return auditLog.targetId
-    }
-
-    if (auditLog.target.type === 'position') {
-      return auditLog.target.data.name
-    }
-
+    if (!auditLog.target) {return 'Unknown'}
+    if (auditLog.target.type === 'position') {return auditLog.target.data.name}
     return (
       `${auditLog.target.data.firstName} ${auditLog.target.data.lastName}`.trim() ||
       auditLog.target.data.email

@@ -21,7 +21,7 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
     },
   },
   {
-    accessorKey: 'performerId',
+    accessorKey: 'performer',
     header: 'Performer',
     cell: ({ row }) => {
       const performer = row.original.performer
@@ -30,18 +30,16 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
         return `${performer.firstName} ${performer.lastName}`.trim() || performer.email
       }
 
-      return row.getValue('performerId') as string
+      return 'Unknown'
     },
   },
   {
-    accessorKey: 'targetId',
+    accessorKey: 'target',
     header: 'Target',
     cell: ({ row }) => {
       const target = row.original.target
 
-      if (!target) {
-        return row.getValue('targetId') as string
-      }
+      if (!target) {return 'Unknown'}
 
       if (target.type === 'position') {
         return target.data.name

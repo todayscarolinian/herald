@@ -46,5 +46,8 @@ export function updatePosition(params: UpdatePositionInput): Promise<APIResponse
 export function deletePosition(
   params: DeletePositionInput
 ): Promise<APIResponse<{ message: string }>> {
-  return del<APIResponse<{ message: string }>>(`${ENDPOINTS.api.positions}/${params.id}`)
+  return del<APIResponse<{ message: string }>, DeletePositionInput>(
+    `${ENDPOINTS.api.positions}/${params.id}`,
+    params
+  )
 }

@@ -23,9 +23,7 @@ export function AuditLogCard({ auditLog, onClick }: Props) {
         : 'Unavailable'
 
   const detailLeft =
-    target?.type === 'user'
-      ? target.data.email
-      : (auditLog.performer?.email ?? auditLog.performerId)
+    target?.type === 'user' ? target.data.email : (auditLog.performer?.email ?? 'Unknown')
 
   const detailRight = isUserTarget
     ? `created ${formatDate(target.data.createdAt)}`

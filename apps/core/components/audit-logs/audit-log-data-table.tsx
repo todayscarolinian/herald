@@ -225,13 +225,23 @@ export function DataTable({ columns, data, onRowClick }: DataTableProps) {
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Performer ID</FieldLabel>
-                  <span className="text-sm">{selectedRow.performerId}</span>
+                  <FieldLabel>Performer</FieldLabel>
+                  <span className="text-sm">
+                    {selectedRow.performer
+                      ? `${selectedRow.performer.firstName} ${selectedRow.performer.lastName}`.trim() ||
+                        selectedRow.performer.email
+                      : 'Unknown'}
+                  </span>
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Target ID</FieldLabel>
-                  <span className="text-sm">{selectedRow.targetId}</span>
+                  <FieldLabel>Target</FieldLabel>
+                  <span className="text-sm">
+                    {selectedRow.target?.type === 'user'
+                      ? `${selectedRow.target.data.firstName} ${selectedRow.target.data.lastName}`.trim() ||
+                        selectedRow.target.data.email
+                      : (selectedRow.target?.data.name ?? 'Unknown')}
+                  </span>
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">
