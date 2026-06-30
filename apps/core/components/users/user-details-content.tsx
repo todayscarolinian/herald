@@ -1,8 +1,8 @@
 'use client'
 
-import { UserDTO } from '@herald/types'
-import { ChevronDown } from 'lucide-react'
+import { Position, UserDTO } from '@herald/types'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   AlertDialog,
@@ -15,31 +15,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-} from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDeleteUser, useDisableUser, useUpdateUser } from '@/lib/api/mutations/userMutations'
+import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useSession } from '@/lib/auth-client'
 
-const PERMISSIONS = [
-  'CREATE_ARTICLE',
-  'MANAGE_USC_DAYS',
-  'EDIT_ARTICLE',
-  'DELETE_ARTICLE',
-  'MANAGE_USERS',
-  'VIEW_AUDIT_LOGS',
-  'MANAGE_PERMISSIONS',
-  'PUBLISH_ARTICLE',
-  'MANAGE_POSITIONS',
-]
+import { PositionsCombobox } from './user-positions-combobox'
 
 type Props = {
   user: UserDTO | null
@@ -47,6 +29,7 @@ type Props = {
 }
 
 export function UserDetailsContent({ user, onClose }: Props) {
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const [form, setForm] = useState(() => ({
@@ -59,14 +42,27 @@ export function UserDetailsContent({ user, onClose }: Props) {
 
   const [touched, setTouched] = useState({
     firstName: false,
-    middleName: false,
     lastName: false,
     email: false,
     positions: false,
   })
 
+  const { data: session } = useSession()
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser()
+  const { mutate: disableUser, isPending: isDisabling } = useDisableUser()
+  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
+
+  const { data: positionsData } = usePositions({
+    filters: {},
+    pagination: { page: 1, limit: 200 },
+  })
+
+  const positionOptions = (positionsData?.items ?? []).map((p) => ({
+    id: p.id,
+    label: p.name,
+  }))
+
   const firstNameError = touched.firstName && form.firstName.trim() === ''
-  const middleNameError = touched.middleName && form.middleName.trim() === ''
   const lastNameError = touched.lastName && form.lastName.trim() === ''
   const emailError = touched.email && form.email.trim() === ''
   const positionsError = touched.positions && form.positions.length === 0
@@ -77,8 +73,87 @@ export function UserDetailsContent({ user, onClose }: Props) {
     form.email.trim() !== '' &&
     form.positions.length > 0
 
+  const isMutating = isUpdating || isDisabling || isDeleting
+
   if (!user) {
     return null
+  }
+
+  const resolvePositions = (): Position[] => {
+    const allPositions = positionsData?.items ?? []
+    return allPositions
+      .filter((p) => form.positions.includes(p.id))
+      .map(({ id, name, abbreviation, permissions, createdAt, updatedAt }) => ({
+        id,
+        name,
+        abbreviation,
+        permissions,
+        createdAt,
+        updatedAt,
+      }))
+  }
+
+  const handleSave = () => {
+    if (!isFormValid || !session?.user.id) {return}
+
+    updateUser(
+      {
+        id: user.id,
+        firstName: form.firstName.trim(),
+        middleName: form.middleName.trim() || undefined,
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        positions: resolvePositions(),
+        updatedById: session.user.id,
+      },
+      {
+        onSuccess: () => {
+          toast.success('User updated successfully')
+          onClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+        },
+      }
+    )
+  }
+
+  const handleDisable = () => {
+    if (!session?.user.id) {return}
+
+    disableUser(
+      { id: user.id, deletedById: session.user.id },
+      {
+        onSuccess: () => {
+          toast.success('User disabled successfully')
+          setShowDisableConfirm(false)
+          onClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+          setShowDisableConfirm(false)
+        },
+      }
+    )
+  }
+
+  const handleDelete = () => {
+    if (!session?.user.id) {return}
+
+    deleteUser(
+      { id: user.id, deletedById: session.user.id },
+      {
+        onSuccess: () => {
+          toast.success('User deleted successfully')
+          setShowDeleteConfirm(false)
+          onClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+          setShowDeleteConfirm(false)
+        },
+      }
+    )
   }
 
   return (
@@ -86,8 +161,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
       <div className="flex-1 space-y-6 overflow-y-auto px-1 pb-4">
         <div className="flex flex-col gap-[10px]">
           <Label className="text-[12px] font-bold text-black">
-            {' '}
-            Name <span className="text-destructive">*</span>{' '}
+            First Name <span className="text-destructive">*</span>
           </Label>
           <Input
             className={`h-[36px] w-full border-[1px] bg-white text-[14px] ${
@@ -100,24 +174,17 @@ export function UserDetailsContent({ user, onClose }: Props) {
         </div>
 
         <div className="flex flex-col gap-[10px]">
-          <Label className="text-[12px] font-bold text-black">
-            {' '}
-            Middle Name <span className="text-destructive">*</span>{' '}
-          </Label>
+          <Label className="text-[12px] font-bold text-black">Middle Name</Label>
           <Input
-            className={`h-[36px] w-full border-[1px] bg-white text-[14px] ${
-              middleNameError ? 'border-red-500' : 'border-tc_grayscale-500'
-            }`}
+            className="border-tc_grayscale-500 h-[36px] w-full border-[1px] bg-white text-[14px]"
             value={form.middleName}
             onChange={(e) => setForm((prev) => ({ ...prev, middleName: e.target.value }))}
-            onBlur={() => setTouched((t) => ({ ...t, middleName: true }))}
           />
         </div>
 
         <div className="flex flex-col gap-[10px]">
           <Label className="text-[12px] font-bold text-black">
-            {' '}
-            Last Name <span className="text-destructive">*</span>{' '}
+            Last Name <span className="text-destructive">*</span>
           </Label>
           <Input
             className={`h-[36px] w-full border-[1px] bg-white text-[14px] ${
@@ -131,8 +198,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
 
         <div className="flex flex-col gap-[10px]">
           <Label className="text-[12px] font-bold text-black">
-            {' '}
-            Email <span className="text-destructive">*</span>{' '}
+            Email <span className="text-destructive">*</span>
           </Label>
           <Input
             className={`h-[36px] w-full border-[1px] bg-white text-[14px] ${
@@ -148,94 +214,92 @@ export function UserDetailsContent({ user, onClose }: Props) {
           <Label className="text-[12px] font-bold text-black">
             Positions <span className="text-destructive">*</span>
           </Label>
-
-          <Combobox
-            items={PERMISSIONS}
-            multiple
-            value={form.positions}
-            onValueChange={(value) => {
-              setTouched((t) => ({ ...t, positions: true }))
-              setForm((prev) => ({ ...prev, positions: value }))
-            }}
-          >
-            <ComboboxChips
-              className={`relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-[10px] gap-y-2 rounded-md bg-white py-1 !pr-5 pl-3 ${
-                positionsError ? 'border-red-500' : 'border-tc_grayscale-500'
-              } border`}
-            >
-              <ComboboxValue>
-                {form.positions.map((item) => (
-                  <ComboboxChip
-                    key={item}
-                    className="bg-tc_primary-500 flex h-[24px] w-auto items-center justify-center rounded-[12px] border-none px-3 text-[12px] text-white [&_button]:hover:bg-white/20 [&_button]:focus:bg-white/20"
-                  >
-                    {item}
-                  </ComboboxChip>
-                ))}
-              </ComboboxValue>
-
-              <ComboboxChipsInput
-                placeholder={form.positions.length === 0 ? 'Select positions...' : ''}
-                className="h-[24px] min-w-[120px] flex-1 bg-transparent p-0 text-[14px] outline-none"
-              />
-
-              <div className="pointer-events-none absolute top-[9px] right-3 text-black/50">
-                <ChevronDown size={16} />
-              </div>
-            </ComboboxChips>
-
-            <ComboboxContent
-              className="w-[--radix-popover-trigger-width] min-w-[--radix-popover-trigger-width] p-0"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ComboboxEmpty className="text-[14px]">No positions found.</ComboboxEmpty>
-              <ComboboxList>
-                {(item) => (
-                  <ComboboxItem key={item} value={item} onSelect={(e) => e.stopPropagation()}>
-                    {item}
-                  </ComboboxItem>
-                )}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
+          <div className={positionsError ? 'rounded-md ring-1 ring-red-500' : ''}>
+            <PositionsCombobox
+              options={positionOptions}
+              value={form.positions}
+              defaultValue={[]}
+              onValueChange={(value) => {
+                setTouched((t) => ({ ...t, positions: true }))
+                setForm((prev) => ({ ...prev, positions: value }))
+              }}
+            />
+          </div>
         </div>
       </div>
 
       <div className="bg-background mt-auto flex gap-[10px] pt-4">
         <Button
+          type="button"
           variant="outline"
-          onClick={() => setShowDeleteConfirm(true)}
+          disabled={isMutating}
+          onClick={() => setShowDisableConfirm(true)}
           className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
+        >
+          Disable
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isMutating}
+          onClick={() => setShowDeleteConfirm(true)}
+          className="box-border h-[40px] flex-1 rounded-[8px] border border-red-500 bg-white px-4 py-0 text-[14px] leading-none text-red-500 hover:bg-red-500 hover:text-white"
         >
           Delete
         </Button>
 
         <Button
-          disabled={!isFormValid}
+          type="button"
+          disabled={!isFormValid || isMutating}
+          onClick={handleSave}
           className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save
+          {isUpdating ? 'Saving...' : 'Save'}
         </Button>
       </div>
 
+      {/* Disable confirmation */}
+      <AlertDialog open={showDisableConfirm} onOpenChange={setShowDisableConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable User?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {user.firstName} {user.lastName} will be disabled and will no longer be able to log
+              in. This can be reversed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisabling}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-tc_primary-500 hover:bg-tc_primary-600"
+              disabled={isDisabling}
+              onClick={handleDisable}
+            >
+              {isDisabling ? 'Disabling...' : 'Disable'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Position?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>Delete User?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {user.firstName} {user.lastName}. This action cannot be
+              undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-tc_primary-500 hover:bg-tc_primary-600"
-              onClick={() => {
-                // TO DO: API call
-                onClose()
-              }}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={isDeleting}
+              onClick={handleDelete}
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
