@@ -34,7 +34,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { signOut } from '@/lib/api/services/authService'
+import { useSignOut } from '@/lib/api/mutations/authMutations'
 import { useSession } from '@/lib/auth-client'
 
 const navItems = [
@@ -52,15 +52,18 @@ export function AppNavigation() {
 
   const { user } = session || {}
 
+  const signOut = useSignOut()
+
   const handleLogout = () => {
-    signOut()
-      .then(() => {
-        toast.success('Successfully logged out.')
+    signOut.mutate(undefined, {
+      onSuccess: () => {
         router.push('/login')
-      })
-      .catch((error) => {
-        console.error('Error signing out:', error)
-      })
+        toast.success('Logged out successfully')
+      },
+      onError: (error) => {
+        toast.error(`Logout failed: ${error.message}`)
+      },
+    })
   }
 
   return (

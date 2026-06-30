@@ -12,13 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
 
-const ALLOWED_SORT_FIELDS: UserSortField[] = [
-  'firstName',
-  'lastName',
-  'email',
-  'createdAt',
-  'updatedAt',
-]
+const ALLOWED_SORT_FIELDS: UserSortField[] = ['name', 'email', 'createdAt', 'updatedAt']
 
 const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*'
 
@@ -119,6 +113,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const userData: CreateUserInput = {
       id: authUser.id,
+      name: `${firstName} ${middleName || ''} ${lastName}`,
       firstName,
       middleName: typeof middleName === 'string' ? middleName : undefined,
       lastName,

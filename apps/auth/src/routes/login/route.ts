@@ -167,6 +167,7 @@ loginRouter.post('/credentials', async (c) => {
     user: {
       id: user.id,
       email: user.email,
+      name: userRecord.name as string,
       firstName: userRecord.firstName as string,
       middleName: userRecord.middleName as string | undefined,
       lastName: userRecord.lastName as string,
