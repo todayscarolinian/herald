@@ -48,6 +48,7 @@ export function PositionsCombobox({
       value={value}
       defaultValue={fallbackDefaultValue}
       onValueChange={(nextValues) => onValueChange?.(nextValues as UUID[])}
+      itemToStringLabel={(id) => labelById.get(id as UUID) ?? ''}
     >
       <ComboboxChips ref={anchor} className="w-full">
         <ComboboxValue>

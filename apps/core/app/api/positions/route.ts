@@ -1,41 +1,27 @@
 import type {
   APIResponse,
   CreatePositionInput,
-  PaginatedResult,
   PositionDTO,
   PositionFilters,
   PositionSortField,
 } from '@herald/types'
 import { DEFAULT_PAGINATION, type SortDirection, type SortInput } from '@herald/types'
+import { createFirebasePositionRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-// import { createFirebasePositionRepository } from '@herald/utils'
-// import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const ALLOWED_SORT_FIELDS: PositionSortField[] = ['name', 'createdAt', 'updatedAt']
 
-export function GET(request: NextRequest): NextResponse {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const url = new URL(request.url)
-    const _filters = parseFilters(url.searchParams)
+    const filters = parseFilters(url.searchParams)
     const pagination = parsePagination(url.searchParams)
-    const _sort = parseSort(url.searchParams)
-    void _filters
-    void _sort
+    const sort = parseSort(url.searchParams)
 
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // const result = await repository.findAll({ filters, pagination, sort })
-
-    const result: PaginatedResult<PositionDTO> = {
-      items: [],
-      total: 0,
-      page: pagination.page,
-      limit: pagination.limit,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false,
-    }
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    const result = await repository.findAll({ filters, pagination, sort })
 
     return NextResponse.json(result, { status: 200 })
   } catch (error) {
@@ -80,19 +66,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       permissions: body.permissions,
     }
 
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // const createdPosition = await repository.create(createData)
-
-    const createdPosition: PositionDTO = {
-      id: 'position-wip',
-      name: createData.name,
-      abbreviation: createData.abbreviation,
-      permissions: createData.permissions,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userCount: 0,
-    }
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    const createdPosition = await repository.create(createData)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: createdPosition },

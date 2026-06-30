@@ -4,7 +4,7 @@ import { AppNavigation } from '@/components/shared'
 import { SidebarProvider } from '@/components/ui/sidebar'
 
 export const metadata: Metadata = {
-  title: 'Herald',
+  title: "Herald | Today's Carolinian",
   description:
     "Today's Carolinian identity control center for users, roles, permissions, and audit history.",
 }

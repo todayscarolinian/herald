@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 import {
   DropdownMenu,
@@ -33,6 +34,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
+import { signOut } from '@/lib/api/services/authService'
+import { useSession } from '@/lib/auth-client'
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,6 +47,21 @@ const navItems = [
 
 export function AppNavigation() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  const { user } = session || {}
+
+  const handleLogout = () => {
+    signOut()
+      .then(() => {
+        toast.success('Successfully logged out.')
+        router.push('/login')
+      })
+      .catch((error) => {
+        console.error('Error signing out:', error)
+      })
+  }
 
   return (
     <>
@@ -210,10 +228,10 @@ export function AppNavigation() {
 
                         <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
                           <span className="text-tc_white truncate text-sm font-semibold">
-                            Test User
+                            {user?.name || ''}
                           </span>
                           <span className="text-tc_white/70 truncate text-xs">
-                            testemail@gmail.com
+                            {user?.email || ''}
                           </span>
                         </div>
 
@@ -229,7 +247,7 @@ export function AppNavigation() {
 
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
-                        <DropdownMenuItem>Log out</DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>

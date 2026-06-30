@@ -58,7 +58,9 @@ export function CreateButton() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isValid || !session?.user.id) {return}
+    if (!isValid || !session?.user.id) {
+      return
+    }
 
     const allPositions = positionsData?.items ?? []
     const selectedPositions: Position[] = allPositions
@@ -75,6 +77,9 @@ export function CreateButton() {
     createUser(
       {
         id: '',
+        name: `${form.firstName.trim()} ${form.middleName.trim()} ${form.lastName.trim()}`
+          .replace(/\s+/g, ' ')
+          .trim(),
         firstName: form.firstName.trim(),
         middleName: form.middleName.trim() || undefined,
         lastName: form.lastName.trim(),
@@ -181,14 +186,14 @@ export function CreateButton() {
           <DialogFooter>
             <DialogClose
               type="button"
-              className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 rounded-sm border-2 px-4 py-2 hover:text-white"
+              className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 w-auto rounded-sm border-2 px-4 py-2 hover:text-white"
             >
               Cancel
             </DialogClose>
             <Button
               type="submit"
               disabled={!isValid || isPending}
-              className="bg-tc_primary-600 hover:bg-tc_primary-400 h-full rounded-sm border-2 px-6 text-white"
+              className="bg-tc_primary-600 hover:bg-tc_primary-400 w-auto rounded-sm border-2 px-6 py-5 text-white"
             >
               {isPending ? 'Creating...' : 'Create User'}
             </Button>

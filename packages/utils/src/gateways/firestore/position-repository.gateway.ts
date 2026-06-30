@@ -35,7 +35,7 @@ const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: PositionSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
 
-export function createPositionRepositoryGateway(firestore: Firestore): IPositionRepository {
+export function createFirebasePositionRepository(firestore: Firestore): IPositionRepository {
   const POSITIONS_COLLECTION = 'positions'
   const USERS_COLLECTION = 'users'
 

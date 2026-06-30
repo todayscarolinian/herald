@@ -62,7 +62,7 @@ export interface UserFilters {
   emailVerified?: boolean
 }
 
-export type UserSortField = 'firstName' | 'lastName' | 'email' | 'createdAt' | 'updatedAt'
+export type UserSortField = 'name' | 'email' | 'createdAt' | 'updatedAt'
 
 // =============================================================================
 // OUTPUT DTOs

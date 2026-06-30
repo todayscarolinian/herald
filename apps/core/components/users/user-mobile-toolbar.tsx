@@ -39,8 +39,8 @@ export function MobileToolbar({
   const [filterDialogOpen, setFilterDialogOpen] = useState(false)
   const [draftFilters, setDraftFilters] = useState<UserFilters>({})
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
-  const [draftSortField, setDraftSortField] = useState<UserSortField>('firstName')
-  const [draftSortDirection, setDraftSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [draftSortField, setDraftSortField] = useState<UserSortField>('createdAt')
+  const [draftSortDirection, setDraftSortDirection] = useState<'asc' | 'desc'>('desc')
 
   const activeFilterCount =
     (selectedFilters.positionIds?.length ? 1 : 0) +
@@ -87,9 +87,10 @@ export function MobileToolbar({
   }
 
   const clearSort = () => {
-    const fallbackSortField = availableSortFields[0] ?? 'firstName'
-    setDraftSortField(fallbackSortField)
-    setDraftSortDirection('asc')
+    setDraftSortField('createdAt')
+    setDraftSortDirection('desc')
+    onApplySort('createdAt', 'desc')
+    setSortDialogOpen(false)
   }
 
   return (

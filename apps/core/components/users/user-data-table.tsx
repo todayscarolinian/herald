@@ -76,12 +76,20 @@ export function DataTable<TData, TValue>({
       pagination: {
         pageSize: 10,
       },
+      columnVisibility: {
+        disabled: false,
+        emailVerified: false,
+      },
     },
   })
 
   const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as UserSortField) : 'createdAt'
-  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
-  const searchValue = (table.getColumn('firstName')?.getFilterValue() as string) ?? ''
+  const selectedSortDirection: 'asc' | 'desc' = sorting[0]
+    ? sorting[0].desc
+      ? 'desc'
+      : 'asc'
+    : 'desc'
+  const searchValue = (table.getColumn('name')?.getFilterValue() as string) ?? ''
 
   const applySort = (field: UserSortField, direction: 'asc' | 'desc') => {
     if (!table.getColumn(field)) {
@@ -128,7 +136,7 @@ export function DataTable<TData, TValue>({
         title="Users"
         search={searchValue}
         onSearchChange={(value) => {
-          table.getColumn('firstName')?.setFilterValue(value)
+          table.getColumn('name')?.setFilterValue(value)
           table.setPageIndex(0)
         }}
         selectedFilters={userFilters}

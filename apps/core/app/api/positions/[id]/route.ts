@@ -4,10 +4,10 @@ import type {
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
+import { createFirebasePositionRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-// import { createFirebasePositionRepository } from '@herald/utils'
-// import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function PUT(
   request: NextRequest,
@@ -81,27 +81,18 @@ export async function PUT(
       )
     }
 
-    const updateData: UpdatePositionInput = {
+    const updateData: PositionDTO = {
       id,
       name: body.name ?? '',
       abbreviation: body.abbreviation ?? '',
       permissions: body.permissions ?? [],
-    }
-
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // const updatedPosition = await repository.update(updateData)
-
-    const now = new Date().toISOString()
-    const updatedPosition: PositionDTO = {
-      id,
-      name: updateData.name ?? 'WIP Position',
-      abbreviation: updateData.abbreviation ?? 'WIP',
-      permissions: updateData.permissions ?? [],
-      createdAt: now,
-      updatedAt: now,
+      createdAt: '',
+      updatedAt: '',
       userCount: 0,
     }
+
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    const updatedPosition = await repository.update(updateData)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: updatedPosition },
@@ -126,11 +117,11 @@ export async function DELETE(
       )
     }
 
-    const deleteData: DeletePositionInput = { id, deletedBy: 'system' } // TODO: Replace 'system' with actual user ID performing the deletion
+    // TODO: Replace 'system' with actual authenticated user ID
+    const deleteData: DeletePositionInput = { id, deletedBy: 'system' }
 
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // await repository.delete(deleteData)
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    await repository.delete(deleteData.id)
 
     return NextResponse.json<APIResponse<{ message: string }>>(
       {

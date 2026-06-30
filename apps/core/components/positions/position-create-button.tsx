@@ -2,6 +2,7 @@
 
 import { ChevronDown, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
 
 const PERMISSIONS = [
   'CREATE_ARTICLE',
@@ -54,6 +56,8 @@ export function CreatePositionButton() {
     permissions: false,
   })
 
+  const createPosition = useCreatePosition()
+
   const nameError = touched.name && form.name.trim() === ''
   const abbrError = touched.abbreviation && form.abbreviation.trim() === ''
   const permissionsError = touched.permissions && form.permissions.length === 0
@@ -66,14 +70,36 @@ export function CreatePositionButton() {
   }
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log('Form submitted with values:', form)
     e.preventDefault()
     if (!isFormValid) {
-      return
+      toast.error('Please fill out all required fields.')
+      console.error('Form validation failed:', {
+        name: form.name,
+        abbreviation: form.abbreviation,
+        permissions: form.permissions,
+      })
     }
 
-    // TO DO: API Call here
-    setOpen(false)
-    handleReset()
+    console.log('Submitting form with values:', form)
+
+    createPosition.mutate(
+      {
+        name: form.name.trim(),
+        abbreviation: form.abbreviation.trim(),
+        permissions: form.permissions,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Position created')
+          setOpen(false)
+          handleReset()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+        },
+      }
+    )
   }
 
   return (
@@ -181,19 +207,20 @@ export function CreatePositionButton() {
               </Combobox>
             </div>
           </div>
-        </form>
 
-        <DialogFooter>
-          <DialogClose className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 rounded-sm border-2 px-4 py-2 hover:text-white">
-            Cancel
-          </DialogClose>
-          <Button
-            type="submit"
-            className="bg-tc_primary-600 py-2a hover:bg-tc_primary-400 h-full rounded-sm border-2 px-6 text-white"
-          >
-            Create User
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <DialogClose className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 w-auto rounded-sm border-2 px-4 py-2 hover:text-white">
+              Cancel
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={createPosition.isPending}
+              className="bg-tc_primary-600 hover:bg-tc_primary-400 w-auto rounded-sm border-2 px-6 py-5 text-white"
+            >
+              {createPosition.isPending ? 'Creating...' : 'Create Position'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

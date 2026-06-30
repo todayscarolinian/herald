@@ -4,17 +4,13 @@ import { UserDTO, UserFilters, UserListDTO, UserSortField } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { usePositions } from '@/lib/api/queries/positionQueries'
+
 import { UserCard } from './user-card'
 import { MobileToolbar } from './user-mobile-toolbar'
 
 const MOBILE_PAGE_SIZE = 10
-const USER_SORT_FIELDS: UserSortField[] = [
-  'firstName',
-  'lastName',
-  'email',
-  'createdAt',
-  'updatedAt',
-]
+const USER_SORT_FIELDS: UserSortField[] = ['name', 'email', 'createdAt', 'updatedAt']
 
 type MobileDatagridProps = {
   users: UserListDTO
@@ -24,43 +20,26 @@ type MobileDatagridProps = {
 export default function MobileDatagrid({ users, onClick }: MobileDatagridProps) {
   const [search, setSearch] = useState('')
   const [selectedFilters, setSelectedFilters] = useState<UserFilters>({})
-  const [selectedSortField, setSelectedSortField] = useState<UserSortField>('firstName')
-  const [selectedSortDirection, setSelectedSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [selectedSortField, setSelectedSortField] = useState<UserSortField>('createdAt')
+  const [selectedSortDirection, setSelectedSortDirection] = useState<'asc' | 'desc'>('desc')
   const [mobilePage, setMobilePage] = useState(0)
-  const availablePositions = useMemo(() => {
-    const seen = new Set<string>()
 
-    return users.items.flatMap((user) =>
-      user.positions
-        .filter((position) => {
-          if (seen.has(position.id)) {
-            return false
-          }
+  const { data: positionsData } = usePositions({
+    filters: {},
+    pagination: { page: 1, limit: 200 },
+  })
 
-          seen.add(position.id)
-          return true
-        })
-        .map((position) => ({
-          id: position.id,
-          label: position.abbreviation || position.name,
-        }))
-    )
-  }, [users.items])
+  const availablePositions = useMemo(
+    () => (positionsData?.items ?? []).map((p) => ({ id: p.id, label: p.name })),
+    [positionsData?.items]
+  )
 
   const processedUsers = useMemo(() => {
     const loweredSearch = search.trim().toLowerCase()
 
     const filtered = users.items.filter((user) => {
-      if (loweredSearch) {
-        const matchesSearch =
-          user.firstName.toLowerCase().includes(loweredSearch) ||
-          (user.middleName && user.middleName.toLowerCase().includes(loweredSearch)) ||
-          user.lastName.toLowerCase().includes(loweredSearch) ||
-          user.email.toLowerCase().includes(loweredSearch)
-
-        if (!matchesSearch) {
-          return false
-        }
+      if (loweredSearch && !user.name.toLowerCase().includes(loweredSearch)) {
+        return false
       }
 
       if (

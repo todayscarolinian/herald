@@ -9,9 +9,7 @@ export const columns: ColumnDef<PermissionDTO>[] = [
   {
     accessorKey: 'name',
     header: 'Permission',
-    cell: ({ row }) => (
-      <span className="font-roboto-condensed text-base font-semibold">{row.original.name}</span>
-    ),
+    cell: ({ row }) => <span>{row.original.name}</span>,
   },
   {
     accessorKey: 'domain',
