@@ -1,29 +1,46 @@
 'use client'
 
-import { UserDTO } from '@herald/types'
+import type { BulkUserResult, UserDTO } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { columns, CreateButton, DataTable, ImportButton, UserBreadcrumbs } from '@/components/users'
-import { BulkImportDialog } from '@/components/users/bulk-import-dialog'
+import { BulkImportDialog, type ConfirmRow } from '@/components/users/bulk-import-dialog'
 import { UserDetailsDrawer } from '@/components/users/user-details-drawer'
 import MobileDatagrid from '@/components/users/user-mobile-datagrid'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useBulkCreateUsers, useBulkUpdateUsers } from '@/lib/api/mutations/userMutations'
 import { useUsers } from '@/lib/api/queries/userQueries'
+import { useSession } from '@/lib/auth-client'
+import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/utils/csv-parser'
 
 export default function UsersPage() {
   const isMobile = useIsMobile()
+  const { data: sessionData } = useSession()
   const [selectedUser, setSelectedUser] = useState<UserDTO | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [bulkMode, setBulkMode] = useState<null | 'create' | 'update'>(null)
+  const [bulkParseErrors, setBulkParseErrors] = useState<{ row: number; message: string }[]>([])
+  const [bulkResult, setBulkResult] = useState<BulkUserResult | null>(null)
+  const [confirmRows, setConfirmRows] = useState<ConfirmRow[] | null>(null)
+
+  // Holds the strongly-typed parsed rows between the confirm step and mutation call
+  const pendingRowsRef = useRef<Parameters<typeof bulkCreateMutation.mutate>[0]['users'] | null>(
+    null
+  )
 
   const { data, isLoading, isError, error, refetch } = useUsers({
     filters: {},
     pagination: { page: 1, limit: 200 },
   })
+
+  const bulkCreateMutation = useBulkCreateUsers()
+  const bulkUpdateMutation = useBulkUpdateUsers()
+
+  const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
   useEffect(() => {
     if (isError && error) {
@@ -34,6 +51,94 @@ export default function UsersPage() {
   const handleOpenDetails = (user: UserDTO) => {
     setSelectedUser(user)
     setIsDrawerOpen(true)
+  }
+
+  const resetBulkState = () => {
+    setBulkParseErrors([])
+    setBulkResult(null)
+    setConfirmRows(null)
+    pendingRowsRef.current = null
+    bulkCreateMutation.reset()
+    bulkUpdateMutation.reset()
+  }
+
+  const handleBulkDialogClose = (open: boolean) => {
+    if (!open) {
+      setBulkMode(null)
+      resetBulkState()
+    }
+  }
+
+  // Step 1: parse CSV and show the confirmation step
+  const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
+    const requestedById = sessionData?.user?.id
+    if (!requestedById) {
+      toast.error('Session expired. Please sign in again.')
+      return
+    }
+
+    setBulkParseErrors([])
+    setBulkResult(null)
+    setConfirmRows(null)
+
+    const parsed =
+      mode === 'create' ? await parseCreateUsersCsv(file) : await parseUpdateUsersCsv(file)
+
+    if (parsed.errors.length > 0) {
+      setBulkParseErrors(parsed.errors)
+      return
+    }
+
+    if (parsed.rows.length === 0) {
+      setBulkParseErrors([{ row: 0, message: 'No valid rows found in the CSV.' }])
+      return
+    }
+
+    // Store typed rows for mutation, expose display rows for confirmation UI
+    pendingRowsRef.current = parsed.rows as Parameters<typeof bulkCreateMutation.mutate>[0]['users']
+    setConfirmRows(parsed.rows as ConfirmRow[])
+  }
+
+  // Step 2: after the admin confirms, run the mutation
+  const handleConfirm = () => {
+    const requestedById = sessionData?.user?.id
+    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+      return
+    }
+
+    const rows = pendingRowsRef.current
+
+    const onSuccess = (response: { data?: BulkUserResult | null }) => {
+      const result = response.data ?? { succeeded: [], failed: [] }
+      setBulkResult(result)
+      setConfirmRows(null)
+
+      if (result.failed.length === 0) {
+        toast.success(
+          `${result.succeeded.length} user(s) ${bulkMode === 'create' ? 'created' : 'updated'} successfully.`
+        )
+      } else {
+        toast.warning(
+          `${result.succeeded.length} succeeded, ${result.failed.length} failed. See the dialog for details.`
+        )
+      }
+    }
+
+    const onError = (err: Error) => {
+      toast.error(err.message)
+    }
+
+    if (bulkMode === 'create') {
+      bulkCreateMutation.mutate({ users: rows, requestedById }, { onSuccess, onError })
+    } else {
+      bulkUpdateMutation.mutate(
+        {
+          users: rows as Parameters<typeof bulkUpdateMutation.mutate>[0]['users'],
+          requestedById,
+        },
+        { onSuccess, onError }
+      )
+    }
   }
 
   const renderTable = () => {
@@ -107,18 +212,14 @@ export default function UsersPage() {
       <BulkImportDialog
         open={!!bulkMode}
         mode={bulkMode ?? 'create'}
-        onOpenChange={(open) => {
-          if (!open) {
-            setBulkMode(null)
-          }
-        }}
-        onSubmit={(_file, mode) => {
-          if (mode === 'create') {
-            // T0 DO: parse CSV → add new users
-          } else {
-            // T0 D0: parse CSV → update existing users
-          }
-        }}
+        onOpenChange={handleBulkDialogClose}
+        onSubmit={(file, mode) => void handleBulkSubmit(file, mode)}
+        onConfirm={handleConfirm}
+        onBack={() => setConfirmRows(null)}
+        isLoading={isBulkLoading}
+        result={bulkResult}
+        parseErrors={bulkParseErrors}
+        confirmRows={confirmRows}
       />
     </div>
   )

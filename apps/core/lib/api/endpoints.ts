@@ -12,6 +12,7 @@ export const ENDPOINTS = {
     forgotPassword: '/api/forgot-password',
     resetPassword: '/api/reset-password',
     users: '/api/users',
+    usersBulk: '/api/users/bulk',
     positions: '/api/positions',
     permissions: '/api/permissions',
     auditLogs: '/api/audit-logs',

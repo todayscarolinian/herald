@@ -1,5 +1,8 @@
 import type {
   APIResponse,
+  BulkCreateUserRowInput,
+  BulkUpdateUserRowInput,
+  BulkUserResult,
   CreateUserInput,
   DeleteUserInput,
   ListUsersInput,
@@ -67,7 +70,24 @@ export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ mess
 }
 
 export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
-  return del<APIResponse<{ message: string }>>(`${ENDPOINTS.api.users}/${params.id}`)
+  return del<APIResponse<{ message: string }>, DeleteUserInput>(
+    `${ENDPOINTS.api.users}/${params.id}`,
+    params
+  )
+}
+
+export function bulkCreateUsers(params: {
+  users: BulkCreateUserRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkUserResult>> {
+  return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'create', ...params })
+}
+
+export function bulkUpdateUsers(params: {
+  users: BulkUpdateUserRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkUserResult>> {
+  return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'update', ...params })
 }
 
 export async function signUpInBetterAuth(params: {
