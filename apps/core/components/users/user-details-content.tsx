@@ -1,6 +1,6 @@
 'use client'
 
-import { Position, UserDTO } from '@herald/types'
+import { UserDTO } from '@herald/types'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -79,20 +79,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
     return null
   }
 
-  const resolvePositions = (): Position[] => {
-    const allPositions = positionsData?.items ?? []
-    return allPositions
-      .filter((p) => form.positions.includes(p.id))
-      .map(({ id, name, abbreviation, permissions, createdAt, updatedAt }) => ({
-        id,
-        name,
-        abbreviation,
-        permissions,
-        createdAt,
-        updatedAt,
-      }))
-  }
-
   const handleSave = () => {
     if (!isFormValid || !session?.user.id) {
       return
@@ -108,7 +94,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
         middleName: form.middleName.trim() || undefined,
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        positions: resolvePositions(),
+        positions: form.positions,
         updatedById: session.user.id,
       },
       {

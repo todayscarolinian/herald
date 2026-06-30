@@ -181,14 +181,14 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         // Optionally, also remove this position from the positionsId array of any users that have it assigned
         const usersWithPositionQuery = query(
           collection(firestore, 'users'),
-          where('positionIds', 'array-contains', validatedId)
+          where('positions', 'array-contains', validatedId)
         )
         const usersSnapshot = await getDocs(usersWithPositionQuery)
         const batch = writeBatch(firestore)
         usersSnapshot.forEach((userDoc) => {
           const userRef = doc(firestore, 'users', userDoc.id)
           batch.update(userRef, {
-            positionIds: userDoc.data().positionIds.filter((pid: string) => pid !== validatedId),
+            positions: userDoc.data().positions.filter((pid: string) => pid !== validatedId),
           })
         })
         await batch.commit()
@@ -356,7 +356,7 @@ async function getPositionUserCount(
 ): Promise<number> {
   const usersWithPositionQuery = query(
     collection(firestore, usersCollection),
-    where('positionIds', 'array-contains', positionId)
+    where('positions', 'array-contains', positionId)
   )
   const usersCountSnapshot = await getCountFromServer(usersWithPositionQuery)
   return usersCountSnapshot.data().count

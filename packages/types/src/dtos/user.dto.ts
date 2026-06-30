@@ -20,9 +20,10 @@ import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.t
 
 export type CreateUserInput = Omit<
   UserProfile,
-  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
   createdById: UUID
+  positions: string[]
 }
 
 /**
@@ -31,9 +32,10 @@ export type CreateUserInput = Omit<
 
 export type UpdateUserInput = Omit<
   UserProfile,
-  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
   updatedById: UUID
+  positions: string[]
 }
 
 export interface DeleteUserInput {

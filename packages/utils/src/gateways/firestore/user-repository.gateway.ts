@@ -2,6 +2,7 @@
 import {
   DEFAULT_PAGINATION,
   type IUserRepository,
+  type Position,
   type UserDTO,
   type UserFilters,
   type UserSortField,
@@ -55,6 +56,9 @@ type AuthUserRecord = {
   email: string
   disabled: boolean
 }
+
+// Intermediate representation with position IDs before enrichment
+type RawUserDoc = Omit<UserDTO, 'positions'> & { positionIds: string[] }
 
 export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
   const COLLECTION_NAME = 'users'
@@ -123,6 +127,7 @@ export function createFirebaseUserRepository(
   const COLLECTION_NAME = 'users'
   const SESSIONS_COLLECTION = 'sessions'
   const ACCOUNTS_COLLECTION = 'accounts'
+  const POSITIONS_COLLECTION = 'positions'
 
   return {
     async findById({ id }) {
@@ -135,7 +140,9 @@ export function createFirebaseUserRepository(
           return null
         }
 
-        return mapUserDocToDTO(docSnap.id, docSnap.data())
+        const positionIds = extractPositionIds(docSnap.data(), validatedId)
+        const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positionIds)
+        return rawToDTO(mapRawUserDoc(docSnap.id, docSnap.data()), positionsMap)
       } catch (error) {
         console.error('Error finding user by ID:', error)
         throw error
@@ -161,7 +168,9 @@ export function createFirebaseUserRepository(
           return null
         }
 
-        return mapUserDocToDTO(docSnap.id, docSnap.data())
+        const positionIds = extractPositionIds(docSnap.data(), docSnap.id)
+        const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positionIds)
+        return rawToDTO(mapRawUserDoc(docSnap.id, docSnap.data()), positionsMap)
       } catch (error) {
         console.error('Error finding user by email:', error)
         throw error
@@ -183,22 +192,30 @@ export function createFirebaseUserRepository(
         )
 
         if (search) {
-          const { users, total } = await fetchSearchUsers(baseQuery, search, page, pageLimit)
-          return createPaginatedResult(users, total, {
+          const { users, total } = await fetchSearchUsers(
+            firestore,
+            POSITIONS_COLLECTION,
+            baseQuery,
+            search,
             page,
-            limit: pageLimit,
-          })
+            pageLimit
+          )
+          return createPaginatedResult(users, total, { page, limit: pageLimit })
         }
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
 
-        const users = await fetchPaginatedUsers(baseQuery, page, pageLimit)
+        const rawUsers = await fetchPaginatedUsers(baseQuery, page, pageLimit)
+        const allPositionIds = [...new Set(rawUsers.flatMap((u) => u.positionIds))]
+        const positionsMap = await buildPositionsMap(
+          firestore,
+          POSITIONS_COLLECTION,
+          allPositionIds
+        )
+        const users = rawUsers.map((raw) => rawToDTO(raw, positionsMap))
 
-        return createPaginatedResult(users, total, {
-          page,
-          limit: pageLimit,
-        })
+        return createPaginatedResult(users, total, { page, limit: pageLimit })
       } catch (error) {
         console.error('Error finding all users:', error)
         throw error
@@ -263,7 +280,8 @@ export function createFirebaseUserRepository(
           },
         })
 
-        return mapUserDocToDTO(docRef.id, userDoc)
+        const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positions)
+        return rawToDTO(mapRawUserDoc(docRef.id, userDoc), positionsMap)
       } catch (error) {
         console.error('Error creating user:', error)
         throw error
@@ -309,7 +327,12 @@ export function createFirebaseUserRepository(
           },
         })
 
-        return mapUserDocToDTO(updatedSnap.id, updatedSnap.data())
+        const positionsMap = await buildPositionsMap(
+          firestore,
+          POSITIONS_COLLECTION,
+          user.positions
+        )
+        return rawToDTO(mapRawUserDoc(updatedSnap.id, updatedSnap.data()), positionsMap)
       } catch (error) {
         console.error('Error updating user:', error)
         throw error
@@ -471,6 +494,99 @@ export function createFirebaseUserRepository(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Position enrichment helpers
+// ---------------------------------------------------------------------------
+
+function mapPositionDocToPosition(id: string, data: DocumentData): Position {
+  return {
+    id,
+    name: typeof data.name === 'string' ? data.name : '',
+    abbreviation: typeof data.abbreviation === 'string' ? data.abbreviation : '',
+    permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : '',
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : '',
+  }
+}
+
+async function buildPositionsMap(
+  firestore: Firestore,
+  positionsCollection: string,
+  positionIds: string[]
+): Promise<Record<string, Position>> {
+  if (positionIds.length === 0) {return {}}
+
+  const uniqueIds = [...new Set(positionIds)]
+  const positionDocs = await Promise.all(
+    uniqueIds.map((id) => getDoc(doc(firestore, positionsCollection, id)))
+  )
+
+  const map: Record<string, Position> = {}
+  for (const docSnap of positionDocs) {
+    if (docSnap.exists()) {
+      map[docSnap.id] = mapPositionDocToPosition(docSnap.id, docSnap.data())
+    }
+  }
+  return map
+}
+
+// ---------------------------------------------------------------------------
+// User doc mapping
+// ---------------------------------------------------------------------------
+
+// Handles both legacy full-object entries and new string-ID entries gracefully
+function extractPositionIds(docSnap: DocumentData, userId: string): string[] {
+  const positions = docSnap?.positions
+  if (!Array.isArray(positions)) {
+    throw new Error(`Invalid or missing required user field "positions" for user ${userId}`)
+  }
+  return positions.map((p) => {
+    if (typeof p === 'string') {return p}
+    if (typeof p?.id === 'string') {return p.id}
+    throw new Error(`Invalid position entry in user document ${userId}`)
+  })
+}
+
+function mapRawUserDoc(id: string, docSnap: DocumentData): RawUserDoc {
+  const name = requireStringField(docSnap, 'name', id)
+  const firstName = requireStringField(docSnap, 'firstName', id)
+  const lastName = requireStringField(docSnap, 'lastName', id)
+  const email = requireStringField(docSnap, 'email', id)
+  const positionIds = extractPositionIds(docSnap, id)
+  const emailVerified = requireBooleanField(docSnap, 'emailVerified', id)
+  const disabled = requireBooleanField(docSnap, 'disabled', id)
+  const createdAt = requireTimestampField(docSnap, 'createdAt', id)
+  const updatedAt = requireTimestampField(docSnap, 'updatedAt', id)
+
+  return {
+    id,
+    name,
+    firstName,
+    middleName: typeof docSnap.middleName === 'string' ? docSnap.middleName : undefined,
+    lastName,
+    email,
+    positionIds,
+    emailVerified,
+    disabled,
+    profilePictureURL:
+      typeof docSnap.profilePictureURL === 'string' ? docSnap.profilePictureURL : undefined,
+    createdAt,
+    updatedAt,
+  }
+}
+
+function rawToDTO(raw: RawUserDoc, positionsMap: Record<string, Position>): UserDTO {
+  const { positionIds, ...rest } = raw
+  return {
+    ...rest,
+    positions: positionIds.map((id) => positionsMap[id]).filter((p): p is Position => !!p),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Query helpers
+// ---------------------------------------------------------------------------
+
 function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
   page: number
   limit: number
@@ -545,10 +661,10 @@ async function fetchPaginatedUsers(
   baseQuery: Query<DocumentData>,
   page: number,
   pageLimit: number
-): Promise<UserDTO[]> {
+): Promise<RawUserDoc[]> {
   if (page === 1) {
     const snapshot = await getDocs(query(baseQuery, limit(pageLimit)))
-    return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+    return snapshot.docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
   }
 
   const cursor = await getPageCursor(baseQuery, page, pageLimit)
@@ -559,26 +675,31 @@ async function fetchPaginatedUsers(
   const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
   const snapshot = await getDocs(pageQuery)
 
-  return snapshot.docs.map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
+  return snapshot.docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
 }
 
 async function fetchSearchUsers(
+  firestore: Firestore,
+  positionsCollection: string,
   baseQuery: Query<DocumentData>,
   search: string,
   page: number,
   pageLimit: number
 ): Promise<{ users: UserDTO[]; total: number }> {
   const snapshot = await getDocs(baseQuery)
-  const matchingUsers = snapshot.docs
-    .map((docSnap) => mapUserDocToDTO(docSnap.id, docSnap.data()))
-    .filter((user) => matchesSearch(user, search))
+  const matchingRaw = snapshot.docs
+    .map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
+    .filter((raw) => matchesSearch(raw, search))
 
   const startIndex = (page - 1) * pageLimit
-  const users = matchingUsers.slice(startIndex, startIndex + pageLimit)
+  const pageRaw = matchingRaw.slice(startIndex, startIndex + pageLimit)
+
+  const allPositionIds = [...new Set(pageRaw.flatMap((u) => u.positionIds))]
+  const positionsMap = await buildPositionsMap(firestore, positionsCollection, allPositionIds)
 
   return {
-    users,
-    total: matchingUsers.length,
+    users: pageRaw.map((raw) => rawToDTO(raw, positionsMap)),
+    total: matchingRaw.length,
   }
 }
 
@@ -612,35 +733,11 @@ async function getPageCursor(
   return cursor
 }
 
-function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
-  const name = requireStringField(docSnap, 'name', id)
-  const firstName = requireStringField(docSnap, 'firstName', id)
-  const lastName = requireStringField(docSnap, 'lastName', id)
-  const email = requireStringField(docSnap, 'email', id)
-  const positions = requirePositionsField(docSnap, id)
-  const emailVerified = requireBooleanField(docSnap, 'emailVerified', id)
-  const disabled = requireBooleanField(docSnap, 'disabled', id)
-  const createdAt = requireTimestampField(docSnap, 'createdAt', id)
-  const updatedAt = requireTimestampField(docSnap, 'updatedAt', id)
+// ---------------------------------------------------------------------------
+// Field validators
+// ---------------------------------------------------------------------------
 
-  return {
-    id,
-    name,
-    firstName,
-    middleName: typeof docSnap.middleName === 'string' ? docSnap.middleName : undefined,
-    lastName,
-    email,
-    positions,
-    emailVerified,
-    disabled,
-    profilePictureURL:
-      typeof docSnap.profilePictureURL === 'string' ? docSnap.profilePictureURL : undefined,
-    createdAt,
-    updatedAt,
-  }
-}
-
-function matchesSearch(user: UserDTO, search: string): boolean {
+function matchesSearch(user: RawUserDoc, search: string): boolean {
   const firstName = user.firstName.toLowerCase()
   const middleName = user.middleName?.toLowerCase() ?? ''
   const lastName = user.lastName.toLowerCase()
@@ -672,15 +769,6 @@ function requireBooleanField(docSnap: DocumentData, field: string, userId: strin
   }
 
   return value
-}
-
-function requirePositionsField(docSnap: DocumentData, userId: string): UserDTO['positions'] {
-  const positions = docSnap?.positions
-  if (!Array.isArray(positions)) {
-    throw new Error(`Invalid or missing required user field "positions" for user ${userId}`)
-  }
-
-  return positions as UserDTO['positions']
 }
 
 function requireTimestampField(docSnap: DocumentData, field: string, userId: string): string {

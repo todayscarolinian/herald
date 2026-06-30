@@ -30,18 +30,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDeletePosition, useUpdatePosition } from '@/lib/api/mutations/positionMutations'
-
-const PERMISSIONS = [
-  'CREATE_ARTICLE',
-  'MANAGE_USC_DAYS',
-  'EDIT_ARTICLE',
-  'DELETE_ARTICLE',
-  'MANAGE_USERS',
-  'VIEW_AUDIT_LOGS',
-  'MANAGE_PERMISSIONS',
-  'PUBLISH_ARTICLE',
-  'MANAGE_POSITIONS',
-]
+import { usePermissions } from '@/lib/api/queries/permissionQueries'
 
 type Props = {
   position: Position | null
@@ -53,6 +42,12 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   const updatePosition = useUpdatePosition()
   const deletePosition = useDeletePosition()
+
+  const { data: permissionsData, isLoading: permissionsLoading } = usePermissions({
+    filters: {},
+    pagination: { page: 1, limit: 100 },
+  })
+  const permissionNames = permissionsData?.items.map((p) => p.name) ?? []
 
   const [form, setForm] = useState(() => ({
     name: position?.name ?? '',
@@ -68,10 +63,8 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   const nameError = touched.name && form.name.trim() === ''
   const abbrError = touched.abbreviation && form.abbreviation.trim() === ''
-  const permissionsError = touched.permissions && form.permissions.length === 0
 
-  const isFormValid =
-    form.name.trim() !== '' && form.abbreviation.trim() !== '' && form.permissions.length > 0
+  const isFormValid = form.name.trim() !== '' && form.abbreviation.trim() !== ''
 
   if (!position) {
     return null
@@ -144,7 +137,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
           </Label>
 
           <Combobox
-            items={PERMISSIONS}
+            items={permissionNames}
             multiple
             value={form.permissions}
             onValueChange={(value) => {
@@ -152,11 +145,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
               setForm((prev) => ({ ...prev, permissions: value }))
             }}
           >
-            <ComboboxChips
-              className={`relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-[10px] gap-y-2 rounded-md bg-white py-1 !pr-5 pl-3 ${
-                permissionsError ? 'border-red-500' : 'border-tc_grayscale-500'
-              } border`}
-            >
+            <ComboboxChips className="border-tc_grayscale-500 relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-[10px] gap-y-2 rounded-md border bg-white py-1 !pr-5 pl-3">
               <ComboboxValue>
                 {form.permissions.map((item) => (
                   <ComboboxChip
@@ -169,8 +158,15 @@ export function PositionDetailsContent({ position, onClose }: Props) {
               </ComboboxValue>
 
               <ComboboxChipsInput
-                placeholder={form.permissions.length === 0 ? 'Select permissions...' : ''}
+                placeholder={
+                  permissionsLoading
+                    ? 'Loading permissions...'
+                    : form.permissions.length === 0
+                      ? 'Select permissions...'
+                      : ''
+                }
                 className="h-[24px] min-w-[120px] flex-1 bg-transparent p-0 text-[14px] outline-none"
+                disabled={permissionsLoading}
               />
 
               <div className="pointer-events-none absolute top-[9px] right-3 text-black/50">
@@ -179,11 +175,11 @@ export function PositionDetailsContent({ position, onClose }: Props) {
             </ComboboxChips>
 
             <ComboboxContent
-              className="w-[--radix-popover-trigger-width] min-w-[--radix-popover-trigger-width] p-0"
+              className="w-[--radix-popover-trigger-width]"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <ComboboxEmpty className="text-[14px]">No permissions found.</ComboboxEmpty>
+              <ComboboxEmpty className="w-full text-[14px]">No permissions found.</ComboboxEmpty>
               <ComboboxList>
                 {(item) => (
                   <ComboboxItem key={item} value={item} onSelect={(e) => e.stopPropagation()}>

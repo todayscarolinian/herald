@@ -1,6 +1,5 @@
 'use client'
 
-import { Position } from '@herald/types'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -62,18 +61,6 @@ export function CreateButton() {
       return
     }
 
-    const allPositions = positionsData?.items ?? []
-    const selectedPositions: Position[] = allPositions
-      .filter((p) => form.positions.includes(p.id))
-      .map(({ id, name, abbreviation, permissions, createdAt, updatedAt }) => ({
-        id,
-        name,
-        abbreviation,
-        permissions,
-        createdAt,
-        updatedAt,
-      }))
-
     createUser(
       {
         id: '',
@@ -84,7 +71,7 @@ export function CreateButton() {
         middleName: form.middleName.trim() || undefined,
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        positions: selectedPositions,
+        positions: form.positions,
         createdById: session.user.id,
       },
       {
