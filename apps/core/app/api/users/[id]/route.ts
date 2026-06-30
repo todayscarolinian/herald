@@ -125,6 +125,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const updateData: UpdateUserInput = {
       id,
+      name: `${body.firstName} ${body.middleName || ''} ${body.lastName}`,
       firstName: body.firstName,
       middleName: body.middleName,
       lastName: body.lastName,

@@ -22,19 +22,34 @@ export function useCreateUser() {
 }
 
 export function useUpdateUser() {
+  const queryClient = useQueryClient()
+
   return useMutation<APIResponse<UserDTO>, Error, UpdateUserInput>({
     mutationFn: updateUser,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
   })
 }
 
 export function useDisableUser() {
+  const queryClient = useQueryClient()
+
   return useMutation<APIResponse<{ message: string }>, Error, DeleteUserInput>({
     mutationFn: disableUser,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
   })
 }
 
 export function useDeleteUser() {
+  const queryClient = useQueryClient()
+
   return useMutation<APIResponse<{ message: string }>, Error, DeleteUserInput>({
     mutationFn: deleteUser,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
   })
 }

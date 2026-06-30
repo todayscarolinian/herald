@@ -25,7 +25,7 @@ export function ImportPositionButton({
           <NavigationMenuTrigger className="hover:bg-accent data-[state=open]:bg-accent h-auto rounded-md p-2">
             <div className="text-muted-foreground flex flex-col items-center gap-1 p-2">
               <FileUp className="h-5 w-5" />
-              <span className="font-roboto text-sm font-medium">Import</span>
+              <span className="text-sm font-medium">Import</span>
             </div>
           </NavigationMenuTrigger>
           <NavigationMenuContent className="font-roboto w-auto p-4">

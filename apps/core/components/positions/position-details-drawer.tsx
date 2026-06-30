@@ -4,6 +4,7 @@ import { PositionDTO } from '@herald/types'
 import { ChevronRight } from 'lucide-react'
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { formatDate } from '@/lib/utils'
 
 import { PositionDetailsContent } from './position-details-content'
 
@@ -54,7 +55,7 @@ export function PositionDetailsDrawer({ position, open, onOpenChange, isMobile }
                 <span>
                   {position.userCount} {position.userCount === 1 ? 'user' : 'users'}
                 </span>
-                <span>created {position.createdAt}</span>
+                <span>created {formatDate(position.createdAt)}</span>
               </div>
 
               <div className="mt-2 h-[1px] w-full bg-black opacity-60" />

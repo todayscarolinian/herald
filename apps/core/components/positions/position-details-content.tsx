@@ -3,6 +3,7 @@
 import { Position } from '@herald/types'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   AlertDialog,
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDeletePosition, useUpdatePosition } from '@/lib/api/mutations/positionMutations'
 
 const PERMISSIONS = [
   'CREATE_ARTICLE',
@@ -48,6 +50,9 @@ type Props = {
 
 export function PositionDetailsContent({ position, onClose }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const updatePosition = useUpdatePosition()
+  const deletePosition = useDeletePosition()
 
   const [form, setForm] = useState(() => ({
     name: position?.name ?? '',
@@ -70,6 +75,34 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   if (!position) {
     return null
+  }
+
+  const handleSave = () => {
+    updatePosition.mutate(
+      {
+        id: position.id,
+        name: form.name.trim(),
+        abbreviation: form.abbreviation.trim(),
+        permissions: form.permissions,
+      },
+      {
+        onSuccess: () => toast.success('Position updated'),
+        onError: (error) => toast.error(error.message),
+      }
+    )
+  }
+
+  const handleDelete = () => {
+    deletePosition.mutate(
+      { id: position.id, deletedBy: 'system' },
+      {
+        onSuccess: () => {
+          toast.success('Position deleted')
+          onClose()
+        },
+        onError: (error) => toast.error(error.message),
+      }
+    )
   }
 
   return (
@@ -167,16 +200,18 @@ export function PositionDetailsContent({ position, onClose }: Props) {
         <Button
           variant="outline"
           onClick={() => setShowDeleteConfirm(true)}
+          disabled={deletePosition.isPending}
           className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
         >
-          Delete
+          {deletePosition.isPending ? 'Deleting...' : 'Delete'}
         </Button>
 
         <Button
-          disabled={!isFormValid}
+          disabled={!isFormValid || updatePosition.isPending}
+          onClick={handleSave}
           className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save
+          {updatePosition.isPending ? 'Saving...' : 'Save'}
         </Button>
       </div>
 
@@ -191,10 +226,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-tc_primary-500 hover:bg-tc_primary-600"
-              onClick={() => {
-                // TO DO: API call
-                onClose()
-              }}
+              onClick={handleDelete}
             >
               Delete
             </AlertDialogAction>

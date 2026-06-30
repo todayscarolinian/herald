@@ -3,6 +3,7 @@
 import { PositionDTO } from '@herald/types'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { formatDate } from '@/lib/utils'
 
 type Props = {
   position: PositionDTO
@@ -32,7 +33,7 @@ export function PositionCard({ position, onClick }: Props) {
         </span>
 
         <span className="text-tc_grayscale-800 min-w-0 truncate text-right">
-          created {position.createdAt}
+          created {formatDate(position.createdAt)}
         </span>
       </CardContent>
     </Card>

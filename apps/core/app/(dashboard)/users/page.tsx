@@ -1,8 +1,12 @@
 'use client'
 
 import { UserDTO } from '@herald/types'
-import { useState } from 'react'
+import { FolderOpen, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { columns, CreateButton, DataTable, ImportButton, UserBreadcrumbs } from '@/components/users'
 import { BulkImportDialog } from '@/components/users/bulk-import-dialog'
 import { UserDetailsDrawer } from '@/components/users/user-details-drawer'
@@ -16,16 +20,64 @@ export default function UsersPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [bulkMode, setBulkMode] = useState<null | 'create' | 'update'>(null)
 
-  const { data, isLoading } = useUsers({
+  const { data, isLoading, isError, error, refetch } = useUsers({
     filters: {},
     pagination: { page: 1, limit: 200 },
   })
 
-  const users = data?.items ?? []
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(error.message)
+    }
+  }, [isError, error])
 
   const handleOpenDetails = (user: UserDTO) => {
     setSelectedUser(user)
     setIsDrawerOpen(true)
+  }
+
+  const renderTable = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3 pt-4">
+          {Array.from({ length: 8 }, (_, i) => `skeleton-row-${i}`).map((key) => (
+            <Skeleton key={key} className="h-10 w-full rounded-md" />
+          ))}
+        </div>
+      )
+    }
+
+    if (isError) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+          <p className="text-muted-foreground text-sm">Failed to load users.</p>
+          <Button variant="outline" onClick={() => void refetch()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      )
+    }
+
+    const users = data?.items ?? []
+
+    if (users.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+          <FolderOpen className="text-muted-foreground h-10 w-10" />
+          <p className="text-lg font-semibold">No users yet</p>
+          <p className="text-muted-foreground text-sm">Create the first user to get started.</p>
+        </div>
+      )
+    }
+
+    if (isMobile) {
+      return <MobileDatagrid users={data!} onClick={handleOpenDetails} />
+    }
+
+    return (
+      <DataTable<UserDTO, unknown> columns={columns} data={users} onRowClick={handleOpenDetails} />
+    )
   }
 
   return (
@@ -43,21 +95,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="mb-10 h-full w-full rounded-lg">
-        {isLoading ? (
-          <div className="text-muted-foreground flex h-40 items-center justify-center text-sm">
-            Loading users...
-          </div>
-        ) : isMobile ? (
-          <MobileDatagrid users={{ ...data!, items: users }} onClick={handleOpenDetails} />
-        ) : (
-          <DataTable<UserDTO, unknown>
-            columns={columns}
-            data={users}
-            onRowClick={handleOpenDetails}
-          />
-        )}
-      </div>
+      <div className="mb-10 h-full w-full rounded-lg">{renderTable()}</div>
 
       <UserDetailsDrawer
         user={selectedUser}

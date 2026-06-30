@@ -94,11 +94,16 @@ export function UserDetailsContent({ user, onClose }: Props) {
   }
 
   const handleSave = () => {
-    if (!isFormValid || !session?.user.id) {return}
+    if (!isFormValid || !session?.user.id) {
+      return
+    }
 
     updateUser(
       {
         id: user.id,
+        name: `${form.firstName.trim()} ${form.middleName.trim()} ${form.lastName.trim()}`
+          .replace(/\s+/g, ' ')
+          .trim(),
         firstName: form.firstName.trim(),
         middleName: form.middleName.trim() || undefined,
         lastName: form.lastName.trim(),
@@ -119,7 +124,9 @@ export function UserDetailsContent({ user, onClose }: Props) {
   }
 
   const handleDisable = () => {
-    if (!session?.user.id) {return}
+    if (!session?.user.id) {
+      return
+    }
 
     disableUser(
       { id: user.id, deletedById: session.user.id },
@@ -138,7 +145,9 @@ export function UserDetailsContent({ user, onClose }: Props) {
   }
 
   const handleDelete = () => {
-    if (!session?.user.id) {return}
+    if (!session?.user.id) {
+      return
+    }
 
     deleteUser(
       { id: user.id, deletedById: session.user.id },

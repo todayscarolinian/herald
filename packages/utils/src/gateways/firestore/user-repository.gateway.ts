@@ -376,7 +376,7 @@ export function createFirebaseUserRepository(
 
         await updateDoc(docRef, {
           disabled: true,
-          updatedAt: new Date().toISOString(),
+          updatedAt: Timestamp.now(),
         })
 
         const auditLogRepository = createFirebaseAuditLogRepository(firestore)
@@ -493,13 +493,7 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
 
 function validateSortField(field: unknown): UserSortField {
   const sortField = typeof field === 'string' ? field.trim() : DEFAULT_SORT_FIELD
-  const allowedFields: UserSortField[] = [
-    'firstName',
-    'lastName',
-    'email',
-    'createdAt',
-    'updatedAt',
-  ]
+  const allowedFields: UserSortField[] = ['name', 'email', 'createdAt', 'updatedAt']
 
   if (!allowedFields.includes(sortField as UserSortField)) {
     return DEFAULT_SORT_FIELD
@@ -619,6 +613,7 @@ async function getPageCursor(
 }
 
 function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
+  const name = requireStringField(docSnap, 'name', id)
   const firstName = requireStringField(docSnap, 'firstName', id)
   const lastName = requireStringField(docSnap, 'lastName', id)
   const email = requireStringField(docSnap, 'email', id)
@@ -630,6 +625,7 @@ function mapUserDocToDTO(id: string, docSnap: DocumentData): UserDTO {
 
   return {
     id,
+    name,
     firstName,
     middleName: typeof docSnap.middleName === 'string' ? docSnap.middleName : undefined,
     lastName,

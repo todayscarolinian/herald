@@ -30,7 +30,9 @@ function getCookieValue(cookieHeader: string, key: string): string | undefined {
 
   for (const part of parts) {
     const [rawName, ...rest] = part.trim().split('=')
-    if (rawName !== key) {continue}
+    if (rawName !== key) {
+      continue
+    }
 
     return rest.join('=') || undefined
   }
@@ -40,17 +42,23 @@ function getCookieValue(cookieHeader: string, key: string): string | undefined {
 
 function getClientIp(c: Context): string | undefined {
   const forwardedFor = c.req.header('x-forwarded-for')
-  if (forwardedFor) {return forwardedFor.split(',')[0]?.trim()}
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0]?.trim()
+  }
 
   const cfIp = c.req.header('cf-connecting-ip')
-  if (cfIp) {return cfIp.trim()}
+  if (cfIp) {
+    return cfIp.trim()
+  }
 
   return c.req.header('x-real-ip') ?? undefined
 }
 
 function getUserId(c: Context): string | undefined {
   const fromHeader = c.req.header('x-user-id') || c.req.header('x-auth-user-id')
-  if (fromHeader) {return fromHeader}
+  if (fromHeader) {
+    return fromHeader
+  }
 
   const authHeader = c.req.header('authorization')
   if (authHeader?.startsWith('Bearer ')) {
@@ -133,6 +141,11 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
 }
 
 export default async function rateLimiterMiddleware(c: Context, next: Next) {
+  if (process.env.ENABLE_RATE_LIMITER !== 'true') {
+    await next()
+    return
+  }
+
   const normalizedPath = normalizePath(c.req.path)
   const policy = resolveRateLimitPolicy(normalizedPath, c.req.method)
   if (!policy) {
