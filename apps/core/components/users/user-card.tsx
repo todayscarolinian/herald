@@ -26,7 +26,7 @@ export function UserCard({ user, onClick }: Props) {
             {user.positions.length} {user.positions.length === 1 ? 'position' : 'positions'}
           </span>
           {user.disabled && (
-            <Badge className="inline-flex shrink-0 items-center justify-center rounded-md bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
+            <Badge className="bg-tc_error-500/10 text-tc_error-600 dark:text-tc_error-400 inline-flex shrink-0 items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium">
               Disabled
             </Badge>
           )}

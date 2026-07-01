@@ -5,9 +5,10 @@ import { FolderOpen, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { columns, CreateButton, DataTable, ImportButton, UserBreadcrumbs } from '@/components/users'
+import { columns, CreateButton, DataTable, ImportButton } from '@/components/users'
 import { BulkImportDialog, type ConfirmRow } from '@/components/users/bulk-import-dialog'
 import { UserDetailsDrawer } from '@/components/users/user-details-drawer'
 import MobileDatagrid from '@/components/users/user-mobile-datagrid'
@@ -155,6 +156,9 @@ export default function UsersPage() {
     if (isError) {
       return (
         <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+          <span className="bg-tc_error-500/10 text-tc_error-600 dark:text-tc_error-400 flex size-12 items-center justify-center rounded-full">
+            <RefreshCw className="h-5 w-5" />
+          </span>
           <p className="text-muted-foreground text-sm">Failed to load users.</p>
           <Button variant="outline" onClick={() => void refetch()} className="gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -169,7 +173,9 @@ export default function UsersPage() {
     if (users.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-          <FolderOpen className="text-muted-foreground h-10 w-10" />
+          <span className="bg-tc_primary-500/10 text-tc_primary-600 dark:text-tc_primary-400 flex size-12 items-center justify-center rounded-full">
+            <FolderOpen className="h-6 w-6" />
+          </span>
           <p className="text-lg font-semibold">No users yet</p>
           <p className="text-muted-foreground text-sm">Create the first user to get started.</p>
         </div>
@@ -186,21 +192,22 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col p-6 pb-0">
-      <UserBreadcrumbs />
+    <div className="flex w-full max-w-none flex-col">
+      <PageHeader title="Users" />
 
-      <div className="flex w-full items-center justify-between p-2 pl-4">
-        <span className="text-2xl font-extrabold">Users</span>
-        <div className="text-muted-foreground flex gap-2 text-sm">
-          <ImportButton
-            onCreateBulk={() => setBulkMode('create')}
-            onUpdateBulk={() => setBulkMode('update')}
-          />
-          <CreateButton />
+      <div className="flex flex-col p-6 pb-0">
+        <div className="flex w-full items-center justify-end p-2 pl-4">
+          <div className="text-muted-foreground flex gap-2 text-sm">
+            <ImportButton
+              onCreateBulk={() => setBulkMode('create')}
+              onUpdateBulk={() => setBulkMode('update')}
+            />
+            <CreateButton />
+          </div>
         </div>
-      </div>
 
-      <div className="mb-10 h-full w-full rounded-lg">{renderTable()}</div>
+        <div className="mb-10 h-full w-full rounded-lg">{renderTable()}</div>
+      </div>
 
       <UserDetailsDrawer
         user={selectedUser}

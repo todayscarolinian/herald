@@ -1,352 +1,584 @@
 'use client'
 
+import type { AuditLogDTO, DashboardStatsDTO } from '@herald/types'
 import {
+  AlertCircle,
   ArrowRight,
-  CheckCircle2,
-  CircleAlert,
-  Clock3,
+  ChevronRight,
   FileText,
+  LogIn,
+  LogOut,
+  type LucideIcon,
+  Mail,
+  Plus,
+  RefreshCw,
   Shield,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
   UserRound,
   UsersRound,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/shared'
 import { Separator } from '@/components/ui/separator'
-import { useAuthHealth } from '@/lib/api/queries/authQueries'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useDashboardStats } from '@/lib/api/queries/dashboardQueries'
+import { useSession } from '@/lib/auth-client'
+import { formatRelativeTime } from '@/lib/utils'
 
-const linkButtonBase =
-  'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50'
+type AccessRow = {
+  title: string
+  description: string
+  href: string
+  icon: LucideIcon
+  iconBg: string
+  iconColor: string
+  count: string
+  unit: string
+}
 
-const primaryLinkButton = `${linkButtonBase} bg-tc_primary-500 text-tc_white shadow-lg shadow-tc_primary-500/20 hover:bg-tc_primary-600`
-const secondaryLinkButton = `${linkButtonBase} border border-tc_grayscale-300 bg-tc_white text-tc_black hover:bg-tc_grayscale-100 dark:border-white/10 dark:bg-white/5 dark:text-tc_white dark:hover:bg-white/10`
-const ghostLinkButton = `${linkButtonBase} px-0 text-tc_primary-600 hover:bg-transparent hover:text-tc_primary-700 dark:text-tc_primary-300 dark:hover:text-tc_primary-200`
+function buildAccessRows(stats: DashboardStatsDTO | undefined): AccessRow[] {
+  return [
+    {
+      title: 'Users',
+      description: 'Manage accounts, invites, and access',
+      href: '/users',
+      icon: UsersRound,
+      iconBg: 'bg-tc_primary-500/10',
+      iconColor: 'text-tc_primary-600 dark:text-tc_primary-400',
+      count: stats ? stats.totalUsers.toLocaleString('en-US') : '—',
+      unit: 'accounts',
+    },
+    {
+      title: 'Positions',
+      description: 'Editorial roles and assignments',
+      href: '/positions',
+      icon: UserRound,
+      iconBg: 'bg-tc_info-500/10',
+      iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+      count: stats ? stats.totalPositions.toLocaleString('en-US') : '—',
+      unit: 'roles',
+    },
+    {
+      title: 'Permissions',
+      description: 'Groups and access policies',
+      href: '/permissions',
+      icon: Shield,
+      iconBg: 'bg-tc_success-500/10',
+      iconColor: 'text-tc_success-600 dark:text-tc_success-400',
+      count: stats ? stats.totalPermissions.toLocaleString('en-US') : '—',
+      unit: 'groups',
+    },
+    {
+      title: 'Audit Logs',
+      description: 'Full record of system activity',
+      href: '/audit-logs',
+      icon: FileText,
+      iconBg: 'bg-tc_warning-500/10',
+      iconColor: 'text-tc_warning-600 dark:text-tc_warning-400',
+      count: stats ? stats.totalAuditLogs.toLocaleString('en-US') : '—',
+      unit: 'events',
+    },
+  ]
+}
 
-const summaryCards = [
-  {
-    label: 'Users under management',
-    value: '148',
-    detail: '12 added in the last 30 days',
-    icon: UserRound,
-  },
-  {
-    label: 'Active positions',
-    value: '18',
-    detail: '6 positions can manage Herald',
-    icon: UsersRound,
-  },
-  {
-    label: 'Permission groups',
-    value: '26',
-    detail: 'Across Herald, TC Official Website, and USC Days',
-    icon: Shield,
-  },
-  {
-    label: 'Audit events today',
-    value: '31',
-    detail: 'Most activity involves user and role updates',
-    icon: FileText,
-  },
-]
+type ActivityDisplay = {
+  icon: LucideIcon
+  iconBg: string
+  iconColor: string
+  message: string
+  badge: string
+}
 
-const accessCards = [
-  {
-    title: 'Users',
-    description: 'Manage accounts, invite new people, and keep credentials in sync.',
-    href: '/users',
-    icon: UserRound,
-    accent: 'from-tc_primary-500/20 via-tc_warning-500/10 to-transparent',
-    points: ['Create and update accounts', 'Bulk import changes', 'Inspect user details'],
-  },
-  {
-    title: 'Positions',
-    description: 'Organize access by role and align each position with the right permissions.',
-    href: '/positions',
-    icon: UsersRound,
-    accent: 'from-tc_success-500/20 via-tc_secondary-300 to-transparent',
-    points: ['Define role scopes', 'Review assigned users', 'Import role updates'],
-  },
-  {
-    title: 'Permissions',
-    description:
-      'Browse the permission catalog and understand which domains each capability covers.',
-    href: '/permissions',
-    icon: Shield,
-    accent: 'from-tc_info-500/20 via-tc_secondary-300 to-transparent',
-    points: ['Inspect capability domains', 'Map permissions to roles', 'Audit access coverage'],
-  },
-  {
-    title: 'Audit Logs',
-    description: 'Track recent changes and review who changed what, when, and why.',
-    href: '/audit-logs',
-    icon: FileText,
-    accent: 'from-tc_error-500/20 via-tc_secondary-300 to-transparent',
-    points: ['Review recent actions', 'Trace account changes', 'Spot unusual activity'],
-  },
-]
+function getActorName(log: AuditLogDTO): string {
+  if (log.target?.type === 'user') {
+    return `${log.target.data.firstName} ${log.target.data.lastName}`
+  }
+  if (log.performer) {
+    return `${log.performer.firstName} ${log.performer.lastName}`
+  }
+  return 'Unknown user'
+}
 
-const activityItems = [
-  {
-    title: 'Position updated',
-    detail: 'Managing Editor for Administration received a new permission bundle.',
-    time: '2 minutes ago',
-    tone: 'bg-tc_success-500/15 text-tc_success-700 dark:text-tc_success-400',
-  },
-  {
-    title: 'New user imported',
-    detail: '4 accounts were added from CSV and assigned starter positions.',
-    time: '18 minutes ago',
-    tone: 'bg-tc_info-500/15 text-tc_info-700 dark:text-tc_info-400',
-  },
-  {
-    title: 'Permission catalog reviewed',
-    detail: 'Herald permissions were checked against the TC Official Website set.',
-    time: '1 hour ago',
-    tone: 'bg-tc_warning-500/15 text-tc_warning-700 dark:text-tc_warning-400',
-  },
-]
+function getPositionName(log: AuditLogDTO): string {
+  return log.target?.type === 'position' ? log.target.data.name : 'a position'
+}
+
+function getActivityDisplay(log: AuditLogDTO): ActivityDisplay {
+  const actor = getActorName(log)
+
+  switch (log.action) {
+    case 'USER_CREATED':
+      return {
+        icon: UserPlus,
+        iconBg: 'bg-tc_success-500/10',
+        iconColor: 'text-tc_success-600 dark:text-tc_success-400',
+        message: `Account created for ${actor}`,
+        badge: 'User created',
+      }
+    case 'USER_UPDATED':
+      return {
+        icon: UserRound,
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+        message: `${actor} profile was updated`,
+        badge: 'User updated',
+      }
+    case 'USER_POSITIONS_CHANGED':
+      return {
+        icon: UserRound,
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+        message: `${actor} positions were updated`,
+        badge: 'Role change',
+      }
+    case 'USER_DISABLED':
+      return {
+        icon: UserMinus,
+        iconBg: 'bg-tc_error-500/10',
+        iconColor: 'text-tc_error-600 dark:text-tc_error-400',
+        message: `${actor} was deactivated`,
+        badge: 'User removed',
+      }
+    case 'USER_DELETED':
+      return {
+        icon: UserMinus,
+        iconBg: 'bg-tc_error-500/10',
+        iconColor: 'text-tc_error-600 dark:text-tc_error-400',
+        message: `${actor} was removed`,
+        badge: 'User removed',
+      }
+    case 'USER_LOGIN_SUCCESS':
+      return {
+        icon: LogIn,
+        iconBg: 'bg-tc_grayscale-200 dark:bg-white/10',
+        iconColor: 'text-tc_grayscale-600 dark:text-tc_grayscale-400',
+        message: `${actor} signed in`,
+        badge: 'Login',
+      }
+    case 'USER_LOGIN_FAILED':
+      return {
+        icon: AlertCircle,
+        iconBg: 'bg-tc_error-500/10',
+        iconColor: 'text-tc_error-600 dark:text-tc_error-400',
+        message: `Failed login attempt · ${actor}`,
+        badge: 'Security',
+      }
+    case 'USER_LOGOUT':
+      return {
+        icon: LogOut,
+        iconBg: 'bg-tc_grayscale-200 dark:bg-white/10',
+        iconColor: 'text-tc_grayscale-600 dark:text-tc_grayscale-400',
+        message: `${actor} signed out`,
+        badge: 'Logout',
+      }
+    case 'USER_PASSWORD_RESET_REQUESTED':
+      return {
+        icon: Mail,
+        iconBg: 'bg-tc_warning-500/10',
+        iconColor: 'text-tc_warning-600 dark:text-tc_warning-400',
+        message: `${actor} requested a password reset`,
+        badge: 'Security',
+      }
+    case 'USER_PASSWORD_RESET_COMPLETED':
+      return {
+        icon: Shield,
+        iconBg: 'bg-tc_success-500/10',
+        iconColor: 'text-tc_success-600 dark:text-tc_success-400',
+        message: `${actor} completed a password reset`,
+        badge: 'Security',
+      }
+    case 'USER_SESSION_REVOKED':
+      return {
+        icon: AlertCircle,
+        iconBg: 'bg-tc_warning-500/10',
+        iconColor: 'text-tc_warning-600 dark:text-tc_warning-400',
+        message: `${actor}'s session was revoked`,
+        badge: 'Security',
+      }
+    case 'POSITION_CREATED':
+      return {
+        icon: Shield,
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+        message: `Position "${getPositionName(log)}" was created`,
+        badge: 'Position',
+      }
+    case 'POSITION_UPDATED':
+      return {
+        icon: Shield,
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+        message: `Position "${getPositionName(log)}" was updated`,
+        badge: 'Position',
+      }
+    case 'POSITION_DELETED':
+      return {
+        icon: UserMinus,
+        iconBg: 'bg-tc_error-500/10',
+        iconColor: 'text-tc_error-600 dark:text-tc_error-400',
+        message: `Position "${getPositionName(log)}" was deleted`,
+        badge: 'Position',
+      }
+    case 'POSITION_PERMISSIONS_CHANGED':
+      return {
+        icon: Shield,
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
+        message: `Permissions updated for "${getPositionName(log)}"`,
+        badge: 'Position',
+      }
+    default:
+      return {
+        icon: FileText,
+        iconBg: 'bg-tc_grayscale-200 dark:bg-white/10',
+        iconColor: 'text-tc_grayscale-600 dark:text-tc_grayscale-400',
+        message: actor,
+        badge: log.action,
+      }
+  }
+}
+
+function formatSignedDelta(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`
+}
 
 export default function Home() {
-  const { data: healthData } = useAuthHealth()
+  const { data: session } = useSession()
+  const { data: stats, isFetching, isError, error, refetch, dataUpdatedAt } = useDashboardStats()
 
-  const health = healthData?.data
-  const isHealthy = healthData?.success && health?.status === 'ok'
-  const serviceLabel = health?.service ?? 'Auth service'
-  const serviceVersion = health?.version ?? 'unknown'
-  const lastChecked = health?.timestamp
-    ? new Date(health.timestamp).toLocaleString()
-    : 'Waiting for health check'
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(error.message)
+    }
+  }, [isError, error])
+
+  const user = session?.user
+  const firstName = user?.name?.split(' ')[0] ?? 'there'
+
+  const now = new Date()
+  const hours = now.getHours()
+  const greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening'
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+  const accessRows = buildAccessRows(stats)
+  const failedLoginsDelta = stats ? stats.failedLogins24h - stats.failedLoginsPrevious24h : 0
+  const deltaColorClasses =
+    failedLoginsDelta > 0
+      ? 'bg-tc_error-500/10 text-tc_error-600 dark:text-tc_error-400'
+      : 'bg-tc_success-500/10 text-tc_success-600 dark:text-tc_success-400'
 
   return (
-    <main className="text-tc_black dark:text-tc_white flex w-full min-w-0 flex-col gap-8 py-6 pr-6">
-      <div className="border-tc_grayscale-300 bg-[linear-gradient(135deg,theme(colors.tc_secondary-300),theme(colors.tc_white),theme(colors.tc_grayscale-100))] relative overflow-hidden rounded-3xl border p-6 shadow-sm sm:p-8 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02),rgba(255,255,255,0.06))]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(192,45,45,0.12),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(3,151,254,0.1),transparent_30%)]" />
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-8">
-          <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-            <Card className="border-tc_grayscale-300 bg-tc_white/90 backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-              <CardHeader className="space-y-4 pb-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={isHealthy ? 'secondary' : 'destructive'} className="gap-1.5 px-3">
-                    {isHealthy ? (
-                      <CheckCircle2 className="size-3.5" />
-                    ) : (
-                      <CircleAlert className="size-3.5" />
-                    )}
-                    {isHealthy ? 'All systems ready' : 'Health check needs attention'}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className="border-tc_grayscale-300 px-3 dark:border-white/10"
-                  >
-                    {serviceLabel} v{serviceVersion}
-                  </Badge>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-tc_primary-600 dark:text-tc_primary-300 font-[family-name:var(--font-roboto-condensed)] text-sm font-semibold tracking-[0.28em] uppercase">
-                    Herald Dashboard
-                  </p>
-                  <CardTitle className="max-w-2xl text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">
-                    Identity control center for users, roles, permissions, and audit history.
-                  </CardTitle>
-                  <CardDescription className="text-tc_grayscale-800 dark:text-tc_grayscale-300 max-w-2xl text-base leading-7">
-                    Start here to understand account health, jump into the main management areas,
-                    and keep access changes traceable across the Herald system.
-                  </CardDescription>
-                </div>
-              </CardHeader>
+    <main className="text-tc_black dark:text-tc_white flex min-h-screen w-full min-w-0 flex-col">
+      <PageHeader title="Dashboard" />
 
-              <CardContent className="pt-8">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link href="/users" className={primaryLinkButton}>
-                    Manage users
-                    <ArrowRight className="size-4" />
-                  </Link>
-                  <Link href="/audit-logs" className={secondaryLinkButton}>
-                    Review audit logs
-                  </Link>
-                  <p className="text-tc_grayscale-700 dark:text-tc_grayscale-400 text-sm">
-                    Last checked: {lastChecked}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Content */}
+      <div className="flex flex-1 flex-col gap-7 p-8 pb-10">
+        {/* Welcome */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-tc_black dark:text-tc_white text-[26px] font-bold tracking-tight">
+              {greeting}, {firstName}
+            </span>
+            <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[14px] font-semibold tracking-[0.04em] uppercase">
+              {dateStr}
+            </span>
+          </div>
 
-            <Card className="border-tc_grayscale-300 bg-tc_white/90 backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-              <CardHeader>
-                <CardTitle>System snapshot</CardTitle>
-                <CardDescription>
-                  Quick operational context for the current session.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="border-tc_grayscale-300 bg-tc_grayscale-100 rounded-xl border p-4 dark:border-white/10 dark:bg-white/5">
-                    <p className="text-tc_grayscale-700 dark:text-tc_grayscale-400 text-sm">
-                      Service status
-                    </p>
-                    <p className="mt-1 text-lg font-semibold">
-                      {isHealthy ? 'Healthy' : 'Attention needed'}
-                    </p>
-                    <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 mt-1 text-sm">
-                      {serviceLabel}
-                    </p>
-                  </div>
-                  <div className="border-tc_grayscale-300 bg-tc_grayscale-100 rounded-xl border p-4 dark:border-white/10 dark:bg-white/5">
-                    <p className="text-tc_grayscale-700 dark:text-tc_grayscale-400 text-sm">
-                      Version
-                    </p>
-                    <p className="mt-1 text-lg font-semibold">{serviceVersion}</p>
-                    <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 mt-1 text-sm">
-                      Shared SSO session across TC apps
-                    </p>
-                  </div>
-                </div>
+          <div className="flex items-center gap-3">
+            <div className="text-tc_grayscale-700 dark:text-tc_grayscale-400 flex items-center gap-2 text-[12.5px]">
+              {stats && (
+                <span>Updated {formatRelativeTime(new Date(dataUpdatedAt).toISOString())}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                disabled={isFetching}
+                aria-label="Refresh dashboard data"
+                className="border-tc_grayscale-300 text-tc_grayscale-800 dark:text-tc_grayscale-400 hover:bg-tc_grayscale-100 inline-flex size-8 flex-none items-center justify-center rounded-lg border transition-colors disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/10"
+              >
+                <RefreshCw className={`size-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+            <Link
+              href="/positions"
+              className="border-tc_grayscale-300 bg-tc_white text-tc_black dark:text-tc_white hover:bg-tc_grayscale-100 inline-flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-medium dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <Plus className="size-4" />
+              New position
+            </Link>
+            <Link
+              href="/users"
+              className="bg-tc_primary-500 hover:bg-tc_primary-600 inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors"
+            >
+              <UserPlus className="size-4" />
+              Invite user
+            </Link>
+          </div>
+        </div>
 
-                <Separator />
+        {/* Notice strip */}
+        {stats && stats.unverifiedUsersCount > 0 && (
+          <div className="border-tc_grayscale-200 bg-tc_warning-500/5 dark:bg-tc_warning-500/10 border-l-tc_primary-500 flex items-center gap-3.5 rounded-[10px] border border-l-4 px-[18px] py-3.5 shadow-sm dark:border-white/10">
+            <span className="text-tc_primary-600 dark:text-tc_primary-400 font-roboto-condensed flex-none text-[12px] font-bold tracking-[0.12em] uppercase">
+              Notice
+            </span>
+            <p className="text-tc_grayscale-800 dark:text-tc_grayscale-200 flex-1 text-[14.5px]">
+              <strong className="text-tc_black dark:text-tc_white">
+                {stats.unverifiedUsersCount} account{stats.unverifiedUsersCount === 1 ? '' : 's'}
+              </strong>{' '}
+              {stats.unverifiedUsersCount === 1 ? 'has' : 'have'} not verified their email address.
+            </p>
+            <Link
+              href="/users"
+              className="text-tc_primary-600 dark:text-tc_primary-400 flex-none text-[13px] font-semibold hover:underline"
+            >
+              Review →
+            </Link>
+          </div>
+        )}
 
-                <div className="space-y-3">
-                  <div className="text-tc_grayscale-800 dark:text-tc_grayscale-200 flex items-center gap-2 text-sm font-medium">
-                    <Clock3 className="text-tc_primary-600 dark:text-tc_primary-300 size-4" />
-                    Recent check-in
-                  </div>
-                  <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 text-sm leading-6">
-                    Use this dashboard to verify access changes, spot stale roles, and jump directly
-                    into the management surface that needs attention.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+          {/* Total users */}
+          <div className="border-tc_grayscale-200 bg-tc_white flex flex-col gap-3.5 rounded-[14px] border p-[22px] shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[12px] font-bold tracking-[0.12em] uppercase">
+                Total users
+              </span>
+              <span className="bg-tc_primary-500/10 text-tc_primary-600 dark:text-tc_primary-400 flex size-[34px] flex-none items-center justify-center rounded-[9px]">
+                <UsersRound className="size-[19px]" />
+              </span>
+            </div>
+            {!stats ? (
+              <Skeleton className="h-[42px] w-20" />
+            ) : (
+              <span className="text-tc_black dark:text-tc_white text-[42px] leading-none font-extrabold tracking-tight">
+                {stats.totalUsers.toLocaleString('en-US')}
+              </span>
+            )}
+            {stats && (
+              <div className="flex items-center gap-2">
+                <span className="bg-tc_success-500/10 text-tc_success-600 dark:text-tc_success-400 inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[12px] font-bold">
+                  {formatSignedDelta(stats.newUsersThisMonth)}
+                </span>
+                <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[12.5px]">
+                  new this month
+                </span>
+              </div>
+            )}
+          </div>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => {
-              const Icon = card.icon
+          {/* Logins (30 days) */}
+          <div className="border-tc_grayscale-200 bg-tc_white flex flex-col gap-3.5 rounded-[14px] border p-[22px] shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[12px] font-bold tracking-[0.12em] uppercase">
+                Logins (30 days)
+              </span>
+              <span className="bg-tc_success-500/10 text-tc_success-600 dark:text-tc_success-400 flex size-[34px] flex-none items-center justify-center rounded-[9px]">
+                <TrendingUp className="size-[19px]" />
+              </span>
+            </div>
+            {!stats ? (
+              <Skeleton className="h-[42px] w-20" />
+            ) : (
+              <span className="text-tc_black dark:text-tc_white text-[42px] leading-none font-extrabold tracking-tight">
+                {stats.logins30Days.toLocaleString('en-US')}
+              </span>
+            )}
+            {stats && (
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[12.5px]">
+                successful logins in the last 30 days
+              </span>
+            )}
+          </div>
 
-              return (
-                <Card
-                  key={card.label}
-                  className="border-tc_grayscale-300 bg-tc_white/90 backdrop-blur-sm dark:border-white/10 dark:bg-white/5"
+          {/* Unverified accounts */}
+          <div className="border-tc_grayscale-200 bg-tc_white flex flex-col gap-3.5 rounded-[14px] border p-[22px] shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[12px] font-bold tracking-[0.12em] uppercase">
+                Unverified accounts
+              </span>
+              <span className="bg-tc_warning-500/10 text-tc_warning-600 dark:text-tc_warning-400 flex size-[34px] flex-none items-center justify-center rounded-[9px]">
+                <Mail className="size-[19px]" />
+              </span>
+            </div>
+            {!stats ? (
+              <Skeleton className="h-[42px] w-20" />
+            ) : (
+              <span className="text-tc_black dark:text-tc_white text-[42px] leading-none font-extrabold tracking-tight">
+                {stats.unverifiedUsersCount.toLocaleString('en-US')}
+              </span>
+            )}
+            {stats && (
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[12.5px]">
+                awaiting email verification
+              </span>
+            )}
+          </div>
+
+          {/* Failed logins */}
+          <div className="border-tc_grayscale-200 bg-tc_white flex flex-col gap-3.5 rounded-[14px] border p-[22px] shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[12px] font-bold tracking-[0.12em] uppercase">
+                Failed logins (24h)
+              </span>
+              <span className="bg-tc_error-500/10 text-tc_error-600 dark:text-tc_error-400 flex size-[34px] flex-none items-center justify-center rounded-[9px]">
+                <AlertCircle className="size-[19px]" />
+              </span>
+            </div>
+            {!stats ? (
+              <Skeleton className="h-[42px] w-20" />
+            ) : (
+              <span className="text-tc_black dark:text-tc_white text-[42px] leading-none font-extrabold tracking-tight">
+                {stats.failedLogins24h.toLocaleString('en-US')}
+              </span>
+            )}
+            {stats && (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`${deltaColorClasses} inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[12px] font-bold`}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <CardDescription className="text-tc_grayscale-700 dark:text-tc_grayscale-400 text-sm font-medium">
-                        {card.label}
-                      </CardDescription>
-                      <div className="bg-tc_primary-500/10 text-tc_primary-600 dark:text-tc_primary-300 rounded-full p-2">
-                        <Icon className="size-4" />
-                      </div>
-                    </div>
-                    <CardTitle className="text-3xl font-semibold tracking-tight">
-                      {card.value}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 text-sm leading-6">
-                      {card.detail}
+                  {formatSignedDelta(failedLoginsDelta)}
+                </span>
+                <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[12.5px]">
+                  vs yesterday
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Two-column: Access management + Activity */}
+        <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
+          {/* Access management */}
+          <div className="border-tc_grayscale-200 bg-tc_white overflow-hidden rounded-[14px] border shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="border-tc_grayscale-200 flex flex-col gap-0.5 border-b px-6 py-5 dark:border-white/10">
+              <span className="text-tc_primary-600 dark:text-tc_primary-400 font-roboto-condensed text-[11px] font-bold tracking-[0.14em] uppercase">
+                Quick access
+              </span>
+              <span className="text-tc_black dark:text-tc_white text-[19px] font-bold tracking-tight">
+                Access management
+              </span>
+            </div>
+
+            {accessRows.map((row, i) => {
+              const Icon = row.icon
+              return (
+                <Link
+                  key={row.href}
+                  href={row.href}
+                  className={`group hover:bg-tc_grayscale-100 flex items-center gap-4 px-6 py-[18px] transition-colors dark:hover:bg-white/5${i < accessRows.length - 1 ? 'border-tc_grayscale-200 border-b dark:border-white/10' : ''}`}
+                >
+                  <span
+                    className={`${row.iconBg} ${row.iconColor} flex size-[42px] flex-none items-center justify-center rounded-[10px]`}
+                  >
+                    <Icon className="size-[22px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-tc_black dark:text-tc_white text-[15.5px] font-semibold">
+                      {row.title}
                     </p>
-                  </CardContent>
-                </Card>
+                    <p className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[13px]">
+                      {row.description}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-tc_black dark:text-tc_white text-[17px] font-bold">
+                      {row.count}
+                    </p>
+                    <p className="text-tc_grayscale-600 dark:text-tc_grayscale-400 font-roboto-condensed text-[11px] font-semibold tracking-[0.06em] uppercase">
+                      {row.unit}
+                    </p>
+                  </div>
+                  <ChevronRight className="text-tc_grayscale-400 dark:text-tc_grayscale-600 size-5 flex-none" />
+                </Link>
               )
             })}
-          </section>
+          </div>
 
-          <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-tc_grayscale-300 bg-tc_white/90 backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-              <CardHeader>
-                <CardTitle>Access management</CardTitle>
-                <CardDescription>
-                  Fast entry points to the parts of Herald people use most often.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-2">
-                {accessCards.map((item) => {
-                  const Icon = item.icon
+          {/* Recent activity */}
+          <div className="border-tc_grayscale-200 bg-tc_white flex flex-col overflow-hidden rounded-[14px] border shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="border-tc_grayscale-200 flex items-center justify-between border-b px-6 py-5 dark:border-white/10">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-tc_primary-600 dark:text-tc_primary-400 font-roboto-condensed text-[11px] font-bold tracking-[0.14em] uppercase">
+                  Operations
+                </span>
+                <span className="text-tc_black dark:text-tc_white text-[19px] font-bold tracking-tight">
+                  Recent activity
+                </span>
+              </div>
+            </div>
 
-                  return (
-                    <Card
-                      key={item.title}
-                      size="sm"
-                      className="border-tc_grayscale-300 bg-tc_grayscale-100 shadow-none dark:border-white/10 dark:bg-white/5"
-                    >
-                      <CardHeader className="pb-3">
-                        <div className={`w-fit rounded-xl bg-gradient-to-br ${item.accent} p-3`}>
-                          <Icon className="text-tc_black dark:text-tc_white size-5" />
-                        </div>
-                        <CardTitle className="pt-2 text-xl">{item.title}</CardTitle>
-                        <CardDescription className="leading-6">{item.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <ul className="text-tc_grayscale-800 dark:text-tc_grayscale-300 space-y-2 text-sm">
-                          {item.points.map((point) => (
-                            <li key={point} className="flex items-start gap-2">
-                              <span className="bg-tc_primary-500 mt-2 size-1.5 rounded-full" />
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <Link href={item.href} className={`${secondaryLinkButton  } w-fit`}>
-                          Open {item.title}
-                          <ArrowRight className="size-4" />
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </CardContent>
-            </Card>
-
-            <Card className="border-tc_grayscale-300 bg-tc_white/90 backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-              <CardHeader>
-                <CardTitle>Recent activity</CardTitle>
-                <CardDescription>
-                  Latest changes surfaced as a simple operational feed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {activityItems.map((item, index) => (
-                  <div key={item.title} className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <span
-                        className={`mt-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${item.tone}`}
-                      >
-                        {index + 1}
-                      </span>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-tc_black dark:text-tc_white font-medium">
-                            {item.title}
-                          </p>
-                          <span className="text-tc_grayscale-700 dark:text-tc_grayscale-400 text-xs">
-                            {item.time}
-                          </span>
-                        </div>
-                        <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 text-sm leading-6">
-                          {item.detail}
-                        </p>
-                      </div>
+            <div className="flex flex-col">
+              {!stats &&
+                Array.from({ length: 5 }, (_, i) => `activity-skeleton-${i}`).map((key) => (
+                  <div key={key} className="flex gap-[13px] px-6 py-[15px]">
+                    <Skeleton className="size-8 flex-none rounded-[9px]" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/3" />
                     </div>
-                    {index < activityItems.length - 1 ? <Separator /> : null}
                   </div>
                 ))}
 
-                <div className="border-tc_grayscale-300 bg-tc_grayscale-100 rounded-xl border border-dashed p-4 dark:border-white/10 dark:bg-white/5">
-                  <p className="text-tc_black dark:text-tc_white font-medium">
-                    Need deeper investigation?
-                  </p>
-                  <p className="text-tc_grayscale-800 dark:text-tc_grayscale-300 mt-1 text-sm leading-6">
-                    Open the audit log page to trace account changes and confirm which role or
-                    permission update triggered the event.
-                  </p>
-                  <Link href="/audit-logs" className={`${ghostLinkButton  } mt-3`}>
-                    Go to audit logs
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+              {stats && stats.recentActivity.length === 0 && (
+                <p className="text-tc_grayscale-600 dark:text-tc_grayscale-400 px-6 py-[15px] text-[13.5px]">
+                  No recent activity.
+                </p>
+              )}
+
+              {stats &&
+                stats.recentActivity.map((log, i) => {
+                  const display = getActivityDisplay(log)
+                  const Icon = display.icon
+                  return (
+                    <div key={log.id}>
+                      <div className="flex gap-[13px] px-6 py-[15px]">
+                        <span
+                          className={`${display.iconBg} ${display.iconColor} flex size-8 flex-none items-center justify-center rounded-[9px]`}
+                        >
+                          <Icon className="size-[18px]" />
+                        </span>
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <p className="text-tc_grayscale-800 dark:text-tc_grayscale-200 text-[13.5px] leading-snug">
+                            {display.message}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`${display.iconBg} text-tc_grayscale-700 dark:text-tc_grayscale-400 font-roboto-condensed rounded px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.08em] uppercase dark:bg-white/10`}
+                            >
+                              {display.badge}
+                            </span>
+                            <span className="text-tc_grayscale-500 font-roboto-condensed text-[12px] font-semibold tracking-[0.04em]">
+                              {formatRelativeTime(log.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {i < stats.recentActivity.length - 1 && <Separator />}
+                    </div>
+                  )
+                })}
+            </div>
+
+            <Link
+              href="/audit-logs"
+              className="border-tc_grayscale-200 text-tc_primary-600 dark:text-tc_primary-400 hover:bg-tc_grayscale-100 mt-auto flex items-center justify-center gap-1.5 border-t px-4 py-[15px] text-[13px] font-semibold transition-colors dark:border-white/10 dark:hover:bg-white/5"
+            >
+              View all activity
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </main>

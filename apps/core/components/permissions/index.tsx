@@ -1,5 +1,4 @@
 export * from './columns'
-export * from './permission-breadcrumbs'
 export * from './permission-card'
 export * from './permission-data-table'
 export * from './permission-desktop-toolbar'

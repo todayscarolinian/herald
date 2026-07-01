@@ -7,11 +7,11 @@ import { toast } from 'sonner'
 
 import {
   columns,
-  PermissionBreadcrumbs,
   PermissionDataTable,
   PermissionDetailsDrawer,
   PermissionMobileDatagrid,
 } from '@/components/permissions'
+import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -83,14 +83,12 @@ export default function PermissionsPage() {
   }
 
   return (
-    <main className="flex w-full max-w-none flex-col p-6 pb-0">
-      <PermissionBreadcrumbs />
+    <main className="flex w-full max-w-none flex-col">
+      <PageHeader title="Permissions" />
 
-      <div className="flex w-full items-center justify-between p-2 pl-4">
-        <span className="text-2xl font-extrabold">Permissions</span>
+      <div className="flex flex-col p-6 pb-0">
+        <div className="mt-8 mb-10 h-full w-full rounded-lg">{renderContent()}</div>
       </div>
-
-      <div className="mt-8 mb-10 h-full w-full rounded-lg">{renderContent()}</div>
 
       <PermissionDetailsDrawer
         permission={selectedPermission}

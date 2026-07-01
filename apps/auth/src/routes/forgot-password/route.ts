@@ -1,9 +1,14 @@
 import { APIResponse } from '@herald/types'
-import { forgotPasswordSchema } from '@herald/utils'
+import {
+  createAdminAuditLogService,
+  createAdminFirebaseUserRepository,
+  forgotPasswordSchema,
+} from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
 import { auth } from '../../lib/auth.ts'
+import { firestore } from '../../lib/firestore.ts'
 
 const app = new Hono()
 
@@ -99,6 +104,15 @@ app.post('/forgot-password', async (c) => {
         error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
       },
       500
+    )
+  }
+
+  const existingUser = await createAdminFirebaseUserRepository(firestore).findByEmail(email)
+  if (existingUser) {
+    createAdminAuditLogService(firestore).log(
+      'USER_PASSWORD_RESET_REQUESTED',
+      null,
+      existingUser.id
     )
   }
 

@@ -147,7 +147,7 @@ export function AppNavigation() {
 
       <div className="relative hidden h-full md:flex">
         <Sidebar
-          collapsible="icon"
+          collapsible="offcanvas"
           className="border-r-0"
           style={
             {

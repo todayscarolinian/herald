@@ -8,6 +8,7 @@ import {
 } from '@herald/types'
 import {
   type AuditLog,
+  type AuditLogAction,
   type AuditLogPerformerSnapshot,
   type AuditLogPositionSnapshot,
   type AuditLogTargetSnapshot,
@@ -90,7 +91,7 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
 
     async create(params) {
       try {
-        const trimmedAction = params.action?.trim()
+        const trimmedAction = params.action?.trim() as AuditLogAction | undefined
 
         if (!trimmedAction) {
           throw new TypeError('Invalid input: "action" is required')
@@ -195,6 +196,14 @@ function buildAuditLogQuery(
     constraints.push(where('action', '==', filters.action.trim()))
   }
 
+  if (filters?.since) {
+    constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(filters.since))))
+  }
+
+  if (filters?.until) {
+    constraints.push(where('timestamp', '<', Timestamp.fromDate(new Date(filters.until))))
+  }
+
   constraints.push(orderBy(sortField, sortDirection))
   return query(auditLogsRef, ...constraints)
 }
@@ -250,7 +259,7 @@ async function getPageCursor(
 }
 
 function mapAuditLogDoc(id: string, docSnap: DocumentData): AuditLog {
-  const action = requireStringField(docSnap, 'action', id)
+  const action = requireStringField(docSnap, 'action', id) as AuditLogAction
   const timestamp = requireTimestampField(docSnap, 'timestamp', id)
 
   return {
@@ -263,7 +272,9 @@ function mapAuditLogDoc(id: string, docSnap: DocumentData): AuditLog {
 }
 
 function readTargetSnapshot(value: unknown): AuditLogTargetSnapshot | null {
-  if (!value || typeof value !== 'object') {return null}
+  if (!value || typeof value !== 'object') {
+    return null
+  }
   const obj = value as Record<string, unknown>
 
   if (obj.type === 'user') {
@@ -280,7 +291,9 @@ function readTargetSnapshot(value: unknown): AuditLogTargetSnapshot | null {
 }
 
 function readUserSnapshot(value: unknown): AuditLogUserSnapshot | null {
-  if (!value || typeof value !== 'object') {return null}
+  if (!value || typeof value !== 'object') {
+    return null
+  }
   const obj = value as Record<string, unknown>
 
   const id = typeof obj.id === 'string' ? obj.id : null
@@ -289,7 +302,9 @@ function readUserSnapshot(value: unknown): AuditLogUserSnapshot | null {
   const email = typeof obj.email === 'string' ? obj.email : null
   const createdAt = typeof obj.createdAt === 'string' ? obj.createdAt : null
 
-  if (!id || !firstName || !lastName || !email || !createdAt) {return null}
+  if (!id || !firstName || !lastName || !email || !createdAt) {
+    return null
+  }
 
   const positions = Array.isArray(obj.positions)
     ? obj.positions
@@ -309,7 +324,9 @@ function readUserSnapshot(value: unknown): AuditLogUserSnapshot | null {
 }
 
 function readPositionSnapshot(value: unknown): AuditLogPositionSnapshot | null {
-  if (!value || typeof value !== 'object') {return null}
+  if (!value || typeof value !== 'object') {
+    return null
+  }
   const obj = value as Record<string, unknown>
 
   const id = typeof obj.id === 'string' ? obj.id : null
@@ -317,7 +334,9 @@ function readPositionSnapshot(value: unknown): AuditLogPositionSnapshot | null {
   const abbreviation = typeof obj.abbreviation === 'string' ? obj.abbreviation : null
   const createdAt = typeof obj.createdAt === 'string' ? obj.createdAt : null
 
-  if (!id || !name || !abbreviation || !createdAt) {return null}
+  if (!id || !name || !abbreviation || !createdAt) {
+    return null
+  }
 
   const permissions = Array.isArray(obj.permissions)
     ? obj.permissions.filter((p): p is string => typeof p === 'string')
@@ -327,7 +346,9 @@ function readPositionSnapshot(value: unknown): AuditLogPositionSnapshot | null {
 }
 
 function readPerformerSnapshot(value: unknown): AuditLogPerformerSnapshot | null {
-  if (!value || typeof value !== 'object') {return null}
+  if (!value || typeof value !== 'object') {
+    return null
+  }
   const obj = value as Record<string, unknown>
 
   const id = typeof obj.id === 'string' ? obj.id : null
@@ -335,7 +356,9 @@ function readPerformerSnapshot(value: unknown): AuditLogPerformerSnapshot | null
   const lastName = typeof obj.lastName === 'string' ? obj.lastName : null
   const email = typeof obj.email === 'string' ? obj.email : null
 
-  if (!id || !firstName || !lastName || !email) {return null}
+  if (!id || !firstName || !lastName || !email) {
+    return null
+  }
 
   return {
     id,

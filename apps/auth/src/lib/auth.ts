@@ -1,5 +1,5 @@
 import type { UserProfile } from '@herald/types'
-import { SESSION_COOKIE_NAME } from '@herald/utils'
+import { createAdminAuditLogService, SESSION_COOKIE_NAME } from '@herald/utils'
 import { betterAuth } from 'better-auth'
 import { Session } from 'better-auth'
 import { openAPI } from 'better-auth/plugins'
@@ -36,6 +36,14 @@ export const auth = betterAuth({
     },
     requireEmailVerification: true,
     revokeSessionsOnPasswordReset: true,
+    onPasswordReset: ({ user }) => {
+      const auditLog = createAdminAuditLogService(firestore)
+      auditLog.log('USER_PASSWORD_RESET_COMPLETED', null, user.id)
+      // revokeSessionsOnPasswordReset (above) drops all of this user's other
+      // sessions right after this callback runs.
+      auditLog.log('USER_SESSION_REVOKED', null, user.id)
+      return Promise.resolve()
+    },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {

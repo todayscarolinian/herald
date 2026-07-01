@@ -11,11 +11,11 @@ import {
   columns,
   CreatePositionButton,
   ImportPositionButton,
-  PositionBreadcrumbs,
   PositionDetailsDrawer,
   PositionsTable,
 } from '@/components/positions'
 import MobileDatagrid from '@/components/positions/mobile-datagrid'
+import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -94,21 +94,22 @@ export default function PositionsPage() {
   }
 
   return (
-    <main className="flex w-full max-w-none flex-col p-6 pb-0">
-      <PositionBreadcrumbs />
+    <main className="flex w-full max-w-none flex-col">
+      <PageHeader title="Positions" />
 
-      <div className="flex w-full items-center justify-between p-2 pl-4">
-        <span className="text-2xl font-extrabold">Positions</span>
-        <div className="text-muted-foreground flex items-center gap-2 text-sm">
-          <ImportPositionButton
-            onCreateBulk={() => setBulkMode('create')}
-            onUpdateBulk={() => setBulkMode('update')}
-          />
-          <CreatePositionButton />
+      <div className="flex flex-col p-6 pb-0">
+        <div className="flex w-full items-center justify-end p-2 pl-4">
+          <div className="text-muted-foreground flex items-center gap-2 text-sm">
+            <ImportPositionButton
+              onCreateBulk={() => setBulkMode('create')}
+              onUpdateBulk={() => setBulkMode('update')}
+            />
+            <CreatePositionButton />
+          </div>
         </div>
-      </div>
 
-      <div className="mb-10 h-full w-full rounded-lg">{renderTable()}</div>
+        <div className="mb-10 h-full w-full rounded-lg">{renderTable()}</div>
+      </div>
 
       <PositionDetailsDrawer
         position={selectedPosition}

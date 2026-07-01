@@ -62,6 +62,7 @@ export interface UserFilters {
   positionIds?: UUID[]
   disabled?: boolean
   emailVerified?: boolean
+  createdAfter?: string
 }
 
 export type UserSortField = 'name' | 'email' | 'createdAt' | 'updatedAt'

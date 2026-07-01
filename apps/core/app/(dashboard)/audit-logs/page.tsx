@@ -5,8 +5,9 @@ import { FolderOpen, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { AuditLogBreadcrumbs, columns, DataTable, MobileDatagrid } from '@/components/audit-logs'
+import { columns, DataTable, MobileDatagrid } from '@/components/audit-logs'
 import { AuditLogDetailsDrawer } from '@/components/audit-logs/audit-log-details-drawer'
+import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -76,14 +77,12 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col p-6 pb-0">
-      <AuditLogBreadcrumbs />
+    <div className="flex w-full max-w-none flex-col">
+      <PageHeader title="Audit Logs" />
 
-      <div className="flex w-full items-center justify-between p-2 pl-4">
-        <span className="text-2xl font-extrabold">Audit Logs</span>
+      <div className="flex flex-col p-6 pb-0">
+        <div className="mt-8 mb-10 h-full w-full rounded-lg">{renderContent()}</div>
       </div>
-
-      <div className="mt-8 mb-10 h-full w-full rounded-lg">{renderContent()}</div>
 
       <AuditLogDetailsDrawer
         auditLog={selectedAuditLog}
