@@ -124,6 +124,12 @@ export async function signUpInBetterAuth(params: {
     headers['x-herald-internal-api-key'] = internalApiKey
   }
 
+  const coreUrl = process.env.NEXT_PUBLIC_CORE_URL
+  if (!coreUrl) {
+    throw new Error('NEXT_PUBLIC_CORE_URL is not configured')
+  }
+  const normalizedCoreUrl = coreUrl.endsWith('/') ? coreUrl.slice(0, -1) : coreUrl
+
   const res = await fetch(`${authUrl}/api/auth/sign-up/email`, {
     method: 'POST',
     headers,
@@ -131,6 +137,7 @@ export async function signUpInBetterAuth(params: {
       email: params.email,
       password: params.password,
       name: params.name,
+      callbackURL: `${normalizedCoreUrl}/login`,
     }),
   })
 
@@ -164,7 +171,7 @@ export async function sendWelcomeEmail(userId: string, temporaryPassword: string
   }
 
   try {
-    await fetch(`${authUrl}/api/auth/send-welcome-email`, {
+    await fetch(`${authUrl}/auth/send-welcome-email`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ userId, temporaryPassword }),

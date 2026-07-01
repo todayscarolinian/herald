@@ -64,7 +64,9 @@ export function LoginForm() {
           },
           {
             onSuccess: () => {
-              router.push('/')
+              const redirectTo = searchParams.get('redirect')
+              const isSafeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
+              router.push(isSafeRedirect ? (redirectTo ?? '/') : '/')
             },
           }
         )

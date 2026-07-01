@@ -8,12 +8,12 @@ import type {
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
-import { signIn } from '@/lib/auth-client'
+import { signIn, signOut as authClientSignOut } from '@/lib/auth-client'
 
 export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
   await post<APIResponse>(ENDPOINTS.api.login, credentials)
 
-  signIn.email({
+  await signIn.email({
     email: credentials.email,
     password: credentials.password,
     rememberMe: credentials.rememberMe,
@@ -41,6 +41,11 @@ export async function googleGuardCheck(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await post<void>(ENDPOINTS.auth.logout, {})
+
+  // The custom endpoint above invalidates the session server-side, but only
+  // going through the better-auth client updates its session store, so
+  // useSession() picks up the logout without a page refresh.
+  await authClientSignOut()
 }
 
 export function forgotPassword(

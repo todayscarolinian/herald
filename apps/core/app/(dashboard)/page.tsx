@@ -155,8 +155,8 @@ function getActivityDisplay(log: AuditLogDTO): ActivityDisplay {
     case 'USER_LOGIN_SUCCESS':
       return {
         icon: LogIn,
-        iconBg: 'bg-tc_grayscale-200 dark:bg-white/10',
-        iconColor: 'text-tc_grayscale-600 dark:text-tc_grayscale-400',
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
         message: `${actor} signed in`,
         badge: 'Login',
       }
@@ -171,8 +171,8 @@ function getActivityDisplay(log: AuditLogDTO): ActivityDisplay {
     case 'USER_LOGOUT':
       return {
         icon: LogOut,
-        iconBg: 'bg-tc_grayscale-200 dark:bg-white/10',
-        iconColor: 'text-tc_grayscale-600 dark:text-tc_grayscale-400',
+        iconBg: 'bg-tc_info-500/10',
+        iconColor: 'text-tc_info-600 dark:text-tc_info-400',
         message: `${actor} signed out`,
         badge: 'Logout',
       }
@@ -321,7 +321,7 @@ export default function Home() {
               className="bg-tc_primary-500 hover:bg-tc_primary-600 inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors"
             >
               <UserPlus className="size-4" />
-              Invite user
+              Create user
             </Link>
           </div>
         </div>
