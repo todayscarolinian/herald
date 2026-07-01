@@ -17,6 +17,8 @@ import {
   createUser,
   deleteUser,
   disableUser,
+  updateProfile,
+  UpdateProfileInput,
   updateUser,
 } from '@/lib/api/services/userService'
 
@@ -38,6 +40,18 @@ export function useUpdateUser() {
     mutationFn: updateUser,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+
+  return useMutation<APIResponse<UserDTO>, Error, UpdateProfileInput>({
+    mutationFn: updateProfile,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+      void queryClient.invalidateQueries({ queryKey: ['myProfile'] })
     },
   })
 }

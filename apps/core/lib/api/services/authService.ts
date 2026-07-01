@@ -1,5 +1,6 @@
 import type {
   APIResponse,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   ResetPasswordRequest,
@@ -52,4 +53,10 @@ export function resetPassword(
   request: ResetPasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
   return post<APIResponse<{ message: string }>>(ENDPOINTS.api.resetPassword, request)
+}
+
+export function changePassword(
+  request: ChangePasswordRequest
+): Promise<APIResponse<{ message: string }>> {
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.changePassword, request)
 }

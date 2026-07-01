@@ -133,8 +133,7 @@ export function AppNavigation() {
           <DropdownMenuContent className="w-40" align="start">
             <DropdownMenuGroup>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>Profile</DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
@@ -244,8 +243,9 @@ export function AppNavigation() {
                     <DropdownMenuContent>
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/profile')}>
+                          Profile
+                        </DropdownMenuItem>
                       </DropdownMenuGroup>
 
                       <DropdownMenuSeparator />

@@ -6,6 +6,7 @@ export const ENDPOINTS = {
     logout: '/auth/logout',
     resetPassword: '/auth/reset-password',
     forgotPassword: '/auth/forgot-password',
+    changePassword: '/auth/change-password',
   },
   api: {
     login: '/api/login',
@@ -17,5 +18,6 @@ export const ENDPOINTS = {
     permissions: '/api/permissions',
     auditLogs: '/api/audit-logs',
     dashboard: '/api/dashboard',
+    updateProfile: '/api/user/update-profile',
   },
 } as const
