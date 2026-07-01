@@ -160,6 +160,12 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         const trimmedName = position.name.trim()
         const trimmedAbbreviation = position.abbreviation.trim()
         const now = Timestamp.now()
+        const previousPermissions = Array.isArray(docSnap.data().permissions)
+          ? (docSnap.data().permissions as string[])
+          : []
+        const permissionsChanged =
+          previousPermissions.length !== position.permissions.length ||
+          !previousPermissions.every((permission) => position.permissions.includes(permission))
         const updateData = {
           name: trimmedName,
           abbreviation: trimmedAbbreviation,
@@ -188,7 +194,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           },
         }
         createAuditLogService(firestore).log(
-          'POSITION_UPDATED',
+          permissionsChanged ? 'POSITION_PERMISSIONS_CHANGED' : 'POSITION_UPDATED',
           targetSnapshot,
           position.updatedById
         )

@@ -34,6 +34,8 @@ export interface ListAuditLogsInput {
 
 export interface AuditLogFilters {
   action?: string
+  since?: string
+  until?: string
 }
 
 export type AuditLogSortField = 'action' | 'timestamp'

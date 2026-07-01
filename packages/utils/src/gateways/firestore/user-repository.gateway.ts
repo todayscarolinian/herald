@@ -311,6 +311,10 @@ export function createFirebaseUserRepository(
         const derivedName = [user.firstName, user.middleName, user.lastName]
           .filter(Boolean)
           .join(' ')
+        const previousPositionIds = extractPositionIds(docSnap.data(), validatedId)
+        const positionsChanged =
+          previousPositionIds.length !== user.positions.length ||
+          !previousPositionIds.every((positionId) => user.positions.includes(positionId))
         const updateData = {
           name: derivedName,
           firstName: user.firstName,
@@ -351,7 +355,11 @@ export function createFirebaseUserRepository(
                 : '',
           },
         }
-        createAuditLogService(firestore).log('USER_UPDATED', targetSnapshot, validatedUpdatedById)
+        createAuditLogService(firestore).log(
+          positionsChanged ? 'USER_POSITIONS_CHANGED' : 'USER_UPDATED',
+          targetSnapshot,
+          validatedUpdatedById
+        )
 
         return rawToDTO(mapRawUserDoc(updatedSnap.id, updatedSnap.data()), positionsMap)
       } catch (error) {
@@ -485,7 +493,14 @@ export function createFirebaseUserRepository(
     },
 
     async getTotalCount() {
-      throw new Error('Not implemented: getTotalCount')
+      try {
+        const collectionRef = collection(firestore, COLLECTION_NAME)
+        const snapshot = await getCountFromServer(collectionRef)
+        return { totalUsers: snapshot.data().count }
+      } catch (error) {
+        console.error('Error getting total user count:', error)
+        throw error
+      }
     },
 
     async getPositionDistribution() {
@@ -714,6 +729,10 @@ function buildUserQuery(
 
   if (typeof filters?.emailVerified === 'boolean') {
     constraints.push(where('emailVerified', '==', filters.emailVerified))
+  }
+
+  if (filters?.createdAfter) {
+    constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(filters.createdAfter))))
   }
 
   constraints.push(orderBy(sortField, sortDirection))

@@ -1,6 +1,5 @@
 export * from './bulk-import-dialog'
 export * from './columns'
-export * from './position-breadcrumbs'
 export * from './position-card'
 export * from './position-create-button'
 export * from './position-desktop-toolbar'

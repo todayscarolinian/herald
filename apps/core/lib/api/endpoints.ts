@@ -16,5 +16,6 @@ export const ENDPOINTS = {
     positions: '/api/positions',
     permissions: '/api/permissions',
     auditLogs: '/api/audit-logs',
+    dashboard: '/api/dashboard',
   },
 } as const

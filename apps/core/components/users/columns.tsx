@@ -14,7 +14,7 @@ export const columns: ColumnDef<UserDTO>[] = [
       <div className="flex items-center gap-2">
         <span>{row.getValue('name')}</span>
         {row.original.disabled && (
-          <Badge className="inline-flex items-center justify-center rounded-md bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
+          <Badge className="bg-tc_error-500/10 text-tc_error-600 dark:text-tc_error-400 inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium">
             Disabled
           </Badge>
         )}
@@ -30,7 +30,9 @@ export const columns: ColumnDef<UserDTO>[] = [
     accessorFn: (row) => row.positions,
     header: 'Position',
     filterFn: (row, columnId, filterValue: string[]) => {
-      if (!filterValue?.length) {return true}
+      if (!filterValue?.length) {
+        return true
+      }
       const positions: Position[] = row.getValue(columnId)
       return positions.some((p) => filterValue.includes(p.id))
     },
