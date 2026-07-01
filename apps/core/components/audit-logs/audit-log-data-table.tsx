@@ -40,9 +40,10 @@ import { DesktopToolbar } from './audit-log-desktop-toolbar'
 type DataTableProps = {
   columns: ColumnDef<AuditLogDTO, unknown>[]
   data: AuditLogDTO[]
+  onRowClick?: (auditLog: AuditLogDTO) => void
 }
 
-export function DataTable({ columns, data }: DataTableProps) {
+export function DataTable({ columns, data, onRowClick }: DataTableProps) {
   const [selectedRow, setSelectedRow] = React.useState<AuditLogDTO | null>(null)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -141,7 +142,9 @@ export function DataTable({ columns, data }: DataTableProps) {
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   className="cursor-pointer"
-                  onClick={() => setSelectedRow(row.original)}
+                  onClick={() =>
+                    onRowClick ? onRowClick(row.original) : setSelectedRow(row.original)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -222,13 +225,23 @@ export function DataTable({ columns, data }: DataTableProps) {
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Performer ID</FieldLabel>
-                  <span className="text-sm">{selectedRow.performerId}</span>
+                  <FieldLabel>Performer</FieldLabel>
+                  <span className="text-sm">
+                    {selectedRow.performer
+                      ? `${selectedRow.performer.firstName} ${selectedRow.performer.lastName}`.trim() ||
+                        selectedRow.performer.email
+                      : 'Unknown'}
+                  </span>
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Target ID</FieldLabel>
-                  <span className="text-sm">{selectedRow.targetId}</span>
+                  <FieldLabel>Target</FieldLabel>
+                  <span className="text-sm">
+                    {selectedRow.target?.type === 'user'
+                      ? `${selectedRow.target.data.firstName} ${selectedRow.target.data.lastName}`.trim() ||
+                        selectedRow.target.data.email
+                      : (selectedRow.target?.data.name ?? 'Unknown')}
+                  </span>
                 </Field>
 
                 <Field orientation="horizontal" className="justify-between">

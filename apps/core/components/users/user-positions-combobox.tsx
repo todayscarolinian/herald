@@ -21,14 +21,6 @@ type PositionOption = {
   label: string
 }
 
-const defaultOptions: PositionOption[] = [
-  { id: 'cto', label: 'CTO' },
-  { id: 'wr', label: 'WR' },
-  { id: 'ome', label: 'OME' },
-  { id: 'vd', label: 'VD' },
-  { id: 'res', label: 'RES' },
-]
-
 type PositionsComboboxProps = {
   options?: PositionOption[]
   value?: UUID[]
@@ -37,7 +29,7 @@ type PositionsComboboxProps = {
 }
 
 export function PositionsCombobox({
-  options = defaultOptions,
+  options = [],
   value,
   defaultValue,
   onValueChange,
@@ -46,7 +38,7 @@ export function PositionsCombobox({
   const ids = options.map((option) => option.id)
   const labelById = new Map(options.map((option) => [option.id, option.label]))
 
-  const fallbackDefaultValue = defaultValue ?? (ids[0] ? [ids[0]] : [])
+  const fallbackDefaultValue = defaultValue ?? []
 
   return (
     <Combobox
@@ -56,6 +48,7 @@ export function PositionsCombobox({
       value={value}
       defaultValue={fallbackDefaultValue}
       onValueChange={(nextValues) => onValueChange?.(nextValues as UUID[])}
+      itemToStringLabel={(id) => labelById.get(id as UUID) ?? ''}
     >
       <ComboboxChips ref={anchor} className="w-full">
         <ComboboxValue>

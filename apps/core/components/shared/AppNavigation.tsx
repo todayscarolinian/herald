@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 import {
   DropdownMenu,
@@ -33,6 +34,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
+import { useSignOut } from '@/lib/api/mutations/authMutations'
+import { useSession } from '@/lib/auth-client'
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,6 +47,24 @@ const navItems = [
 
 export function AppNavigation() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  const { user } = session || {}
+
+  const signOut = useSignOut()
+
+  const handleLogout = () => {
+    signOut.mutate(undefined, {
+      onSuccess: () => {
+        router.push('/login')
+        toast.success('Logged out successfully')
+      },
+      onError: (error) => {
+        toast.error(`Logout failed: ${error.message}`)
+      },
+    })
+  }
 
   return (
     <>
@@ -112,8 +133,7 @@ export function AppNavigation() {
           <DropdownMenuContent className="w-40" align="start">
             <DropdownMenuGroup>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>Profile</DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
@@ -126,7 +146,7 @@ export function AppNavigation() {
 
       <div className="relative hidden h-full md:flex">
         <Sidebar
-          collapsible="icon"
+          collapsible="offcanvas"
           className="border-r-0"
           style={
             {
@@ -210,10 +230,10 @@ export function AppNavigation() {
 
                         <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
                           <span className="text-tc_white truncate text-sm font-semibold">
-                            Test User
+                            {user?.name || ''}
                           </span>
                           <span className="text-tc_white/70 truncate text-xs">
-                            testemail@gmail.com
+                            {user?.email || ''}
                           </span>
                         </div>
 
@@ -223,13 +243,14 @@ export function AppNavigation() {
                     <DropdownMenuContent>
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/profile')}>
+                          Profile
+                        </DropdownMenuItem>
                       </DropdownMenuGroup>
 
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
-                        <DropdownMenuItem>Log out</DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>

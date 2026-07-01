@@ -1,12 +1,30 @@
 import type { APIResponse, LoginResponse, Position } from '@herald/types'
-import { loginSchema, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
+import {
+  createAdminAuditLogService,
+  createAdminFirebaseUserRepository,
+  loginSchema,
+  SESSION_COOKIE_NAME,
+  SESSION_TOKEN_FIELD,
+} from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { auth } from '../../lib/auth.js'
+import { firestore } from '../../lib/firestore.ts'
 import { authService } from '../../services/auth.service.ts'
 const loginRouter = new Hono()
+
+// Failed-login audit entries are only recorded when the email resolves to a
+// known account -- this mirrors the "don't reveal email existence" behavior
+// already used elsewhere in this route and avoids logging arbitrary
+// attacker-supplied emails as if they were real users.
+async function logFailedLoginAttempt(email: string): Promise<void> {
+  const existingUser = await createAdminFirebaseUserRepository(firestore).findByEmail(email)
+  if (existingUser) {
+    createAdminAuditLogService(firestore).log('USER_LOGIN_FAILED', null, existingUser.id)
+  }
+}
 
 // ---------------------------------------------------------------------------
 // POST /auth/login/credentials
@@ -57,6 +75,7 @@ loginRouter.post('/credentials', async (c) => {
   } catch (err) {
     if (isAPIError(err)) {
       if (err.statusCode === 401) {
+        await logFailedLoginAttempt(email)
         return c.json<APIResponse>(
           {
             success: false,
@@ -68,6 +87,7 @@ loginRouter.post('/credentials', async (c) => {
 
       if (err.statusCode === 403) {
         // Email not verified
+        await logFailedLoginAttempt(email)
         return c.json<APIResponse>(
           {
             success: false,
@@ -81,6 +101,7 @@ loginRouter.post('/credentials', async (c) => {
       }
 
       if (err.statusCode === 429) {
+        await logFailedLoginAttempt(email)
         return c.json<APIResponse>(
           {
             success: false,
@@ -138,6 +159,8 @@ loginRouter.post('/credentials', async (c) => {
       console.error('[login/credentials] Failed to revoke session for disabled user:', revokeErr)
     }
 
+    createAdminAuditLogService(firestore).log('USER_LOGIN_FAILED', null, signInResult.user.id)
+
     return c.json<APIResponse>(
       {
         success: false,
@@ -158,6 +181,8 @@ loginRouter.post('/credentials', async (c) => {
     ? Date.now() + 30 * 24 * 60 * 60 * 1000
     : Date.now() + 5 * 24 * 60 * 60 * 1000
 
+  createAdminAuditLogService(firestore).log('USER_LOGIN_SUCCESS', null, user.id)
+
   return c.json<LoginResponse>({
     success: true,
     session: {
@@ -167,6 +192,7 @@ loginRouter.post('/credentials', async (c) => {
     user: {
       id: user.id,
       email: user.email,
+      name: userRecord.name as string,
       firstName: userRecord.firstName as string,
       middleName: userRecord.middleName as string | undefined,
       lastName: userRecord.lastName as string,

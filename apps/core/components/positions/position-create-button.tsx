@@ -2,6 +2,7 @@
 
 import { ChevronDown, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -27,20 +28,16 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-const PERMISSIONS = [
-  'CREATE_ARTICLE',
-  'MANAGE_USC_DAYS',
-  'EDIT_ARTICLE',
-  'DELETE_ARTICLE',
-  'MANAGE_USERS',
-  'VIEW_AUDIT_LOGS',
-  'MANAGE_PERMISSIONS',
-  'PUBLISH_ARTICLE',
-  'MANAGE_POSITIONS',
-]
+import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
+import { usePermissions } from '@/lib/api/queries/permissionQueries'
+import { useSession } from '@/lib/auth-client'
 
 export function CreatePositionButton() {
+  const { data: permissionsData, isLoading: permissionsLoading } = usePermissions({
+    filters: {},
+    pagination: { page: 1, limit: 100 },
+  })
+  const permissionNames = permissionsData?.items.map((p) => p.name) ?? []
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -51,29 +48,45 @@ export function CreatePositionButton() {
   const [touched, setTouched] = useState({
     name: false,
     abbreviation: false,
-    permissions: false,
   })
+
+  const { data: session } = useSession()
+  const createPosition = useCreatePosition()
 
   const nameError = touched.name && form.name.trim() === ''
   const abbrError = touched.abbreviation && form.abbreviation.trim() === ''
-  const permissionsError = touched.permissions && form.permissions.length === 0
-  const isFormValid =
-    form.name.trim() !== '' && form.abbreviation.trim() !== '' && form.permissions.length > 0
+  const isFormValid = form.name.trim() !== '' && form.abbreviation.trim() !== ''
 
   const handleReset = () => {
     setForm({ name: '', abbreviation: '', permissions: [] })
-    setTouched({ name: false, abbreviation: false, permissions: false })
+    setTouched({ name: false, abbreviation: false })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!isFormValid) {
+      toast.error('Please fill out all required fields.')
       return
     }
 
-    // TO DO: API Call here
-    setOpen(false)
-    handleReset()
+    createPosition.mutate(
+      {
+        name: form.name.trim(),
+        abbreviation: form.abbreviation.trim(),
+        permissions: form.permissions,
+        createdById: session?.user.id ?? '',
+      },
+      {
+        onSuccess: () => {
+          toast.success('Position created')
+          setOpen(false)
+          handleReset()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+        },
+      }
+    )
   }
 
   return (
@@ -132,23 +145,16 @@ export function CreatePositionButton() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label className="font-bold">
-                Permissions <span className="text-tc_primary-500">*</span>
-              </Label>
+              <Label className="font-bold">Permissions</Label>
               <Combobox
-                items={PERMISSIONS}
+                items={permissionNames}
                 multiple
                 value={form.permissions}
                 onValueChange={(value) => {
-                  setTouched((t) => ({ ...t, permissions: true }))
                   setForm((prev) => ({ ...prev, permissions: value }))
                 }}
               >
-                <ComboboxChips
-                  className={`relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-2 gap-y-2 rounded-md border bg-white py-1 !pr-10 pl-3 ${
-                    permissionsError ? 'border-red-500' : 'border-tc_grayscale-500'
-                  }`}
-                >
+                <ComboboxChips className="border-tc_grayscale-500 relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-2 gap-y-2 rounded-md border bg-white py-1 !pr-10 pl-3">
                   <ComboboxValue>
                     {form.permissions.map((item) => (
                       <ComboboxChip
@@ -160,8 +166,15 @@ export function CreatePositionButton() {
                     ))}
                   </ComboboxValue>
                   <ComboboxChipsInput
-                    placeholder={form.permissions.length === 0 ? 'Select permissions...' : ''}
+                    placeholder={
+                      permissionsLoading
+                        ? 'Loading permissions...'
+                        : form.permissions.length === 0
+                          ? 'Select permissions...'
+                          : ''
+                    }
                     className="h-6 flex-1 bg-transparent text-base outline-none"
+                    disabled={permissionsLoading}
                   />
                   <div className="pointer-events-none absolute top-2.5 right-3 text-black/50">
                     <ChevronDown size={16} />
@@ -169,7 +182,7 @@ export function CreatePositionButton() {
                 </ComboboxChips>
 
                 <ComboboxContent className="w-[--radix-popover-trigger-width]">
-                  <ComboboxEmpty>No permissions found.</ComboboxEmpty>
+                  <ComboboxEmpty className="w-full">No permissions found.</ComboboxEmpty>
                   <ComboboxList>
                     {(item) => (
                       <ComboboxItem key={item} value={item}>
@@ -181,19 +194,20 @@ export function CreatePositionButton() {
               </Combobox>
             </div>
           </div>
-        </form>
 
-        <DialogFooter>
-          <DialogClose className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 rounded-sm border-2 px-4 py-2 hover:text-white">
-            Cancel
-          </DialogClose>
-          <Button
-            type="submit"
-            className="bg-tc_primary-600 py-2a hover:bg-tc_primary-400 h-full rounded-sm border-2 px-6 text-white"
-          >
-            Create User
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <DialogClose className="text-tc_primary-600 border-tc_primary-600 hover:bg-tc_primary-500 w-auto rounded-sm border-2 px-4 py-2 hover:text-white">
+              Cancel
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={createPosition.isPending}
+              className="bg-tc_primary-600 hover:bg-tc_primary-400 w-auto rounded-sm border-2 px-6 py-5 text-white"
+            >
+              {createPosition.isPending ? 'Creating...' : 'Create Position'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

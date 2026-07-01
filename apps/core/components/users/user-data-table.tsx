@@ -16,9 +16,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel } from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -27,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetFooter } from '@/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -36,35 +33,34 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PositionsCombobox } from '@/components/users/user-positions-combobox'
+import { usePositions } from '@/lib/api/queries/positionQueries'
 
 import { DesktopToolbar } from './user-desktop-toolbar'
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  onRowClick?: (row: TData) => void
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
-  const [selectedRow, setSelectedRow] = React.useState<TData | null>(null)
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  onRowClick,
+}: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [userFilters, setUserFilters] = React.useState<UserFilters>({})
 
-  const availablePositions = [
-    {
-      id: 'CTO',
-      label: 'Chief Technology Officer',
-    },
-    {
-      id: 'WR',
-      label: 'Writer',
-    },
-    {
-      id: 'EIC',
-      label: 'Editor-in-Chief',
-    },
-  ]
+  const { data: positionsData } = usePositions({
+    filters: {},
+    pagination: { page: 1, limit: 200 },
+  })
+
+  const availablePositions = (positionsData?.items ?? []).map((p) => ({
+    id: p.id,
+    label: p.name,
+  }))
 
   const table = useReactTable({
     data,
@@ -80,12 +76,20 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
       pagination: {
         pageSize: 10,
       },
+      columnVisibility: {
+        disabled: false,
+        emailVerified: false,
+      },
     },
   })
 
   const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as UserSortField) : 'createdAt'
-  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
-  const searchValue = (table.getColumn('firstName')?.getFilterValue() as string) ?? ''
+  const selectedSortDirection: 'asc' | 'desc' = sorting[0]
+    ? sorting[0].desc
+      ? 'desc'
+      : 'asc'
+    : 'desc'
+  const searchValue = (table.getColumn('name')?.getFilterValue() as string) ?? ''
 
   const applySort = (field: UserSortField, direction: 'asc' | 'desc') => {
     if (!table.getColumn(field)) {
@@ -132,7 +136,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
         title="Users"
         search={searchValue}
         onSearchChange={(value) => {
-          table.getColumn('firstName')?.setFilterValue(value)
+          table.getColumn('name')?.setFilterValue(value)
           table.setPageIndex(0)
         }}
         selectedFilters={userFilters}
@@ -166,7 +170,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   className="cursor-pointer"
-                  onClick={() => setSelectedRow(row.original)}
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -229,82 +233,6 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
           <ChevronRight />
         </Button>
       </div>
-      <Sheet open={!!selectedRow} onOpenChange={(open) => !open && setSelectedRow(null)}>
-        <SheetContent className="p-4 sm:max-w-2xl">
-          <div className="mt-4 flex h-full flex-col">
-            <div className="flex h-full flex-col gap-3">
-              <div className="flex w-full flex-col items-start justify-between">
-                <h2 className="text-2xl font-bold">Test User</h2>
-
-                <div className="text-muted-foreground mt-4 flex w-full items-center justify-between pt-1 text-sm">
-                  <div>testuser@example.com</div>
-                  <div>0/01/23</div>
-                </div>
-              </div>
-
-              <div className="border-tc_accent_black-300 border" />
-
-              <span className="text-lg font-extrabold">User Details</span>
-
-              <FieldGroup>
-                <Field>
-                  <Label htmlFor="first-name" className="text-tc_grayscale-800">
-                    First Name <span className="text-tc_primary-500">*</span>
-                  </Label>
-                  <Input id="first-name" name="firstName" defaultValue="Jose" />
-                </Field>
-                <Field>
-                  <Label htmlFor="middle-name">Middle Name</Label>
-                  <Input id="middle-name" name="middleName" defaultValue="Protacio" />
-                </Field>
-                <Field>
-                  <Label htmlFor="last-name">
-                    Last Name<span className="text-tc_primary-500">*</span>
-                  </Label>
-                  <Input
-                    id="last-name"
-                    name="lastName"
-                    defaultValue="Rizal Mercado y Alonso Realonda"
-                  />
-                </Field>
-                <Field>
-                  <Label htmlFor="email">
-                    Email<span className="text-tc_primary-500">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    defaultValue="joseprotaciorizalmercadoyalonzorealonda@usc.edu.ph"
-                  />
-                </Field>
-                <Field>
-                  <Label htmlFor="position">
-                    Position<span className="text-tc_primary-500">*</span>
-                  </Label>
-                  <PositionsCombobox />
-                </Field>
-              </FieldGroup>
-
-              <SheetFooter className="mt-auto grid w-full grid-cols-2 px-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-tc_primary-500 text-tc_primary-500 hover:bg-tc_primary-500 w-full border-2 hover:text-white"
-                >
-                  Delete
-                </Button>
-
-                <Button
-                  type="submit"
-                  className="bg-tc_primary-500 hover:bg-tc_primary-300 w-full rounded-sm border-2 text-white"
-                >
-                  Save
-                </Button>
-              </SheetFooter>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

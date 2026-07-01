@@ -5,6 +5,7 @@ import type { PermissionDTO } from '@herald/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
+import { formatDate } from '@/lib/utils'
 
 type Props = {
   permission: PermissionDTO | null
@@ -38,12 +39,12 @@ export function PermissionDetailsContent({ permission, onClose }: Props) {
 
         <Field orientation="horizontal" className="justify-between border-b pb-2">
           <FieldLabel>Created</FieldLabel>
-          <span className="text-sm text-black">{permission.createdAt}</span>
+          <span className="text-sm text-black">{formatDate(permission.createdAt)}</span>
         </Field>
 
         <Field orientation="horizontal" className="justify-between">
           <FieldLabel>Updated</FieldLabel>
-          <span className="text-sm text-black">{permission.updatedAt}</span>
+          <span className="text-sm text-black">{formatDate(permission.updatedAt)}</span>
         </Field>
       </div>
 

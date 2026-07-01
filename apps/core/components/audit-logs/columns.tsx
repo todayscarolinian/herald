@@ -4,6 +4,7 @@ import type { AuditLogDTO } from '@herald/types'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
+import { formatDate } from '@/lib/utils'
 
 export const columns: ColumnDef<AuditLogDTO>[] = [
   {
@@ -20,7 +21,7 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
     },
   },
   {
-    accessorKey: 'performerId',
+    accessorKey: 'performer',
     header: 'Performer',
     cell: ({ row }) => {
       const performer = row.original.performer
@@ -29,18 +30,16 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
         return `${performer.firstName} ${performer.lastName}`.trim() || performer.email
       }
 
-      return row.getValue('performerId') as string
+      return 'Unknown'
     },
   },
   {
-    accessorKey: 'targetId',
+    accessorKey: 'target',
     header: 'Target',
     cell: ({ row }) => {
       const target = row.original.target
 
-      if (!target) {
-        return row.getValue('targetId') as string
-      }
+      if (!target) {return 'Unknown'}
 
       if (target.type === 'position') {
         return target.data.name
@@ -52,5 +51,6 @@ export const columns: ColumnDef<AuditLogDTO>[] = [
   {
     accessorKey: 'timestamp',
     header: 'Timestamp',
+    cell: ({ row }) => formatDate(row.original.timestamp),
   },
 ]

@@ -4,10 +4,10 @@ import type {
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
+import { createFirebasePositionRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
-// import { createFirebasePositionRepository } from '@herald/utils'
-// import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
+import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function PUT(
   request: NextRequest,
@@ -65,6 +65,16 @@ export async function PUT(
       )
     }
 
+    if (!body.updatedById || typeof body.updatedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"updatedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
     const hasNoUpdatableFields =
       body.name === undefined && body.abbreviation === undefined && body.permissions === undefined
 
@@ -86,22 +96,11 @@ export async function PUT(
       name: body.name ?? '',
       abbreviation: body.abbreviation ?? '',
       permissions: body.permissions ?? [],
+      updatedById: body.updatedById,
     }
 
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // const updatedPosition = await repository.update(updateData)
-
-    const now = new Date().toISOString()
-    const updatedPosition: PositionDTO = {
-      id,
-      name: updateData.name ?? 'WIP Position',
-      abbreviation: updateData.abbreviation ?? 'WIP',
-      permissions: updateData.permissions ?? [],
-      createdAt: now,
-      updatedAt: now,
-      userCount: 0,
-    }
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    const updatedPosition = await repository.update(updateData)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: updatedPosition },
@@ -113,7 +112,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -126,17 +125,24 @@ export async function DELETE(
       )
     }
 
-    const deleteData: DeletePositionInput = { id, deletedBy: 'system' } // TODO: Replace 'system' with actual user ID performing the deletion
+    const text = await request.text()
+    const body = (text ? JSON.parse(text) : {}) as Partial<DeletePositionInput>
 
-    // TODO: Repository implementation is still WIP.
-    // const repository = createFirebasePositionRepository(getServerFirestore())
-    // await repository.delete(deleteData)
+    if (!body.deletedById || typeof body.deletedById !== 'string') {
+      return NextResponse.json<APIResponse>(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
+        },
+        { status: 422 }
+      )
+    }
+
+    const repository = createFirebasePositionRepository(getServerFirestore())
+    await repository.delete({ id, deletedById: body.deletedById })
 
     return NextResponse.json<APIResponse<{ message: string }>>(
-      {
-        success: true,
-        data: { message: `Position ${deleteData.id} has been deleted` },
-      },
+      { success: true, data: { message: `Position ${id} has been deleted` } },
       { status: 200 }
     )
   } catch (error) {

@@ -5,6 +5,7 @@ import type { AuditLogDTO } from '@herald/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
+import { formatDate } from '@/lib/utils'
 
 type Props = {
   auditLog: AuditLogDTO | null
@@ -19,17 +20,11 @@ export function AuditLogDetailsContent({ auditLog, onClose }: Props) {
   const performerLabel = auditLog.performer
     ? `${auditLog.performer.firstName} ${auditLog.performer.lastName}`.trim() ||
       auditLog.performer.email
-    : auditLog.performerId
+    : 'Unknown'
 
   const targetLabel = (() => {
-    if (!auditLog.target) {
-      return auditLog.targetId
-    }
-
-    if (auditLog.target.type === 'position') {
-      return auditLog.target.data.name
-    }
-
+    if (!auditLog.target) {return 'Unknown'}
+    if (auditLog.target.type === 'position') {return auditLog.target.data.name}
     return (
       `${auditLog.target.data.firstName} ${auditLog.target.data.lastName}`.trim() ||
       auditLog.target.data.email
@@ -48,7 +43,7 @@ export function AuditLogDetailsContent({ auditLog, onClose }: Props) {
 
         <Field orientation="horizontal" className="justify-between border-b pb-2">
           <FieldLabel>Timestamp</FieldLabel>
-          <span className="text-sm text-black">{auditLog.timestamp}</span>
+          <span className="text-sm text-black">{formatDate(auditLog.timestamp)}</span>
         </Field>
 
         <Field orientation="horizontal" className="justify-between border-b pb-2">

@@ -2,6 +2,7 @@ import type { UUID } from '../shared/uid.ts'
 
 export interface UserProfile {
   id: UUID
+  name: string
   firstName: string
   middleName?: string
   lastName: string

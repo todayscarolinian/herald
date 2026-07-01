@@ -20,9 +20,10 @@ import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.t
 
 export type CreateUserInput = Omit<
   UserProfile,
-  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
   createdById: UUID
+  positions: string[]
 }
 
 /**
@@ -31,9 +32,10 @@ export type CreateUserInput = Omit<
 
 export type UpdateUserInput = Omit<
   UserProfile,
-  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt'
+  'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
   updatedById: UUID
+  positions: string[]
 }
 
 export interface DeleteUserInput {
@@ -60,9 +62,10 @@ export interface UserFilters {
   positionIds?: UUID[]
   disabled?: boolean
   emailVerified?: boolean
+  createdAfter?: string
 }
 
-export type UserSortField = 'firstName' | 'lastName' | 'email' | 'createdAt' | 'updatedAt'
+export type UserSortField = 'name' | 'email' | 'createdAt' | 'updatedAt'
 
 // =============================================================================
 // OUTPUT DTOs
@@ -82,4 +85,35 @@ export interface PositionDistributionDTO extends TotalUsersDTO {
     positionName: string
     userCount: number
   }[]
+}
+
+// =============================================================================
+// BULK OPERATION DTOs
+// =============================================================================
+
+export interface BulkCreateUserRowInput {
+  firstName: string
+  middleName?: string
+  lastName: string
+  email: string
+  positionNames: string[]
+}
+
+export interface BulkUpdateUserRowInput {
+  email: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  positionNames: string[]
+}
+
+export interface BulkOperationFailure {
+  row: number
+  email: string
+  error: string
+}
+
+export interface BulkUserResult {
+  succeeded: UserDTO[]
+  failed: BulkOperationFailure[]
 }

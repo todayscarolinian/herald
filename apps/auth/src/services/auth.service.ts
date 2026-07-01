@@ -1,5 +1,5 @@
 import { UUID } from '@herald/types'
-import { createAdminFirebaseUserRepository } from '@herald/utils'
+import { createAdminAuditLogService, createAdminFirebaseUserRepository } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 
 import { auth } from '../lib/auth.ts'
@@ -99,10 +99,21 @@ export class AuthService {
     headers: Headers
   ): Promise<{ success: true } | { success: false; code: string }> {
     try {
+      const currentSession = await auth.api.getSession({ headers }).catch(() => null)
+
       await auth.api.changePassword({
         body: { currentPassword, newPassword, revokeOtherSessions: true },
         headers,
       })
+
+      if (currentSession?.user.id) {
+        createAdminAuditLogService(firestore).log(
+          'USER_SESSION_REVOKED',
+          null,
+          currentSession.user.id
+        )
+      }
+
       return { success: true }
     } catch (error) {
       console.error('[change-password]', error)

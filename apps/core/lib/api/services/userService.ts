@@ -1,5 +1,8 @@
 import type {
   APIResponse,
+  BulkCreateUserRowInput,
+  BulkUpdateUserRowInput,
+  BulkUserResult,
   CreateUserInput,
   DeleteUserInput,
   ListUsersInput,
@@ -59,6 +62,20 @@ export function updateUser(params: UpdateUserInput): Promise<APIResponse<UserDTO
   return put<APIResponse<UserDTO>, UpdateUserInput>(`${ENDPOINTS.api.users}/${params.id}`, params)
 }
 
+export interface UpdateProfileInput {
+  firstName: string
+  middleName?: string
+  lastName: string
+}
+
+export function fetchMyProfile(): Promise<APIResponse<UserDTO>> {
+  return get<APIResponse<UserDTO>>(ENDPOINTS.api.updateProfile)
+}
+
+export function updateProfile(params: UpdateProfileInput): Promise<APIResponse<UserDTO>> {
+  return post<APIResponse<UserDTO>, UpdateProfileInput>(ENDPOINTS.api.updateProfile, params)
+}
+
 export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
   return post<APIResponse<{ message: string }>, DeleteUserInput>(
     `${ENDPOINTS.api.users}/${params.id}`,
@@ -67,7 +84,24 @@ export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ mess
 }
 
 export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {
-  return del<APIResponse<{ message: string }>>(`${ENDPOINTS.api.users}/${params.id}`)
+  return del<APIResponse<{ message: string }>, DeleteUserInput>(
+    `${ENDPOINTS.api.users}/${params.id}`,
+    params
+  )
+}
+
+export function bulkCreateUsers(params: {
+  users: BulkCreateUserRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkUserResult>> {
+  return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'create', ...params })
+}
+
+export function bulkUpdateUsers(params: {
+  users: BulkUpdateUserRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkUserResult>> {
+  return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'update', ...params })
 }
 
 export async function signUpInBetterAuth(params: {

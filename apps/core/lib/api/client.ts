@@ -153,7 +153,11 @@ export async function put<TResponse, TBody = unknown>(
 /**
  * API DELETE helper with enhanced error handling and custom options.
  */
-export async function del<TResponse>(path: string, options?: RequestOptions): Promise<TResponse> {
+export async function del<TResponse, TBody = unknown>(
+  path: string,
+  body?: TBody,
+  options?: RequestOptions
+): Promise<TResponse> {
   const baseUrl = resolveBaseUrl(path)
 
   const res = await fetch(`${baseUrl}${path}`, {
@@ -165,6 +169,7 @@ export async function del<TResponse>(path: string, options?: RequestOptions): Pr
       ...getInternalApiKeyHeader(),
       ...(options?.headers ?? {}),
     },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   if (!res.ok) {

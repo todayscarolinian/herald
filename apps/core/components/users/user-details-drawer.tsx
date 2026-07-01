@@ -4,6 +4,7 @@ import { UserDTO } from '@herald/types'
 import { ChevronRight } from 'lucide-react'
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { formatDate } from '@/lib/utils'
 
 import { UserDetailsContent } from './user-details-content'
 
@@ -54,7 +55,7 @@ export function UserDetailsDrawer({ user, open, onOpenChange, isMobile }: Props)
                 <span>
                   {user.positions.length} {user.positions.length === 1 ? 'position' : 'positions'}
                 </span>
-                <span>created {user.createdAt}</span>
+                <span>created {formatDate(user.createdAt)}</span>
               </div>
 
               <div className="mt-2 h-[1px] w-full bg-black opacity-60" />

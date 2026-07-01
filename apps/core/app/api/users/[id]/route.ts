@@ -125,6 +125,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const updateData: UpdateUserInput = {
       id,
+      name: `${body.firstName} ${body.middleName || ''} ${body.lastName}`,
       firstName: body.firstName,
       middleName: body.middleName,
       lastName: body.lastName,
@@ -171,7 +172,8 @@ export async function DELETE(
       )
     }
 
-    const body = (await request.json()) as Partial<DeleteUserInput>
+    const text = await request.text()
+    const body = (text ? JSON.parse(text) : {}) as Partial<DeleteUserInput>
 
     if (!body.deletedById || typeof body.deletedById !== 'string') {
       return NextResponse.json<APIResponse>(
