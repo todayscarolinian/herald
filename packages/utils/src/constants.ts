@@ -1,6 +1,8 @@
 export const SESSION_COOKIE_NAME = 'herald_session'
 export const SESSION_TOKEN_FIELD = 'session_token'
 
+export const MAX_BULK_BATCH_SIZE = 50
+
 export const PASSWORD_STRENGTH_REQUIREMENTS =
   'Password must be at least 8 characters and include at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)'
 

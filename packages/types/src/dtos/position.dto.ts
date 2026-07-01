@@ -68,3 +68,30 @@ export type PositionListDTO = PaginatedResult<PositionDTO>
 export type TotalPositionsDTO = {
   totalPositions: number
 }
+
+// =============================================================================
+// BULK OPERATION DTOs
+// =============================================================================
+
+export interface BulkCreatePositionRowInput {
+  name: string
+  abbreviation: string
+  permissionNames: string[]
+}
+
+export interface BulkUpdatePositionRowInput {
+  name: string
+  abbreviation: string
+  permissionNames: string[]
+}
+
+export interface BulkPositionOperationFailure {
+  row: number
+  name: string
+  error: string
+}
+
+export interface BulkPositionResult {
+  succeeded: PositionDTO[]
+  failed: BulkPositionOperationFailure[]
+}

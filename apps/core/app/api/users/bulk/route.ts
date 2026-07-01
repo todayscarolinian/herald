@@ -8,14 +8,17 @@ import type {
   UpdateUserInput,
   UserDTO,
 } from '@herald/types'
-import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
-import { collection, getDocs } from 'firebase/firestore'
+import {
+  createFirebaseUserRepository,
+  MAX_BULK_BATCH_SIZE,
+  PASSWORD_STRENGTH_REQUIREMENTS,
+} from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { buildNameToIdMap } from '@/lib/api/services/firebase/firestore/collection-lookup'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
 
-const MAX_BATCH_SIZE = 50
 const POSITIONS_COLLECTION = 'positions'
 const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*'
 
@@ -49,13 +52,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (users.length > MAX_BATCH_SIZE) {
+    if (users.length > MAX_BULK_BATCH_SIZE) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
           error: {
             code: 'BAD_REQUEST',
-            message: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} rows`,
+            message: `Batch size exceeds maximum of ${MAX_BULK_BATCH_SIZE} rows`,
           },
         },
         { status: 400 }
@@ -76,14 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const userRepository = createFirebaseUserRepository(firestore)
 
     // Fetch all positions once to build a name→id lookup map
-    const positionsSnapshot = await getDocs(collection(firestore, POSITIONS_COLLECTION))
-    const positionNameToId = new Map<string, string>()
-    positionsSnapshot.forEach((docSnap) => {
-      const name = docSnap.data().name
-      if (typeof name === 'string') {
-        positionNameToId.set(name.toLowerCase(), docSnap.id)
-      }
-    })
+    const positionNameToId = await buildNameToIdMap(firestore, POSITIONS_COLLECTION)
 
     const succeeded: UserDTO[] = []
     const failed: BulkOperationFailure[] = []

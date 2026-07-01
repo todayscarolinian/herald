@@ -15,6 +15,7 @@ export const ENDPOINTS = {
     users: '/api/users',
     usersBulk: '/api/users/bulk',
     positions: '/api/positions',
+    positionsBulk: '/api/positions/bulk',
     permissions: '/api/permissions',
     auditLogs: '/api/audit-logs',
     dashboard: '/api/dashboard',

@@ -1,4 +1,9 @@
-import type { BulkCreateUserRowInput, BulkUpdateUserRowInput } from '@herald/types'
+import type {
+  BulkCreatePositionRowInput,
+  BulkCreateUserRowInput,
+  BulkUpdatePositionRowInput,
+  BulkUpdateUserRowInput,
+} from '@herald/types'
 import Papa from 'papaparse'
 
 interface ParseResult<T> {
@@ -6,7 +11,7 @@ interface ParseResult<T> {
   errors: { row: number; message: string }[]
 }
 
-function parsePositionNames(raw: string): string[] {
+function parsePipeDelimitedList(raw: string): string[] {
   return raw
     .split('|')
     .map((s) => s.trim())
@@ -59,10 +64,18 @@ export function parseCreateUsersCsv(file: File): Promise<ParseResult<BulkCreateU
     const positionsRaw = record['positions'] ?? ''
 
     const rowErrors: string[] = []
-    if (!firstName) {rowErrors.push('"firstName" is required')}
-    if (!lastName) {rowErrors.push('"lastName" is required')}
-    if (!email) {rowErrors.push('"email" is required')}
-    if (!positionsRaw) {rowErrors.push('"positions" is required')}
+    if (!firstName) {
+      rowErrors.push('"firstName" is required')
+    }
+    if (!lastName) {
+      rowErrors.push('"lastName" is required')
+    }
+    if (!email) {
+      rowErrors.push('"email" is required')
+    }
+    if (!positionsRaw) {
+      rowErrors.push('"positions" is required')
+    }
 
     if (rowErrors.length > 0) {
       errors.push({ row: rowNumber, message: rowErrors.join('; ') })
@@ -74,7 +87,7 @@ export function parseCreateUsersCsv(file: File): Promise<ParseResult<BulkCreateU
       middleName: record['middleName'] || undefined,
       lastName,
       email,
-      positionNames: parsePositionNames(positionsRaw),
+      positionNames: parsePipeDelimitedList(positionsRaw),
     }
   })
 }
@@ -87,10 +100,18 @@ export function parseUpdateUsersCsv(file: File): Promise<ParseResult<BulkUpdateU
     const positionsRaw = record['positions'] ?? ''
 
     const rowErrors: string[] = []
-    if (!email) {rowErrors.push('"email" is required')}
-    if (!firstName) {rowErrors.push('"firstName" is required')}
-    if (!lastName) {rowErrors.push('"lastName" is required')}
-    if (!positionsRaw) {rowErrors.push('"positions" is required')}
+    if (!email) {
+      rowErrors.push('"email" is required')
+    }
+    if (!firstName) {
+      rowErrors.push('"firstName" is required')
+    }
+    if (!lastName) {
+      rowErrors.push('"lastName" is required')
+    }
+    if (!positionsRaw) {
+      rowErrors.push('"positions" is required')
+    }
 
     if (rowErrors.length > 0) {
       errors.push({ row: rowNumber, message: rowErrors.join('; ') })
@@ -102,7 +123,7 @@ export function parseUpdateUsersCsv(file: File): Promise<ParseResult<BulkUpdateU
       firstName,
       middleName: record['middleName'] || undefined,
       lastName,
-      positionNames: parsePositionNames(positionsRaw),
+      positionNames: parsePipeDelimitedList(positionsRaw),
     }
   })
 }
@@ -114,13 +135,65 @@ export function generateCsvTemplate(mode: 'create' | 'update'): string {
   return 'email,firstName,middleName,lastName,positions\njohn.doe@example.com,John,,Doe,Editor|Reporter\n'
 }
 
-export function downloadCsvTemplate(mode: 'create' | 'update'): void {
-  const content = generateCsvTemplate(mode)
+function downloadCsvFile(filename: string, content: string): void {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `bulk-${mode}-users-template.csv`
+  link.download = filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+export function downloadCsvTemplate(mode: 'create' | 'update'): void {
+  downloadCsvFile(`bulk-${mode}-users-template.csv`, generateCsvTemplate(mode))
+}
+
+// Create and update rows share the exact same columns for positions, since "name"
+// doubles as the bulk-update lookup key (there's no separate id column).
+function parsePositionsCsv<
+  T extends { name: string; abbreviation: string; permissionNames: string[] },
+>(file: File): Promise<ParseResult<T>> {
+  return parseFile<T>(file, (record, rowNumber, errors) => {
+    const name = record['name'] ?? ''
+    const abbreviation = record['abbreviation'] ?? ''
+    const permissionsRaw = record['permissions'] ?? ''
+
+    const rowErrors: string[] = []
+    if (!name) {
+      rowErrors.push('"name" is required')
+    }
+    if (!abbreviation) {
+      rowErrors.push('"abbreviation" is required')
+    }
+
+    if (rowErrors.length > 0) {
+      errors.push({ row: rowNumber, message: rowErrors.join('; ') })
+      return null
+    }
+
+    return { name, abbreviation, permissionNames: parsePipeDelimitedList(permissionsRaw) } as T
+  })
+}
+
+export function parseCreatePositionsCsv(
+  file: File
+): Promise<ParseResult<BulkCreatePositionRowInput>> {
+  return parsePositionsCsv<BulkCreatePositionRowInput>(file)
+}
+
+export function parseUpdatePositionsCsv(
+  file: File
+): Promise<ParseResult<BulkUpdatePositionRowInput>> {
+  return parsePositionsCsv<BulkUpdatePositionRowInput>(file)
+}
+
+// _mode is unused here (create/update share the same column set) but kept in the
+// signature to mirror generateCsvTemplate's call-site shape.
+export function generatePositionsCsvTemplate(_mode: 'create' | 'update'): string {
+  return 'name,abbreviation,permissions\nEditor,ED,Manage Users|Publish Articles\n'
+}
+
+export function downloadPositionsCsvTemplate(mode: 'create' | 'update'): void {
+  downloadCsvFile(`bulk-${mode}-positions-template.csv`, generatePositionsCsvTemplate(mode))
 }
