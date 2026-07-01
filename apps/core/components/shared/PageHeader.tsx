@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react'
+// import { Bell } from 'lucide-react'
 
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
@@ -21,7 +21,7 @@ export function PageHeader({ title }: PageHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3.5">
+      {/* <div className="flex items-center gap-3.5">
         <button
           type="button"
           className="border-tc_grayscale-200 bg-tc_white relative flex size-[38px] flex-none items-center justify-center rounded-full border dark:border-white/10 dark:bg-white/5"
@@ -29,7 +29,7 @@ export function PageHeader({ title }: PageHeaderProps) {
           <Bell className="text-tc_grayscale-700 dark:text-tc_grayscale-300 size-5" />
           <span className="bg-tc_primary-500 absolute top-[7px] right-[8px] size-2 rounded-full ring-2 ring-white dark:ring-black" />
         </button>
-      </div>
+      </div> */}
     </header>
   )
 }
