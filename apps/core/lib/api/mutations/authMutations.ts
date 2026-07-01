@@ -1,8 +1,14 @@
-import type { APIResponse, ForgotPasswordRequest, ResetPasswordRequest } from '@herald/types'
+import type {
+  APIResponse,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+} from '@herald/types'
 import { LoginRequest } from '@herald/types'
 import { useMutation } from '@tanstack/react-query'
 
 import {
+  changePassword,
   credentialsSignIn,
   forgotPassword,
   googleGuardCheck,
@@ -44,5 +50,11 @@ export function useResetPassword() {
 export function useForgotPassword() {
   return useMutation<APIResponse<{ message: string }>, Error, ForgotPasswordRequest>({
     mutationFn: forgotPassword,
+  })
+}
+
+export function useChangePassword() {
+  return useMutation<APIResponse<{ message: string }>, Error, ChangePasswordRequest>({
+    mutationFn: changePassword,
   })
 }
