@@ -1,6 +1,7 @@
 {
     "name": "@herald/utils",
     "type": "module",
+    "sideEffects": false,
     "scripts": {
         "dev": "tsc --watch",
         "build": "tsc",
