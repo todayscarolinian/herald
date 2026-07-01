@@ -1,5 +1,8 @@
 import type {
   APIResponse,
+  BulkCreatePositionRowInput,
+  BulkPositionResult,
+  BulkUpdatePositionRowInput,
   CreatePositionInput,
   DeletePositionInput,
   ListPositionsInput,
@@ -50,4 +53,24 @@ export function deletePosition(
     `${ENDPOINTS.api.positions}/${params.id}`,
     params
   )
+}
+
+export function bulkCreatePositions(params: {
+  positions: BulkCreatePositionRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkPositionResult>> {
+  return post<APIResponse<BulkPositionResult>>(ENDPOINTS.api.positionsBulk, {
+    mode: 'create',
+    ...params,
+  })
+}
+
+export function bulkUpdatePositions(params: {
+  positions: BulkUpdatePositionRowInput[]
+  requestedById: string
+}): Promise<APIResponse<BulkPositionResult>> {
+  return post<APIResponse<BulkPositionResult>>(ENDPOINTS.api.positionsBulk, {
+    mode: 'update',
+    ...params,
+  })
 }

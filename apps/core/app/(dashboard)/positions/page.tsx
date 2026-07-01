@@ -1,9 +1,10 @@
 'use client'
 
+import type { BulkPositionResult } from '@herald/types'
 import { PositionDTO } from '@herald/types'
 import { DEFAULT_PAGINATION } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -14,25 +15,44 @@ import {
   PositionDetailsDrawer,
   PositionsTable,
 } from '@/components/positions'
+import { type ConfirmRow } from '@/components/positions/bulk-import-dialog'
 import MobileDatagrid from '@/components/positions/mobile-datagrid'
 import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  useBulkCreatePositions,
+  useBulkUpdatePositions,
+} from '@/lib/api/mutations/positionMutations'
 import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useSession } from '@/lib/auth-client'
+import { parseCreatePositionsCsv, parseUpdatePositionsCsv } from '@/lib/utils/csv-parser'
 
 export default function PositionsPage() {
   const isMobile = useIsMobile()
+  const { data: sessionData } = useSession()
   const [selectedPosition, setSelectedPosition] = useState<PositionDTO | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [bulkMode, setBulkMode] = useState<null | 'create' | 'update'>(null)
+  const [bulkParseErrors, setBulkParseErrors] = useState<{ row: number; message: string }[]>([])
+  const [bulkResult, setBulkResult] = useState<BulkPositionResult | null>(null)
+  const [confirmRows, setConfirmRows] = useState<ConfirmRow[] | null>(null)
   const [pagination] = useState({ page: DEFAULT_PAGINATION.page, limit: DEFAULT_PAGINATION.limit })
+
+  // Holds the strongly-typed parsed rows between the confirm step and mutation call
+  const pendingRowsRef = useRef<ConfirmRow[] | null>(null)
 
   const { data, isLoading, isError, error, refetch } = usePositions({
     filters: {},
     pagination,
     sort: undefined,
   })
+
+  const bulkCreateMutation = useBulkCreatePositions()
+  const bulkUpdateMutation = useBulkUpdatePositions()
+
+  const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
   useEffect(() => {
     if (isError && error) {
@@ -43,6 +63,87 @@ export default function PositionsPage() {
   const handleOpenDetails = (position: PositionDTO) => {
     setSelectedPosition(position)
     setIsDrawerOpen(true)
+  }
+
+  const resetBulkState = () => {
+    setBulkParseErrors([])
+    setBulkResult(null)
+    setConfirmRows(null)
+    pendingRowsRef.current = null
+    bulkCreateMutation.reset()
+    bulkUpdateMutation.reset()
+  }
+
+  const handleBulkDialogClose = (open: boolean) => {
+    if (!open) {
+      setBulkMode(null)
+      resetBulkState()
+    }
+  }
+
+  // Step 1: parse CSV and show the confirmation step
+  const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
+    const requestedById = sessionData?.user?.id
+    if (!requestedById) {
+      toast.error('Session expired. Please sign in again.')
+      return
+    }
+
+    setBulkParseErrors([])
+    setBulkResult(null)
+    setConfirmRows(null)
+
+    const parsed =
+      mode === 'create' ? await parseCreatePositionsCsv(file) : await parseUpdatePositionsCsv(file)
+
+    if (parsed.errors.length > 0) {
+      setBulkParseErrors(parsed.errors)
+      return
+    }
+
+    if (parsed.rows.length === 0) {
+      setBulkParseErrors([{ row: 0, message: 'No valid rows found in the CSV.' }])
+      return
+    }
+
+    pendingRowsRef.current = parsed.rows
+    setConfirmRows(parsed.rows)
+  }
+
+  // Step 2: after the admin confirms, run the mutation
+  const handleConfirm = () => {
+    const requestedById = sessionData?.user?.id
+    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+      return
+    }
+
+    const rows = pendingRowsRef.current
+
+    const onSuccess = (response: { data?: BulkPositionResult | null }) => {
+      const result = response.data ?? { succeeded: [], failed: [] }
+      setBulkResult(result)
+      setConfirmRows(null)
+
+      if (result.failed.length === 0) {
+        toast.success(
+          `${result.succeeded.length} position(s) ${bulkMode === 'create' ? 'created' : 'updated'} successfully.`
+        )
+      } else {
+        toast.warning(
+          `${result.succeeded.length} succeeded, ${result.failed.length} failed. See the dialog for details.`
+        )
+      }
+    }
+
+    const onError = (err: Error) => {
+      toast.error(err.message)
+    }
+
+    if (bulkMode === 'create') {
+      bulkCreateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+    } else {
+      bulkUpdateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+    }
   }
 
   const renderTable = () => {
@@ -121,18 +222,14 @@ export default function PositionsPage() {
       <BulkImportDialog
         open={!!bulkMode}
         mode={bulkMode ?? 'create'}
-        onOpenChange={(open) => {
-          if (!open) {
-            setBulkMode(null)
-          }
-        }}
-        onSubmit={(_file, mode) => {
-          if (mode === 'create') {
-            // TODO: parse CSV → add new positions
-          } else {
-            // TODO: parse CSV → update existing positions
-          }
-        }}
+        onOpenChange={handleBulkDialogClose}
+        onSubmit={(file, mode) => void handleBulkSubmit(file, mode)}
+        onConfirm={handleConfirm}
+        onBack={() => setConfirmRows(null)}
+        isLoading={isBulkLoading}
+        result={bulkResult}
+        parseErrors={bulkParseErrors}
+        confirmRows={confirmRows}
       />
     </main>
   )

@@ -1,5 +1,8 @@
 import type {
   APIResponse,
+  BulkCreatePositionRowInput,
+  BulkPositionResult,
+  BulkUpdatePositionRowInput,
   CreatePositionInput,
   DeletePositionInput,
   PositionDTO,
@@ -7,7 +10,13 @@ import type {
 } from '@herald/types'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { createPosition, deletePosition, updatePosition } from '@/lib/api/services/positionService'
+import {
+  bulkCreatePositions,
+  bulkUpdatePositions,
+  createPosition,
+  deletePosition,
+  updatePosition,
+} from '@/lib/api/services/positionService'
 
 export function useCreatePosition() {
   const queryClient = useQueryClient()
@@ -36,6 +45,36 @@ export function useDeletePosition() {
 
   return useMutation<APIResponse<{ message: string }>, Error, DeletePositionInput>({
     mutationFn: deletePosition,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['positions'] })
+    },
+  })
+}
+
+export function useBulkCreatePositions() {
+  const queryClient = useQueryClient()
+
+  return useMutation<
+    APIResponse<BulkPositionResult>,
+    Error,
+    { positions: BulkCreatePositionRowInput[]; requestedById: string }
+  >({
+    mutationFn: bulkCreatePositions,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['positions'] })
+    },
+  })
+}
+
+export function useBulkUpdatePositions() {
+  const queryClient = useQueryClient()
+
+  return useMutation<
+    APIResponse<BulkPositionResult>,
+    Error,
+    { positions: BulkUpdatePositionRowInput[]; requestedById: string }
+  >({
+    mutationFn: bulkUpdatePositions,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
     },
