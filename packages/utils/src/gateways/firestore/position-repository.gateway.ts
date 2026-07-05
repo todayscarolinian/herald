@@ -1,7 +1,9 @@
 /* eslint-disable no-console */
 import {
   DEFAULT_PAGINATION,
+  type Domain,
   type IPositionRepository,
+  type Position,
   type PositionDTO,
   type PositionFilters,
   type PositionSortField,
@@ -29,16 +31,55 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore'
+import type {
+  DocumentData as AdminDocumentData,
+  Firestore as AdminFirestore,
+} from 'firebase-admin/firestore'
 
 import { createAuditLogService } from '../../audit-log/index.ts'
+import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
 
 const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: PositionSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
+const POSITIONS_COLLECTION = 'positions'
+
+// Admin-SDK counterpart used by services running outside the browser (e.g.
+// apps/auth's session/login hydration), where only a firebase-admin Firestore
+// instance is available rather than the client SDK.
+export async function getPositionsByIdsAdmin(
+  firestore: AdminFirestore,
+  ids: string[]
+): Promise<Position[]> {
+  const uniqueIds = [...new Set(ids)]
+  if (uniqueIds.length === 0) {
+    return []
+  }
+
+  const snapshots = await Promise.all(
+    uniqueIds.map((id) => firestore.collection(POSITIONS_COLLECTION).doc(id).get())
+  )
+
+  return snapshots
+    .filter((snap) => snap.exists)
+    .map((snap) => mapAdminPositionDocToPosition(snap.id, snap.data()!))
+}
+
+function mapAdminPositionDocToPosition(id: string, data: AdminDocumentData): Position {
+  return {
+    id,
+    name: typeof data.name === 'string' ? data.name : '',
+    abbreviation: typeof data.abbreviation === 'string' ? data.abbreviation : '',
+    domains: Array.isArray(data.domains) ? (data.domains as Domain[]) : [],
+    createdAt:
+      typeof data.createdAt?.toDate === 'function' ? data.createdAt.toDate().toISOString() : '',
+    updatedAt:
+      typeof data.updatedAt?.toDate === 'function' ? data.updatedAt.toDate().toISOString() : '',
+  }
+}
 
 export function createFirebasePositionRepository(firestore: Firestore): IPositionRepository {
-  const POSITIONS_COLLECTION = 'positions'
   const USERS_COLLECTION = 'users'
 
   return {
@@ -98,7 +139,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
 
     async create(position) {
       try {
-        const { name, abbreviation, permissions, createdById } = position
+        const { name, abbreviation, domains, createdById } = position
 
         const trimmedName = name.trim()
         const trimmedAbbreviation = abbreviation.trim()
@@ -111,8 +152,8 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           throw new TypeError('Invalid input: Position abbreviation is required')
         }
 
-        if (!Array.isArray(permissions)) {
-          throw new TypeError('Invalid input: "permissions" must be an array of strings')
+        if (!Array.isArray(domains) || !domains.every(isValidDomain)) {
+          throw new TypeError('Invalid input: "domains" must be an array of valid Domain values')
         }
 
         const now = Timestamp.now()
@@ -120,7 +161,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         const positionDoc = {
           name: trimmedName,
           abbreviation: trimmedAbbreviation,
-          permissions,
+          domains,
           createdAt: now,
           updatedAt: now,
         }
@@ -134,7 +175,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             id: docRef.id,
             name: trimmedName,
             abbreviation: trimmedAbbreviation,
-            permissions,
+            domains,
             createdAt: now.toDate().toISOString(),
           },
         }
@@ -160,16 +201,16 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         const trimmedName = position.name.trim()
         const trimmedAbbreviation = position.abbreviation.trim()
         const now = Timestamp.now()
-        const previousPermissions = Array.isArray(docSnap.data().permissions)
-          ? (docSnap.data().permissions as string[])
+        const previousDomains = Array.isArray(docSnap.data().domains)
+          ? (docSnap.data().domains as string[])
           : []
-        const permissionsChanged =
-          previousPermissions.length !== position.permissions.length ||
-          !previousPermissions.every((permission) => position.permissions.includes(permission))
+        const domainsChanged =
+          previousDomains.length !== position.domains.length ||
+          !previousDomains.every((domain) => position.domains.includes(domain as Domain))
         const updateData = {
           name: trimmedName,
           abbreviation: trimmedAbbreviation,
-          permissions: position.permissions,
+          domains: position.domains,
           updatedAt: now,
         }
 
@@ -186,7 +227,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             id: validatedId,
             name: trimmedName,
             abbreviation: trimmedAbbreviation,
-            permissions: position.permissions,
+            domains: position.domains,
             createdAt:
               docSnap.data().createdAt instanceof Timestamp
                 ? docSnap.data().createdAt.toDate().toISOString()
@@ -194,7 +235,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           },
         }
         createAuditLogService(firestore).log(
-          permissionsChanged ? 'POSITION_PERMISSIONS_CHANGED' : 'POSITION_UPDATED',
+          domainsChanged ? 'POSITION_DOMAINS_CHANGED' : 'POSITION_UPDATED',
           targetSnapshot,
           position.updatedById
         )
@@ -224,7 +265,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             id: validatedId,
             name: typeof data.name === 'string' ? data.name : '',
             abbreviation: typeof data.abbreviation === 'string' ? data.abbreviation : '',
-            permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+            domains: Array.isArray(data.domains) ? (data.domains as Domain[]) : [],
             createdAt:
               data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : '',
           },
@@ -304,11 +345,11 @@ function buildPositionsQuery(
   const constraints: QueryConstraint[] = []
   const positionsRef = collection(firestore, collectionName)
 
-  if (Array.isArray(filters?.permissions) && filters.permissions.length > 0) {
-    if (filters.permissions.length === 1) {
-      constraints.push(where('permissions', 'array-contains', filters.permissions[0]))
+  if (Array.isArray(filters?.domains) && filters.domains.length > 0) {
+    if (filters.domains.length === 1) {
+      constraints.push(where('domains', 'array-contains', filters.domains[0]))
     } else {
-      constraints.push(where('permissions', 'array-contains-any', filters.permissions.slice(0, 10)))
+      constraints.push(where('domains', 'array-contains-any', filters.domains.slice(0, 10)))
     }
   }
 
@@ -389,7 +430,7 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
 function mapPositionDocToDTO(id: string, docSnap: DocumentData, userCount = 0): PositionDTO {
   const name = requireStringField(docSnap, 'name', id)
   const abbreviation = requireStringField(docSnap, 'abbreviation', id)
-  const permissions = requirePermissionsField(docSnap, id)
+  const domains = requireDomainsField(docSnap, id)
   const createdAt = requireTimestampField(docSnap, 'createdAt', id)
   const updatedAt = requireTimestampField(docSnap, 'updatedAt', id)
 
@@ -397,7 +438,7 @@ function mapPositionDocToDTO(id: string, docSnap: DocumentData, userCount = 0): 
     id,
     name,
     abbreviation,
-    permissions,
+    domains,
     createdAt,
     updatedAt,
     userCount,
@@ -428,18 +469,15 @@ function requireStringField(docSnap: DocumentData, field: string, positionId: st
   return value
 }
 
-function requirePermissionsField(
-  docSnap: DocumentData,
-  positionId: string
-): PositionDTO['permissions'] {
-  const permissions = docSnap?.permissions
-  if (!Array.isArray(permissions)) {
+function requireDomainsField(docSnap: DocumentData, positionId: string): PositionDTO['domains'] {
+  const domains = docSnap?.domains
+  if (!Array.isArray(domains) || !domains.every(isValidDomain)) {
     throw new Error(
-      `Invalid or missing required position field "permissions" for position ${positionId}`
+      `Invalid or missing required position field "domains" for position ${positionId}`
     )
   }
 
-  return permissions as PositionDTO['permissions']
+  return domains
 }
 
 function requireTimestampField(docSnap: DocumentData, field: string, positionId: string): string {

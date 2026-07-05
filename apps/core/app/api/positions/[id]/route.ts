@@ -4,7 +4,7 @@ import type {
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
-import { createFirebasePositionRepository } from '@herald/utils'
+import { createFirebasePositionRepository, isValidDomain } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
@@ -42,23 +42,23 @@ export async function PUT(
       )
     }
 
-    if (body.permissions !== undefined && !Array.isArray(body.permissions)) {
+    if (body.domains !== undefined && !Array.isArray(body.domains)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"permissions" must be an array' },
+          error: { code: 'VALIDATION_ERROR', message: '"domains" must be an array' },
         },
         { status: 422 }
       )
     }
 
-    if (body.permissions && !body.permissions.every((item) => typeof item === 'string')) {
+    if (body.domains && !body.domains.every(isValidDomain)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: '"permissions" must be an array of strings',
+            message: '"domains" must be an array of valid Domain values',
           },
         },
         { status: 422 }
@@ -76,7 +76,7 @@ export async function PUT(
     }
 
     const hasNoUpdatableFields =
-      body.name === undefined && body.abbreviation === undefined && body.permissions === undefined
+      body.name === undefined && body.abbreviation === undefined && body.domains === undefined
 
     if (hasNoUpdatableFields) {
       return NextResponse.json<APIResponse>(
@@ -84,7 +84,7 @@ export async function PUT(
           success: false,
           error: {
             code: 'BAD_REQUEST',
-            message: 'At least one of "name", "abbreviation", or "permissions" must be provided',
+            message: 'At least one of "name", "abbreviation", or "domains" must be provided',
           },
         },
         { status: 400 }
@@ -95,7 +95,7 @@ export async function PUT(
       id,
       name: body.name ?? '',
       abbreviation: body.abbreviation ?? '',
-      permissions: body.permissions ?? [],
+      domains: body.domains ?? [],
       updatedById: body.updatedById,
     }
 

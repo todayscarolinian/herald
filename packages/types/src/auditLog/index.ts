@@ -1,8 +1,10 @@
+import type { Domain } from '../domain/index.ts'
+
 export interface AuditLogPositionSnapshot {
   id: string
   name: string
   abbreviation: string
-  permissions: string[]
+  domains: Domain[]
   createdAt: string
 }
 
@@ -43,7 +45,7 @@ export type AuditLogAction =
   | 'POSITION_CREATED'
   | 'POSITION_UPDATED'
   | 'POSITION_DELETED'
-  | 'POSITION_PERMISSIONS_CHANGED'
+  | 'POSITION_DOMAINS_CHANGED'
 
 export interface AuditLog {
   id: string

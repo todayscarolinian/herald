@@ -18,8 +18,8 @@ export function fetchPositions(params: ListPositionsInput): Promise<PaginatedRes
   const searchParams = new URLSearchParams()
 
   // Add filters
-  if (params.filters?.permissions?.length) {
-    searchParams.append('permissions', params.filters.permissions.join(','))
+  if (params.filters?.domains?.length) {
+    searchParams.append('domains', params.filters.domains.join(','))
   }
 
   // Add pagination

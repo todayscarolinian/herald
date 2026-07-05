@@ -64,16 +64,6 @@ function buildAccessRows(stats: DashboardStatsDTO | undefined): AccessRow[] {
       unit: 'roles',
     },
     {
-      title: 'Permissions',
-      description: 'Groups and access policies',
-      href: '/permissions',
-      icon: Shield,
-      iconBg: 'bg-tc_success-500/10',
-      iconColor: 'text-tc_success-600 dark:text-tc_success-400',
-      count: stats ? stats.totalPermissions.toLocaleString('en-US') : '—',
-      unit: 'groups',
-    },
-    {
       title: 'Audit Logs',
       description: 'Full record of system activity',
       href: '/audit-logs',
@@ -224,12 +214,12 @@ function getActivityDisplay(log: AuditLogDTO): ActivityDisplay {
         message: `Position "${getPositionName(log)}" was deleted`,
         badge: 'Position',
       }
-    case 'POSITION_PERMISSIONS_CHANGED':
+    case 'POSITION_DOMAINS_CHANGED':
       return {
         icon: Shield,
         iconBg: 'bg-tc_info-500/10',
         iconColor: 'text-tc_info-600 dark:text-tc_info-400',
-        message: `Permissions updated for "${getPositionName(log)}"`,
+        message: `Domains updated for "${getPositionName(log)}"`,
         badge: 'Position',
       }
     default:

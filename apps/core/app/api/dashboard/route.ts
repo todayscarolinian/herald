@@ -1,7 +1,6 @@
 import type { APIResponse, DashboardStatsDTO } from '@herald/types'
 import {
   createFirebaseAuditLogRepository,
-  createFirebasePermissionRepository,
   createFirebasePositionRepository,
   createFirebaseUserRepository,
 } from '@herald/utils'
@@ -14,7 +13,6 @@ export async function GET(): Promise<NextResponse> {
     const firestore = getServerFirestore()
     const userRepository = createFirebaseUserRepository(firestore)
     const positionRepository = createFirebasePositionRepository(firestore)
-    const permissionRepository = createFirebasePermissionRepository(firestore)
     const auditLogRepository = createFirebaseAuditLogRepository(firestore)
 
     const now = new Date()
@@ -28,7 +26,6 @@ export async function GET(): Promise<NextResponse> {
       newUsersResult,
       unverifiedResult,
       totalPositionsResult,
-      totalPermissionsResult,
       totalAuditLogsResult,
       logins30DaysResult,
       failedLogins24hResult,
@@ -45,7 +42,6 @@ export async function GET(): Promise<NextResponse> {
         pagination: { page: 1, limit: 1 },
       }),
       positionRepository.getTotalCount(),
-      permissionRepository.getTotalCount(),
       auditLogRepository.getTotalCount(),
       auditLogRepository.findAll({
         filters: { action: 'USER_LOGIN_SUCCESS', since: thirtyDaysAgo.toISOString() },
@@ -70,7 +66,6 @@ export async function GET(): Promise<NextResponse> {
       totalUsers: totalUsersResult.totalUsers,
       newUsersThisMonth: newUsersResult.total,
       totalPositions: totalPositionsResult.totalPositions,
-      totalPermissions: totalPermissionsResult.totalPermissions,
       totalAuditLogs: totalAuditLogsResult.totalAuditLogs,
       logins30Days: logins30DaysResult.total,
       failedLogins24h: failedLogins24hResult.total,

@@ -1,8 +1,12 @@
-import type { APIResponse, LoginResponse, Position } from '@herald/types'
+import type { APIResponse, LoginResponse } from '@herald/types'
 import {
   createAdminAuditLogService,
   createAdminFirebaseUserRepository,
+  getPositionsByIdsAdmin,
   loginSchema,
+  NOT_REMEMBERED_SESSION_MAX_AGE_SECONDS,
+  REMEMBERED_SESSION_MAX_AGE_SECONDS,
+  resolveDomainsForPositions,
   SESSION_COOKIE_NAME,
   SESSION_TOKEN_FIELD,
 } from '@herald/utils'
@@ -62,7 +66,8 @@ loginRouter.post('/credentials', async (c) => {
   const { email, password, rememberMe } = parsed.data
 
   // Authenticate via BetterAuth -- passes rememberMe so BetterAuth sets the
-  // correct cookie duration (30-day when true, default 5-day when false/unset).
+  // correct cookie duration (REMEMBERED_SESSION_MAX_AGE_SECONDS when true,
+  // a BetterAuth-internal fixed 1-day session when false/unset).
   let signInResult: Awaited<ReturnType<typeof auth.api.signInEmail>>
   try {
     signInResult = await auth.api.signInEmail({
@@ -178,10 +183,16 @@ loginRouter.post('/credentials', async (c) => {
   const userRecord = user as Record<string, unknown>
 
   const expiresAt = rememberMe
-    ? Date.now() + 30 * 24 * 60 * 60 * 1000
-    : Date.now() + 5 * 24 * 60 * 60 * 1000
+    ? Date.now() + REMEMBERED_SESSION_MAX_AGE_SECONDS * 1000
+    : Date.now() + NOT_REMEMBERED_SESSION_MAX_AGE_SECONDS * 1000
 
   createAdminAuditLogService(firestore).log('USER_LOGIN_SUCCESS', null, user.id)
+
+  const positions = await getPositionsByIdsAdmin(
+    firestore,
+    (userRecord.positions as string[]) ?? []
+  )
+  const domains = resolveDomainsForPositions(positions)
 
   return c.json<LoginResponse>({
     success: true,
@@ -196,7 +207,8 @@ loginRouter.post('/credentials', async (c) => {
       firstName: userRecord.firstName as string,
       middleName: userRecord.middleName as string | undefined,
       lastName: userRecord.lastName as string,
-      positions: (userRecord.positions as Position[]) ?? [],
+      positions,
+      domains,
       emailVerified: user.emailVerified,
       disabled: user.disabled,
       createdAt:

@@ -52,6 +52,8 @@ verifySessionRoutes.get('/verify-session', async (c) => {
           lastName: user.lastName,
           emailVerified: user.emailVerified,
           disabled: user.disabled ?? false,
+          positions: user.positions ?? [],
+          domains: user.domains ?? [],
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString(),
         },

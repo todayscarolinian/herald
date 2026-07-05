@@ -34,6 +34,7 @@ import {
   where,
 } from 'firebase/firestore'
 
+import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
 
 const MAX_PAGE_LIMIT = 10
@@ -338,11 +339,9 @@ function readPositionSnapshot(value: unknown): AuditLogPositionSnapshot | null {
     return null
   }
 
-  const permissions = Array.isArray(obj.permissions)
-    ? obj.permissions.filter((p): p is string => typeof p === 'string')
-    : []
+  const domains = Array.isArray(obj.domains) ? obj.domains.filter(isValidDomain) : []
 
-  return { id, name, abbreviation, permissions, createdAt }
+  return { id, name, abbreviation, domains, createdAt }
 }
 
 function readPerformerSnapshot(value: unknown): AuditLogPerformerSnapshot | null {

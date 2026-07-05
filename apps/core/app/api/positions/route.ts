@@ -1,12 +1,13 @@
 import type {
   APIResponse,
   CreatePositionInput,
+  Domain,
   PositionDTO,
   PositionFilters,
   PositionSortField,
 } from '@herald/types'
 import { DEFAULT_PAGINATION, type SortDirection, type SortInput } from '@herald/types'
-import { createFirebasePositionRepository } from '@herald/utils'
+import { createFirebasePositionRepository, isValidDomain } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
@@ -50,11 +51,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!Array.isArray(body.permissions)) {
+    if (!Array.isArray(body.domains) || !body.domains.every(isValidDomain)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"permissions" must be an array' },
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '"domains" must be an array of valid Domain values',
+          },
         },
         { status: 422 }
       )
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const createData: CreatePositionInput = {
       name: body.name,
       abbreviation: body.abbreviation,
-      permissions: body.permissions,
+      domains: body.domains,
       createdById: body.createdById,
     }
 
@@ -90,10 +94,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 function parseFilters(searchParams: URLSearchParams): PositionFilters {
-  const permissions = parseListParam(searchParams, 'permissions')
+  const domains = parseListParam(searchParams, 'domains').filter(isValidDomain) as Domain[]
 
   return {
-    ...(permissions.length ? { permissions } : {}),
+    ...(domains.length ? { domains } : {}),
   }
 }
 
