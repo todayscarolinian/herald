@@ -1,6 +1,6 @@
 'use client'
 
-import { PositionDTO, PositionListDTO } from '@herald/types'
+import { type Domain, PositionDTO, PositionListDTO } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -51,7 +51,7 @@ export default function MobileDatagrid({ positions, onClick }: MobileDatagridPro
     }
 
     const filtered = positions.items.filter((position) =>
-      filters.some((filter) => position.permissions.includes(filter))
+      filters.some((filter) => position.domains.includes(filter as Domain))
     )
     setFilteredPositions(filtered)
   }

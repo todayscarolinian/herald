@@ -3,7 +3,9 @@ import type {
   BulkCreateUserRowInput,
   BulkUpdatePositionRowInput,
   BulkUpdateUserRowInput,
+  Domain,
 } from '@herald/types'
+import { isValidDomain } from '@herald/utils'
 import Papa from 'papaparse'
 
 interface ParseResult<T> {
@@ -151,13 +153,15 @@ export function downloadCsvTemplate(mode: 'create' | 'update'): void {
 
 // Create and update rows share the exact same columns for positions, since "name"
 // doubles as the bulk-update lookup key (there's no separate id column).
-function parsePositionsCsv<
-  T extends { name: string; abbreviation: string; permissionNames: string[] },
->(file: File): Promise<ParseResult<T>> {
+function parsePositionsCsv<T extends { name: string; abbreviation: string; domains: Domain[] }>(
+  file: File
+): Promise<ParseResult<T>> {
   return parseFile<T>(file, (record, rowNumber, errors) => {
     const name = record['name'] ?? ''
     const abbreviation = record['abbreviation'] ?? ''
-    const permissionsRaw = record['permissions'] ?? ''
+    const domainsRaw = record['domains'] ?? ''
+    const parsedDomains = parsePipeDelimitedList(domainsRaw)
+    const invalidDomains = parsedDomains.filter((d) => !isValidDomain(d))
 
     const rowErrors: string[] = []
     if (!name) {
@@ -166,13 +170,16 @@ function parsePositionsCsv<
     if (!abbreviation) {
       rowErrors.push('"abbreviation" is required')
     }
+    if (invalidDomains.length > 0) {
+      rowErrors.push(`Unknown domain(s): ${invalidDomains.join(', ')}`)
+    }
 
     if (rowErrors.length > 0) {
       errors.push({ row: rowNumber, message: rowErrors.join('; ') })
       return null
     }
 
-    return { name, abbreviation, permissionNames: parsePipeDelimitedList(permissionsRaw) } as T
+    return { name, abbreviation, domains: parsedDomains as Domain[] } as T
   })
 }
 
@@ -191,7 +198,7 @@ export function parseUpdatePositionsCsv(
 // _mode is unused here (create/update share the same column set) but kept in the
 // signature to mirror generateCsvTemplate's call-site shape.
 export function generatePositionsCsvTemplate(_mode: 'create' | 'update'): string {
-  return 'name,abbreviation,permissions\nEditor,ED,Manage Users|Publish Articles\n'
+  return 'name,abbreviation,domains\nEditor,ED,TC Herald|TC Official Website\n'
 }
 
 export function downloadPositionsCsvTemplate(mode: 'create' | 'update'): void {

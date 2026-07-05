@@ -1,3 +1,4 @@
+import type { Domain } from '../domain/index.ts'
 import type { UUID } from '../shared/uid.ts'
 
 export interface UserProfile {
@@ -19,7 +20,7 @@ export interface Position {
   id: UUID
   name: string
   abbreviation: string
-  permissions: string[]
+  domains: Domain[]
   createdAt: string
   updatedAt: string
 }

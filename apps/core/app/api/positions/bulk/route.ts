@@ -5,17 +5,17 @@ import type {
   BulkPositionResult,
   BulkUpdatePositionRowInput,
   CreatePositionInput,
+  Domain,
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
-import { createFirebasePositionRepository, MAX_BULK_BATCH_SIZE } from '@herald/utils'
+import { createFirebasePositionRepository, isValidDomain, MAX_BULK_BATCH_SIZE } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { buildNameToIdMap } from '@/lib/api/services/firebase/firestore/collection-lookup'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const POSITIONS_COLLECTION = 'positions'
-const PERMISSIONS_COLLECTION = 'permissions'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -73,10 +73,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const firestore = getServerFirestore()
     const positionRepository = createFirebasePositionRepository(firestore)
 
-    // Fetch all permissions once to validate referenced permission names
-    const permissionNameToId = await buildNameToIdMap(firestore, PERMISSIONS_COLLECTION)
-    const permissionNameSet = new Set(permissionNameToId.keys())
-
     // Fetch all positions once to build a name→id lookup map
     const positionNameToId = await buildNameToIdMap(firestore, POSITIONS_COLLECTION)
 
@@ -111,18 +107,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             continue
           }
 
-          const permissionNames = resolvePermissionNames(
-            row.permissionNames ?? [],
-            permissionNameSet
-          )
-          if (permissionNames === null) {
-            const unknownNames = (row.permissionNames ?? []).filter(
-              (n) => !permissionNameSet.has(n.toLowerCase())
-            )
+          const domains = validateDomains(row.domains ?? [])
+          if (domains === null) {
+            const unknownDomains = (row.domains ?? []).filter((d) => !isValidDomain(d))
             failed.push({
               row: rowNumber,
               name: row.name,
-              error: `Unknown permission(s): ${unknownNames.join(', ')}`,
+              error: `Unknown domain(s): ${unknownDomains.join(', ')}`,
             })
             continue
           }
@@ -130,7 +121,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           const createData: CreatePositionInput = {
             name: row.name,
             abbreviation: row.abbreviation,
-            permissions: permissionNames,
+            domains,
             createdById: requestedById,
           }
 
@@ -173,18 +164,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             continue
           }
 
-          const permissionNames = resolvePermissionNames(
-            row.permissionNames ?? [],
-            permissionNameSet
-          )
-          if (permissionNames === null) {
-            const unknownNames = (row.permissionNames ?? []).filter(
-              (n) => !permissionNameSet.has(n.toLowerCase())
-            )
+          const domains = validateDomains(row.domains ?? [])
+          if (domains === null) {
+            const unknownDomains = (row.domains ?? []).filter((d) => !isValidDomain(d))
             failed.push({
               row: rowNumber,
               name: row.name,
-              error: `Unknown permission(s): ${unknownNames.join(', ')}`,
+              error: `Unknown domain(s): ${unknownDomains.join(', ')}`,
             })
             continue
           }
@@ -193,7 +179,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             id: existingId,
             name: row.name,
             abbreviation: row.abbreviation,
-            permissions: permissionNames,
+            domains,
             updatedById: requestedById,
           }
 
@@ -228,14 +214,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-function resolvePermissionNames(
-  permissionNames: string[],
-  permissionNameSet: Set<string>
-): string[] | null {
-  for (const name of permissionNames) {
-    if (!permissionNameSet.has(name.toLowerCase())) {
-      return null
-    }
-  }
-  return permissionNames
+function validateDomains(domains: string[]): Domain[] | null {
+  return domains.every(isValidDomain) ? domains : null
 }

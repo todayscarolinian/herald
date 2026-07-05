@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import {
   DEFAULT_PAGINATION,
+  type Domain,
   type IUserRepository,
   type Position,
   type UserDTO,
@@ -575,7 +576,7 @@ function mapPositionDocToPosition(id: string, data: DocumentData): Position {
     id,
     name: typeof data.name === 'string' ? data.name : '',
     abbreviation: typeof data.abbreviation === 'string' ? data.abbreviation : '',
-    permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+    domains: Array.isArray(data.domains) ? (data.domains as Domain[]) : [],
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : '',
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : '',
   }

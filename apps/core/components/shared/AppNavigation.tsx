@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Menu,
   User,
-  UserLock,
   UsersRound,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -41,7 +40,6 @@ const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/users', icon: User, label: 'Users' },
   { href: '/positions', icon: UsersRound, label: 'Positions' },
-  { href: '/permissions', icon: UserLock, label: 'Permissions' },
   { href: '/audit-logs', icon: ChartColumnIncreasing, label: 'Audit Logs' },
 ]
 

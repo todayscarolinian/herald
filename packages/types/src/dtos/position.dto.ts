@@ -6,6 +6,7 @@
  * The purpose of these DTOs is to provide a consistent and standardized way of handling data transfer across different parts of the application, ensuring that the data being transferred adheres to the expected structure and format.
  */
 
+import type { Domain } from '../domain/index.ts'
 import type { UUID } from '../shared/uid.ts'
 import type { Position } from '../user/index.ts'
 import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.ts'
@@ -50,7 +51,7 @@ export interface ListPositionsInput {
 }
 
 export interface PositionFilters {
-  permissions?: string[]
+  domains?: Domain[]
 }
 
 export type PositionSortField = 'name' | 'createdAt' | 'updatedAt'
@@ -76,13 +77,13 @@ export type TotalPositionsDTO = {
 export interface BulkCreatePositionRowInput {
   name: string
   abbreviation: string
-  permissionNames: string[]
+  domains: Domain[]
 }
 
 export interface BulkUpdatePositionRowInput {
   name: string
   abbreviation: string
-  permissionNames: string[]
+  domains: Domain[]
 }
 
 export interface BulkPositionOperationFailure {

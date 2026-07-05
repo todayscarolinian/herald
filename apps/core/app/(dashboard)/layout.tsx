@@ -6,7 +6,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 export const metadata: Metadata = {
   title: "Herald | Today's Carolinian",
   description:
-    "Today's Carolinian identity control center for users, roles, permissions, and audit history.",
+    "Today's Carolinian identity control center for users, roles, domains, and audit history.",
 }
 
 export default function UsersLayout({

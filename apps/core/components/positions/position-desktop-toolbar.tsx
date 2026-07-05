@@ -1,5 +1,6 @@
 'use client'
 
+import { DOMAINS } from '@herald/utils'
 import { ArrowDownUp, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
@@ -36,13 +37,7 @@ export function DesktopToolbar({
   const [draftSortField, setDraftSortField] = useState<string>('')
   const [draftSortDirection, setDraftSortDirection] = useState<'asc' | 'desc'>('asc')
 
-  const availableFilters = [
-    'CREATE_ARTICLE',
-    'EDIT_ARTICLE',
-    'DELETE_ARTICLE',
-    'PUBLISH_ARTICLE',
-    'MANAGE_USERS',
-  ]
+  const availableFilters: string[] = [...DOMAINS]
 
   const availableSortFields = ['name', 'createdAt', 'updatedAt']
 
