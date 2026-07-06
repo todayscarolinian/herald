@@ -23,8 +23,3 @@ export function getHeraldLogoUrl() {
   const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
   return `${baseCoreUrl}/tc-logo-red.png`
 }
-
-export function getOnboardingUrl() {
-  const baseCoreUrl = process.env.NEXT_PUBLIC_CORE_URL ?? 'https://herald.todayscarolinian.com'
-  return `${baseCoreUrl}/onboarding`
-}

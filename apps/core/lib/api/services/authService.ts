@@ -3,6 +3,7 @@ import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  LoginResponse,
   ResetPasswordRequest,
 } from '@herald/types'
 
@@ -10,14 +11,21 @@ import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import { signIn, signOut as authClientSignOut } from '@/lib/auth-client'
 
-export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
-  await post<APIResponse>(ENDPOINTS.api.login, credentials)
+export async function credentialsSignIn(
+  credentials: LoginRequest
+): Promise<{ mustChangePassword: boolean }> {
+  const result = await post<APIResponse<Omit<LoginResponse, 'success'>>>(
+    ENDPOINTS.api.login,
+    credentials
+  )
 
   await signIn.email({
     email: credentials.email,
     password: credentials.password,
     rememberMe: credentials.rememberMe,
   })
+
+  return { mustChangePassword: result.data?.user.mustChangePassword ?? false }
 }
 
 export async function googleSignIn(): Promise<void> {

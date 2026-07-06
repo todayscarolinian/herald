@@ -63,7 +63,12 @@ export function LoginForm() {
             rememberMe: value.rememberMe,
           },
           {
-            onSuccess: () => {
+            onSuccess: (data) => {
+              if (data.mustChangePassword) {
+                router.push('/change-password')
+                return
+              }
+
               const redirectTo = searchParams.get('redirect')
               const isSafeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
               router.push(isSafeRedirect ? (redirectTo ?? '/') : '/')

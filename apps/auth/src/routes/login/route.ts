@@ -211,6 +211,7 @@ loginRouter.post('/credentials', async (c) => {
       domains,
       emailVerified: user.emailVerified,
       disabled: user.disabled,
+      mustChangePassword: Boolean(userRecord.mustChangePassword),
       createdAt:
         user.createdAt instanceof Date ? user.createdAt.toISOString() : String(user.createdAt),
       updatedAt:
