@@ -20,15 +20,18 @@ import {
   UsersRound,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/shared'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDashboardStats } from '@/lib/api/queries/dashboardQueries'
 import { useSession } from '@/lib/auth-client'
 import { formatRelativeTime } from '@/lib/utils'
+
+const STALE_THRESHOLD_MINUTES = 15
 
 type AccessRow = {
   title: string
@@ -240,12 +243,23 @@ function formatSignedDelta(value: number): string {
 export default function Home() {
   const { data: session } = useSession()
   const { data: stats, isFetching, isError, error, refetch, dataUpdatedAt } = useDashboardStats()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+  const canCreate = !isCheckingAccess && hasAccess
 
   useEffect(() => {
     if (isError && error) {
       toast.error(error.message)
     }
   }, [isError, error])
+
+  // Ticks so the "Updated Xm ago" label and stale indicator stay live without a refetch.
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const isStale = !!stats && nowTick - dataUpdatedAt > STALE_THRESHOLD_MINUTES * 60_000
 
   const user = session?.user
   const firstName = user?.name?.split(' ')[0] ?? 'there'
@@ -289,6 +303,15 @@ export default function Home() {
               {stats && (
                 <span>Updated {formatRelativeTime(new Date(dataUpdatedAt).toISOString())}</span>
               )}
+              {isStale && (
+                <span
+                  title={`Data hasn't refreshed in over ${STALE_THRESHOLD_MINUTES} minutes`}
+                  className="bg-tc_warning-500/10 text-tc_warning-600 dark:text-tc_warning-400 inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[11px] font-bold"
+                >
+                  <AlertCircle className="size-3" />
+                  Stale
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => void refetch()}
@@ -299,20 +322,24 @@ export default function Home() {
                 <RefreshCw className={`size-4 ${isFetching ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <Link
-              href="/positions"
-              className="border-tc_grayscale-300 bg-tc_white text-tc_black dark:text-tc_white hover:bg-tc_grayscale-100 inline-flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-medium dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-            >
-              <Plus className="size-4" />
-              New position
-            </Link>
-            <Link
-              href="/users"
-              className="bg-tc_primary-500 hover:bg-tc_primary-600 inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors"
-            >
-              <UserPlus className="size-4" />
-              Create user
-            </Link>
+            {canCreate && (
+              <Link
+                href="/positions"
+                className="border-tc_grayscale-300 bg-tc_white text-tc_black dark:text-tc_white hover:bg-tc_grayscale-100 inline-flex h-9 items-center gap-2 rounded-lg border px-4 text-sm font-medium dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <Plus className="size-4" />
+                New position
+              </Link>
+            )}
+            {canCreate && (
+              <Link
+                href="/users"
+                className="bg-tc_primary-500 hover:bg-tc_primary-600 inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-colors"
+              >
+                <UserPlus className="size-4" />
+                Create user
+              </Link>
+            )}
           </div>
         </div>
 

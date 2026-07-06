@@ -11,6 +11,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 
 export function ImportButton({
   onCreateBulk,
@@ -19,6 +20,12 @@ export function ImportButton({
   onCreateBulk: () => void
   onUpdateBulk: () => void
 }) {
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+
+  if (isCheckingAccess || !hasAccess) {
+    return null
+  }
+
   return (
     <NavigationMenu>
       <NavigationMenuList>

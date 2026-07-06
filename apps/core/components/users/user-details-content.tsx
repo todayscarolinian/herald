@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDeleteUser, useDisableUser, useUpdateUser } from '@/lib/api/mutations/userMutations'
 import { usePositions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
@@ -51,6 +52,8 @@ export function UserDetailsContent({ user, onClose }: Props) {
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser()
   const { mutate: disableUser, isPending: isDisabling } = useDisableUser()
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+  const canEdit = !isCheckingAccess && hasAccess
 
   const { data: positionsData } = usePositions({
     filters: {},
@@ -223,36 +226,38 @@ export function UserDetailsContent({ user, onClose }: Props) {
         </div>
       </div>
 
-      <div className="bg-background mt-auto flex gap-[10px] pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isMutating}
-          onClick={() => setShowDisableConfirm(true)}
-          className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
-        >
-          Disable
-        </Button>
+      {canEdit && (
+        <div className="bg-background mt-auto flex gap-[10px] pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isMutating}
+            onClick={() => setShowDisableConfirm(true)}
+            className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
+          >
+            Disable
+          </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isMutating}
-          onClick={() => setShowDeleteConfirm(true)}
-          className="box-border h-[40px] flex-1 rounded-[8px] border border-red-500 bg-white px-4 py-0 text-[14px] leading-none text-red-500 hover:bg-red-500 hover:text-white"
-        >
-          Delete
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isMutating}
+            onClick={() => setShowDeleteConfirm(true)}
+            className="box-border h-[40px] flex-1 rounded-[8px] border border-red-500 bg-white px-4 py-0 text-[14px] leading-none text-red-500 hover:bg-red-500 hover:text-white"
+          >
+            Delete
+          </Button>
 
-        <Button
-          type="button"
-          disabled={!isFormValid || isMutating}
-          onClick={handleSave}
-          className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isUpdating ? 'Saving...' : 'Save'}
-        </Button>
-      </div>
+          <Button
+            type="button"
+            disabled={!isFormValid || isMutating}
+            onClick={handleSave}
+            className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUpdating ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
 
       {/* Disable confirmation */}
       <AlertDialog open={showDisableConfirm} onOpenChange={setShowDisableConfirm}>
