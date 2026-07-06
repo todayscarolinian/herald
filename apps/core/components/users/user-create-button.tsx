@@ -18,6 +18,7 @@ import {
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useCreateUser } from '@/lib/api/mutations/userMutations'
 import { usePositions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
@@ -47,6 +48,12 @@ export function CreateButton() {
     id: p.id,
     label: p.name,
   }))
+
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+
+  if (isCheckingAccess || !hasAccess) {
+    return null
+  }
 
   const isValid =
     form.firstName.trim() !== '' &&

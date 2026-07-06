@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDeletePosition, useUpdatePosition } from '@/lib/api/mutations/positionMutations'
 import { useSession } from '@/lib/auth-client'
 
@@ -41,6 +42,8 @@ export function PositionDetailsContent({ position, onClose }: Props) {
   const { data: session } = useSession()
   const updatePosition = useUpdatePosition()
   const deletePosition = useDeletePosition()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+  const canEdit = !isCheckingAccess && hasAccess
 
   const [form, setForm] = useState(() => ({
     name: position?.name ?? '',
@@ -181,24 +184,26 @@ export function PositionDetailsContent({ position, onClose }: Props) {
         </div>
       </div>
 
-      <div className="bg-background mt-auto flex gap-[10px] pt-4">
-        <Button
-          variant="outline"
-          onClick={() => setShowDeleteConfirm(true)}
-          disabled={deletePosition.isPending}
-          className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
-        >
-          {deletePosition.isPending ? 'Deleting...' : 'Delete'}
-        </Button>
+      {canEdit && (
+        <div className="bg-background mt-auto flex gap-[10px] pt-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deletePosition.isPending}
+            className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
+          >
+            {deletePosition.isPending ? 'Deleting...' : 'Delete'}
+          </Button>
 
-        <Button
-          disabled={!isFormValid || updatePosition.isPending}
-          onClick={handleSave}
-          className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {updatePosition.isPending ? 'Saving...' : 'Save'}
-        </Button>
-      </div>
+          <Button
+            disabled={!isFormValid || updatePosition.isPending}
+            onClick={handleSave}
+            className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updatePosition.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>

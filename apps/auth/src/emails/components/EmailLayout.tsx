@@ -49,7 +49,6 @@ export function EmailLayout({ previewText, children }: EmailLayoutProps) {
 
           <Hr style={{ margin: '24px 0 16px 0', borderColor: emailTheme.secondary[400] }} />
 
-          <Text style={{ margin: '0 0 8px 0' }}>Go be great,</Text>
           <Text style={{ margin: '0 0 4px 0', fontWeight: 700 }}>The TC Herald Team</Text>
           <Text style={{ margin: 0 }}>Contact Email: todayscarolinianusc.dev@gmail.com</Text>
         </Container>

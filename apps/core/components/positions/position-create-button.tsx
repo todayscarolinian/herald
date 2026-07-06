@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
 import { useSession } from '@/lib/auth-client'
 
@@ -46,6 +47,11 @@ export function CreatePositionButton() {
 
   const { data: session } = useSession()
   const createPosition = useCreatePosition()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+
+  if (isCheckingAccess || !hasAccess) {
+    return null
+  }
 
   const nameError = touched.name && form.name.trim() === ''
   const abbrError = touched.abbreviation && form.abbreviation.trim() === ''
