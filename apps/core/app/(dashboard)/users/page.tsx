@@ -16,7 +16,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useBulkCreateUsers, useBulkUpdateUsers } from '@/lib/api/mutations/userMutations'
 import { useUsers } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
-import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/utils/csv-parser'
+import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/csv/csv-parser'
 
 export default function UsersPage() {
   const isMobile = useIsMobile()

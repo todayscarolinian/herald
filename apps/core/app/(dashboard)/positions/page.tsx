@@ -27,7 +27,7 @@ import {
 } from '@/lib/api/mutations/positionMutations'
 import { usePositions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
-import { parseCreatePositionsCsv, parseUpdatePositionsCsv } from '@/lib/utils/csv-parser'
+import { parseCreatePositionsCsv, parseUpdatePositionsCsv } from '@/lib/csv/csv-parser'
 
 export default function PositionsPage() {
   const isMobile = useIsMobile()

@@ -2,22 +2,8 @@ import type { APIResponse, UpdateUserInput, UserDTO } from '@herald/types'
 import { createFirebaseUserRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
-
-async function verifySession(cookieHeader: string) {
-  const authUrl = process.env.NEXT_PUBLIC_AUTH_URL
-  const res = await fetch(`${authUrl}/auth/verify-session`, {
-    headers: {
-      cookie: cookieHeader,
-      'x-herald-internal-api-key': process.env.HERALD_INTERNAL_API_KEY ?? '',
-    },
-  })
-  if (!res.ok) {
-    return null
-  }
-  const data = (await res.json()) as APIResponse<{ valid: boolean; user: { id: string } }>
-  return data.success && data.data?.valid ? data.data.user : null
-}
 
 interface UpdateProfileRequestBody {
   firstName?: string
@@ -27,7 +13,7 @@ interface UpdateProfileRequestBody {
 
 export async function GET(request: NextRequest) {
   const cookieHeader = request.headers.get('cookie') ?? ''
-  const sessionUser = await verifySession(cookieHeader)
+  const sessionUser = await verifySessionFromCookie(cookieHeader)
 
   if (!sessionUser) {
     return NextResponse.json<APIResponse>(
@@ -55,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // 1. Verify session
   const cookieHeader = request.headers.get('cookie') ?? ''
-  const sessionUser = await verifySession(cookieHeader)
+  const sessionUser = await verifySessionFromCookie(cookieHeader)
 
   if (!sessionUser) {
     return NextResponse.json<APIResponse>(
