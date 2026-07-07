@@ -53,7 +53,9 @@ function getScope(rule: RateLimitRule): RateLimitScope {
 }
 
 function getIdentity(context: RateLimitContext, scope: RateLimitScope): string {
-  if (scope === 'global') {return 'global'}
+  if (scope === 'global') {
+    return 'global'
+  }
 
   if (scope === 'perUser') {
     if (!context.userId) {
@@ -117,7 +119,9 @@ async function cleanupExpiredStates(now: number): Promise<void> {
     .limit(CLEANUP_BATCH_SIZE)
     .get()
 
-  if (expired.empty) {return}
+  if (expired.empty) {
+    return
+  }
 
   const batch = firestore.batch()
   for (const doc of expired.docs) {
@@ -127,7 +131,9 @@ async function cleanupExpiredStates(now: number): Promise<void> {
 }
 
 function maybeRunCleanup(now: number): void {
-  if (Math.random() >= CLEANUP_SAMPLE_RATE) {return}
+  if (Math.random() >= CLEANUP_SAMPLE_RATE) {
+    return
+  }
   void cleanupExpiredStates(now).catch((err) => {
     console.error('[rate-limiter] cleanup failed:', err)
   })
@@ -192,30 +198,4 @@ export async function checkRateLimit(
 
 export function isLimited(result: RateLimitResponse): boolean {
   return !result.allowed
-}
-
-export async function getRemainingQuota(
-  context: RateLimitContext,
-  rule: RateLimitRule
-): Promise<number> {
-  assertValidContext(context)
-  assertValidRule(rule)
-
-  const now = context.now
-  const windowMs = rule.windowSeconds * 1000
-  const currentWindowStartMs = Math.floor(now / windowMs) * windowMs
-  const key = getDocKey(context, rule)
-  const docRef = firestore.collection(COLLECTION_NAME).doc(key)
-
-  const snap = await docRef.get()
-  if (!snap.exists) {return rule.maxRequests}
-
-  const data = snap.data() as Partial<RateLimitStateDoc>
-  const windowStartMs = Number(data.windowStartMs ?? -1)
-  const requestCount = Number(data.requestCount ?? 0)
-
-  if (windowStartMs !== currentWindowStartMs) {return rule.maxRequests}
-  if (!Number.isFinite(requestCount) || requestCount <= 0) {return rule.maxRequests}
-
-  return Math.max(0, rule.maxRequests - requestCount)
 }

@@ -178,9 +178,6 @@ export default async function rateLimiterMiddleware(c: Context, next: Next) {
     })
   }
 
-  c.set('rateLimitContext', context)
-  c.set('rateLimitResult', result)
-
   if (isLimited(result)) {
     throw new RateLimitException(result, {
       status: policy.status,

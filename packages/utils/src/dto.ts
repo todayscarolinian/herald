@@ -1,8 +1,8 @@
 /**
- * This file contains utility functions for creating paginated results and batch operation results.
+ * This file contains utility functions for creating paginated results.
  */
 
-import { BatchOperationResult, PaginatedResult, PaginationInput } from '@herald/types'
+import { PaginatedResult, PaginationInput } from '@herald/types'
 
 export function createPaginatedResult<T>(
   items: T[],
@@ -30,18 +30,5 @@ export function createPaginatedResult<T>(
     totalPages,
     hasNextPage: pagination.page < totalPages,
     hasPreviousPage: pagination.page > 1,
-  }
-}
-
-export function createBatchResult<T>(
-  successful: T[],
-  failed: Array<{ item: T; error: string }>
-): BatchOperationResult<T> {
-  return {
-    successful,
-    failed,
-    totalProcessed: successful.length + failed.length,
-    successCount: successful.length,
-    failureCount: failed.length,
   }
 }

@@ -1,4 +1,3 @@
-import type { APIResponse } from '../auth/index.ts'
 import type { UUID } from './uid.ts'
 
 export interface RateLimitRule {
@@ -41,23 +40,4 @@ export const RATE_LIMIT_THRESHOLDS = {
     windowSeconds: 300,
     maxRequests: 1,
   },
-  SEND_VERIFICATION_EMAIL: {
-    windowSeconds: 60,
-    maxRequests: 2,
-  },
 } as const
-
-export type RateLimitThresholdKey = keyof typeof RATE_LIMIT_THRESHOLDS
-
-export type RateLimitApiResponse<T = unknown> = APIResponse<T> & {
-  rateLimit?: RateLimitResponse
-}
-
-export type RateLimitErrorResponse = APIResponse<never> & {
-  success: false
-  error: {
-    code: RateLimitErrorCode
-    message: string
-  }
-  rateLimit: RateLimitResponse
-}
