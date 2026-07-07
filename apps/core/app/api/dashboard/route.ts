@@ -4,12 +4,22 @@ import {
   createFirebasePositionRepository,
   createFirebaseUserRepository,
 } from '@herald/utils'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
+import { verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const firestore = getServerFirestore()
     const userRepository = createFirebaseUserRepository(firestore)
     const positionRepository = createFirebasePositionRepository(firestore)

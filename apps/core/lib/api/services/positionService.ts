@@ -86,7 +86,6 @@ export function deletePosition(
 
 export function bulkCreatePositions(params: {
   positions: BulkCreatePositionRowInput[]
-  requestedById: string
 }): Promise<APIResponse<BulkPositionResult>> {
   return post<APIResponse<BulkPositionResult>>(ENDPOINTS.api.positionsBulk, {
     mode: 'create',
@@ -96,7 +95,6 @@ export function bulkCreatePositions(params: {
 
 export function bulkUpdatePositions(params: {
   positions: BulkUpdatePositionRowInput[]
-  requestedById: string
 }): Promise<APIResponse<BulkPositionResult>> {
   return post<APIResponse<BulkPositionResult>>(ENDPOINTS.api.positionsBulk, {
     mode: 'update',

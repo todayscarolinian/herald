@@ -9,6 +9,7 @@ import {
 import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
 
@@ -18,6 +19,15 @@ const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*'
 
 export async function GET(request: NextRequest) {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const url = new URL(request.url)
     const filters = parseFilters(url.searchParams)
     const pagination = parsePagination(url.searchParams)
@@ -33,9 +43,24 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const cookieHeader = req.headers.get('cookie') ?? ''
+  const sessionUser = await verifySessionFromCookie(cookieHeader)
+  if (!sessionUser) {
+    return NextResponse.json<APIResponse>(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+      { status: 401 }
+    )
+  }
+  if (!hasHeraldWriteAccess(sessionUser.domains)) {
+    return NextResponse.json<APIResponse>(
+      { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+      { status: 403 }
+    )
+  }
+
   const body = (await req.json()) as Partial<CreateUserInput>
 
-  const { firstName, middleName, lastName, email, positions, createdById } = body
+  const { firstName, middleName, lastName, email, positions } = body
   const password = generateRandomStrongPassword()
 
   if (!firstName || !lastName || !email || !positions) {
@@ -68,13 +93,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!email || typeof email !== 'string') {
     return NextResponse.json<APIResponse>(
       { success: false, error: { code: 'VALIDATION_ERROR', message: '"email" is required' } },
-      { status: 422 }
-    )
-  }
-
-  if (!createdById || typeof createdById !== 'string') {
-    return NextResponse.json<APIResponse>(
-      { success: false, error: { code: 'VALIDATION_ERROR', message: '"createdById" is required' } },
       { status: 422 }
     )
   }
@@ -119,11 +137,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       lastName,
       email,
       positions,
-      createdById,
     }
 
     // Then sets additional user details in Firestore
-    user = await firebaseUserRepository.create(userData)
+    user = await firebaseUserRepository.create(userData, sessionUser.id)
 
     await sendWelcomeEmail(authUser.id, password)
   } catch (error) {

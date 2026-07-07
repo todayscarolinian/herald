@@ -2,10 +2,26 @@ import type { APIResponse, DeleteUserInput, UpdateUserInput, UserDTO } from '@he
 import { createFirebaseUserRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {
@@ -15,25 +31,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       )
     }
 
-    const body = (await request.json()) as Partial<DeleteUserInput>
-
-    if (!body.deletedById || typeof body.deletedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
-    const disableData: DeleteUserInput = {
-      id,
-      deletedById: body.deletedById,
-    }
+    const disableData: DeleteUserInput = { id }
 
     const userRepository = createFirebaseUserRepository(getServerFirestore())
-    await userRepository.disable(disableData)
+    await userRepository.disable(disableData, sessionUser.id)
 
     return NextResponse.json<APIResponse<{ message: string }>>(
       { success: true, data: { message: `User ${id} has been disabled` } },
@@ -58,6 +59,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {
@@ -69,13 +85,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = (await request.json()) as Partial<UpdateUserInput>
 
-    if (!body.firstName || !body.lastName || !body.email || !body.positions || !body.updatedById) {
+    if (!body.firstName || !body.lastName || !body.email || !body.positions) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
           error: {
             code: 'BAD_REQUEST',
-            message: 'Missing required fields: firstName, lastName, email, positions, updatedById',
+            message: 'Missing required fields: firstName, lastName, email, positions',
           },
         },
         { status: 400 }
@@ -103,16 +119,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
-    if (!body.updatedById || typeof body.updatedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"updatedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     if (!Array.isArray(body.positions)) {
       return NextResponse.json<APIResponse>(
         {
@@ -131,11 +137,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       lastName: body.lastName,
       email: body.email,
       positions: body.positions,
-      updatedById: body.updatedById,
     }
 
     const userRepository = createFirebaseUserRepository(getServerFirestore())
-    const updatedUser = await userRepository.update(updateData)
+    const updatedUser = await userRepository.update(updateData, sessionUser.id)
 
     return NextResponse.json<APIResponse<UserDTO>>(
       { success: true, data: updatedUser },
@@ -163,6 +168,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {
@@ -172,21 +192,8 @@ export async function DELETE(
       )
     }
 
-    const text = await request.text()
-    const body = (text ? JSON.parse(text) : {}) as Partial<DeleteUserInput>
-
-    if (!body.deletedById || typeof body.deletedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     const userRepository = createFirebaseUserRepository(getServerFirestore())
-    await userRepository.delete({ id, deletedById: body.deletedById })
+    await userRepository.delete({ id }, sessionUser.id)
 
     return NextResponse.json<APIResponse<{ message: string }>>(
       { success: true, data: { message: `User ${id} has been deleted` } },

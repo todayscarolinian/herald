@@ -18,10 +18,10 @@ export interface IUserRepository {
   findAll(params: ListUsersInput): Promise<PaginatedResult<UserDTO>>
   findByPosition(positionId: UUID): Promise<PaginatedResult<UserDTO>>
 
-  create(user: CreateUserInput): Promise<UserDTO>
-  update(user: UpdateUserInput): Promise<UserDTO>
-  delete(params: DeleteUserInput): Promise<void>
-  disable(params: DeleteUserInput): Promise<void>
+  create(user: CreateUserInput, performedById: UUID): Promise<UserDTO>
+  update(user: UpdateUserInput, performedById: UUID): Promise<UserDTO>
+  delete(params: DeleteUserInput, performedById: UUID): Promise<void>
+  disable(params: DeleteUserInput, performedById: UUID): Promise<void>
 
   getTotalCount(): Promise<TotalUsersDTO>
   getPositionDistribution(): Promise<PositionDistributionDTO[]>

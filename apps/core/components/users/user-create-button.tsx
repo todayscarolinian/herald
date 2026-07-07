@@ -82,7 +82,6 @@ export function CreateButton() {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         positions: form.positions,
-        createdById: session.user.id,
       },
       {
         onSuccess: () => {

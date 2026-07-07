@@ -69,8 +69,7 @@ export default function UsersPage() {
 
   // Step 1: parse CSV and show the confirmation step
   const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById) {
+    if (!sessionData?.user?.id) {
       toast.error('Session expired. Please sign in again.')
       return
     }
@@ -99,8 +98,7 @@ export default function UsersPage() {
 
   // Step 2: after the admin confirms, run the mutation
   const handleConfirm = () => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+    if (!sessionData?.user?.id || !pendingRowsRef.current || !bulkMode) {
       return
     }
 
@@ -127,13 +125,10 @@ export default function UsersPage() {
     }
 
     if (bulkMode === 'create') {
-      bulkCreateMutation.mutate({ users: rows, requestedById }, { onSuccess, onError })
+      bulkCreateMutation.mutate({ users: rows }, { onSuccess, onError })
     } else {
       bulkUpdateMutation.mutate(
-        {
-          users: rows as Parameters<typeof bulkUpdateMutation.mutate>[0]['users'],
-          requestedById,
-        },
+        { users: rows as Parameters<typeof bulkUpdateMutation.mutate>[0]['users'] },
         { onSuccess, onError }
       )
     }

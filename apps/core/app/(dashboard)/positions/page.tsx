@@ -80,8 +80,7 @@ export default function PositionsPage() {
 
   // Step 1: parse CSV and show the confirmation step
   const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById) {
+    if (!sessionData?.user?.id) {
       toast.error('Session expired. Please sign in again.')
       return
     }
@@ -109,8 +108,7 @@ export default function PositionsPage() {
 
   // Step 2: after the admin confirms, run the mutation
   const handleConfirm = () => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+    if (!sessionData?.user?.id || !pendingRowsRef.current || !bulkMode) {
       return
     }
 
@@ -137,9 +135,9 @@ export default function PositionsPage() {
     }
 
     if (bulkMode === 'create') {
-      bulkCreateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+      bulkCreateMutation.mutate({ positions: rows }, { onSuccess, onError })
     } else {
-      bulkUpdateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+      bulkUpdateMutation.mutate({ positions: rows }, { onSuccess, onError })
     }
   }
 

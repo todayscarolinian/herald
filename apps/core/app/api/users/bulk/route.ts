@@ -15,6 +15,7 @@ import {
 } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { buildNameToIdMap } from '@/lib/api/services/firebase/firestore/collection-lookup'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 import { sendWelcomeEmail, signUpInBetterAuth } from '@/lib/api/services/userService'
@@ -24,13 +25,27 @@ const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = req.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const body = (await req.json()) as {
       mode?: string
       users?: unknown[]
-      requestedById?: string
     }
 
-    const { mode, users, requestedById } = body
+    const { mode, users } = body
 
     if (mode !== 'create' && mode !== 'update') {
       return NextResponse.json<APIResponse>(
@@ -62,16 +77,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           },
         },
         { status: 400 }
-      )
-    }
-
-    if (!requestedById || typeof requestedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"requestedById" is required' },
-        },
-        { status: 422 }
       )
     }
 
@@ -143,10 +148,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             lastName: row.lastName,
             email: row.email,
             positions: positionIds,
-            createdById: requestedById,
           }
 
-          const user = await userRepository.create(userData)
+          const user = await userRepository.create(userData, sessionUser.id)
           await sendWelcomeEmail(authUser.id, password)
 
           succeeded.push(user)
@@ -209,10 +213,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             lastName: row.lastName,
             email: row.email,
             positions: positionIds,
-            updatedById: requestedById,
           }
 
-          const updatedUser = await userRepository.update(updateData)
+          const updatedUser = await userRepository.update(updateData, sessionUser.id)
           succeeded.push(updatedUser)
         } catch (error) {
           failed.push({

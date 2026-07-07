@@ -95,7 +95,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         positions: form.positions,
-        updatedById: session.user.id,
       },
       {
         onSuccess: () => {
@@ -115,7 +114,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     disableUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User disabled successfully')
@@ -136,7 +135,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     deleteUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User deleted successfully')

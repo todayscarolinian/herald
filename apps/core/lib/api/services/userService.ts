@@ -119,14 +119,12 @@ export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ messa
 
 export function bulkCreateUsers(params: {
   users: BulkCreateUserRowInput[]
-  requestedById: string
 }): Promise<APIResponse<BulkUserResult>> {
   return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'create', ...params })
 }
 
 export function bulkUpdateUsers(params: {
   users: BulkUpdateUserRowInput[]
-  requestedById: string
 }): Promise<APIResponse<BulkUserResult>> {
   return post<APIResponse<BulkUserResult>>(ENDPOINTS.api.usersBulk, { mode: 'update', ...params })
 }

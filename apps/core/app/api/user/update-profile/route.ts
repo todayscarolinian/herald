@@ -97,10 +97,9 @@ export async function POST(request: NextRequest) {
       lastName: body.lastName,
       email: currentUser.email,
       positions: currentUser.positions.map((p) => p.id),
-      updatedById: sessionUser.id,
     }
 
-    const updatedUser = await userRepository.update(updateData)
+    const updatedUser = await userRepository.update(updateData, sessionUser.id)
 
     return NextResponse.json<APIResponse<UserDTO>>(
       { success: true, data: updatedUser },
