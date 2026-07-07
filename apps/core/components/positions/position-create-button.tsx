@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/table'
 import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
-import { useSession } from '@/lib/auth-client'
 
 export function CreatePositionButton() {
   const [open, setOpen] = useState(false)
@@ -45,7 +44,6 @@ export function CreatePositionButton() {
     abbreviation: false,
   })
 
-  const { data: session } = useSession()
   const createPosition = useCreatePosition()
   const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
 
@@ -74,7 +72,6 @@ export function CreatePositionButton() {
         name: form.name.trim(),
         abbreviation: form.abbreviation.trim(),
         domains: form.domains,
-        createdById: session?.user.id ?? '',
       },
       {
         onSuccess: () => {

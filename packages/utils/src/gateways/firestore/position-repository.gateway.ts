@@ -137,9 +137,9 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
       }
     },
 
-    async create(position) {
+    async create(position, performedById) {
       try {
-        const { name, abbreviation, domains, createdById } = position
+        const { name, abbreviation, domains } = position
 
         const trimmedName = name.trim()
         const trimmedAbbreviation = abbreviation.trim()
@@ -179,7 +179,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             createdAt: now.toDate().toISOString(),
           },
         }
-        createAuditLogService(firestore).log('POSITION_CREATED', targetSnapshot, createdById)
+        createAuditLogService(firestore).log('POSITION_CREATED', targetSnapshot, performedById)
 
         return mapPositionDocToDTO(docRef.id, positionDoc, 0)
       } catch (error) {
@@ -188,7 +188,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
       }
     },
 
-    async update(position) {
+    async update(position, performedById) {
       try {
         const validatedId = validatePositionId(position.id)
         const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
@@ -237,7 +237,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         createAuditLogService(firestore).log(
           domainsChanged ? 'POSITION_DOMAINS_CHANGED' : 'POSITION_UPDATED',
           targetSnapshot,
-          position.updatedById
+          performedById
         )
 
         const userCount = await getPositionUserCount(firestore, USERS_COLLECTION, validatedId)
@@ -248,7 +248,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
       }
     },
 
-    async delete(input) {
+    async delete(input, performedById) {
       try {
         const validatedId = validatePositionId(input.id)
         const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
@@ -272,7 +272,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
         }
 
         await deleteDoc(docRef)
-        createAuditLogService(firestore).log('POSITION_DELETED', targetSnapshot, input.deletedById)
+        createAuditLogService(firestore).log('POSITION_DELETED', targetSnapshot, performedById)
 
         // Remove this position from the positions array of any users that have it assigned
         const usersWithPositionQuery = query(

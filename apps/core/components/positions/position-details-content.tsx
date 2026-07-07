@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/table'
 import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDeletePosition, useUpdatePosition } from '@/lib/api/mutations/positionMutations'
-import { useSession } from '@/lib/auth-client'
 
 type Props = {
   position: Position | null
@@ -39,7 +38,6 @@ type Props = {
 export function PositionDetailsContent({ position, onClose }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const { data: session } = useSession()
   const updatePosition = useUpdatePosition()
   const deletePosition = useDeletePosition()
   const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
@@ -73,7 +71,6 @@ export function PositionDetailsContent({ position, onClose }: Props) {
         name: form.name.trim(),
         abbreviation: form.abbreviation.trim(),
         domains: form.domains,
-        updatedById: session?.user.id ?? '',
       },
       {
         onSuccess: () => toast.success('Position updated'),
@@ -84,7 +81,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
 
   const handleDelete = () => {
     deletePosition.mutate(
-      { id: position.id, deletedById: session?.user.id ?? '' },
+      { id: position.id },
       {
         onSuccess: () => {
           toast.success('Position deleted')

@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDeleteUser, useDisableUser, useUpdateUser } from '@/lib/api/mutations/userMutations'
-import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
 
 import { PositionsCombobox } from './user-positions-combobox'
@@ -55,10 +55,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
   const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
   const canEdit = !isCheckingAccess && hasAccess
 
-  const { data: positionsData } = usePositions({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
-  })
+  const { data: positionsData } = useAllPositionsOptions()
 
   const positionOptions = (positionsData?.items ?? []).map((p) => ({
     id: p.id,
@@ -98,7 +95,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         positions: form.positions,
-        updatedById: session.user.id,
       },
       {
         onSuccess: () => {
@@ -118,7 +114,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     disableUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User disabled successfully')
@@ -139,7 +135,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     deleteUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User deleted successfully')

@@ -1,46 +1,22 @@
 import { APIResponse } from '@herald/types'
-import {
-  createAdminAuditLogService,
-  createAdminFirebaseUserRepository,
-  forgotPasswordSchema,
-} from '@herald/utils'
+import { createAdminFirebaseUserRepository, forgotPasswordSchema } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
+import { adminAuditLogService } from '../../lib/audit-log.ts'
 import { auth } from '../../lib/auth.ts'
+import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
 import { firestore } from '../../lib/firestore.ts'
+import { parseAndValidateBody } from '../../lib/parse-body.ts'
 
 const app = new Hono()
 
 app.post('/forgot-password', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, forgotPasswordSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
-
-  const parsed = forgotPasswordSchema.safeParse(body)
-  if (!parsed.success) {
-    const errorDetails = parsed.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-
-    return c.json<APIResponse<typeof errorDetails>>(
-      {
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message },
-        data: errorDetails,
-      },
-      422
-    )
-  }
-  const { email } = parsed.data
+  const { email } = parsedBody.data
 
   try {
     await auth.api.requestPasswordReset({
@@ -101,7 +77,7 @@ app.post('/forgot-password', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        error: { code: 'INTERNAL_ERROR', message: UNEXPECTED_ERROR_MESSAGE },
       },
       500
     )
@@ -109,11 +85,7 @@ app.post('/forgot-password', async (c) => {
 
   const existingUser = await createAdminFirebaseUserRepository(firestore).findByEmail(email)
   if (existingUser) {
-    createAdminAuditLogService(firestore).log(
-      'USER_PASSWORD_RESET_REQUESTED',
-      null,
-      existingUser.id
-    )
+    adminAuditLogService.log('USER_PASSWORD_RESET_REQUESTED', null, existingUser.id)
   }
 
   return c.json<APIResponse>({

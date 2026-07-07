@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
+    "@herald/types": "*",
+    "@herald/utils": "*",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-table": "^8.21.3",
@@ -33,8 +35,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@herald/types": "*",
-    "@herald/utils": "*",
     "@repo/eslint-config": "*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

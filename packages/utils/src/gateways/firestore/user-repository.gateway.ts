@@ -223,13 +223,15 @@ export function createFirebaseUserRepository(
       }
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async findByPosition(/*positionId*/) {
       throw new Error('Not implemented: findByPosition')
     },
 
-    async create(params) {
+    async create(params, performedById) {
       try {
-        const { id, firstName, middleName, lastName, email, positions, createdById } = params
+        const { id, firstName, middleName, lastName, email, positions } = params
 
         const validatedEmail = validateEmail(email)
         const trimmedFirstName = firstName?.trim()
@@ -248,7 +250,7 @@ export function createFirebaseUserRepository(
         }
 
         const userId = validateUserId(id)
-        const validatedCreatedById = validateUserId(createdById)
+        const validatedCreatedById = validateUserId(performedById)
 
         const now = Timestamp.now()
         const trimmedMiddleName = typeof middleName === 'string' ? middleName.trim() : undefined
@@ -297,10 +299,10 @@ export function createFirebaseUserRepository(
       }
     },
 
-    async update(user) {
+    async update(user, performedById) {
       try {
         const validatedId = validateUserId(user.id)
-        const validatedUpdatedById = validateUserId(user.updatedById)
+        const validatedUpdatedById = validateUserId(performedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -369,10 +371,10 @@ export function createFirebaseUserRepository(
       }
     },
 
-    async delete(params) {
+    async delete(params, performedById) {
       try {
         const validatedId = validateUserId(params.id)
-        const validatedDeletedById = validateUserId(params.deletedById)
+        const validatedDeletedById = validateUserId(performedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -434,10 +436,10 @@ export function createFirebaseUserRepository(
       }
     },
 
-    async disable(params) {
+    async disable(params, performedById) {
       try {
         const validatedId = validateUserId(params.id)
-        const validatedDisabledById = validateUserId(params.deletedById)
+        const validatedDisabledById = validateUserId(performedById)
         const docRef = doc(firestore, COLLECTION_NAME, validatedId)
         const docSnap = await getDoc(docRef)
 
@@ -504,14 +506,20 @@ export function createFirebaseUserRepository(
       }
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async getPositionDistribution() {
       throw new Error('Not implemented: getPositionDistribution')
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async exists(/*id*/) {
       throw new Error('Not implemented: exists')
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },

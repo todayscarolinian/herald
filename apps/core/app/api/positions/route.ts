@@ -10,12 +10,22 @@ import { DEFAULT_PAGINATION, type SortDirection, type SortInput } from '@herald/
 import { createFirebasePositionRepository, isValidDomain } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const ALLOWED_SORT_FIELDS: PositionSortField[] = ['name', 'createdAt', 'updatedAt']
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const url = new URL(request.url)
     const filters = parseFilters(url.searchParams)
     const pagination = parsePagination(url.searchParams)
@@ -32,6 +42,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const body = (await request.json()) as Partial<CreatePositionInput>
 
     if (!body.name || typeof body.name !== 'string') {
@@ -64,25 +89,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!body.createdById || typeof body.createdById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"createdById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     const createData: CreatePositionInput = {
       name: body.name,
       abbreviation: body.abbreviation,
       domains: body.domains,
-      createdById: body.createdById,
     }
 
     const repository = createFirebasePositionRepository(getServerFirestore())
-    const createdPosition = await repository.create(createData)
+    const createdPosition = await repository.create(createData, sessionUser.id)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: createdPosition },

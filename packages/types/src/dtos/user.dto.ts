@@ -22,7 +22,6 @@ export type CreateUserInput = Omit<
   UserProfile,
   'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
-  createdById: UUID
   positions: string[]
 }
 
@@ -34,13 +33,11 @@ export type UpdateUserInput = Omit<
   UserProfile,
   'emailVerified' | 'disabled' | 'createdAt' | 'updatedAt' | 'positions'
 > & {
-  updatedById: UUID
   positions: string[]
 }
 
 export interface DeleteUserInput {
   id: string
-  deletedById: UUID
 }
 
 export interface GetUserByIdInput {

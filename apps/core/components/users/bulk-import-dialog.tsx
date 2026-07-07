@@ -6,7 +6,7 @@ import {
   BulkImportDialog as SharedBulkImportDialog,
   type Mode,
 } from '@/components/shared/bulk-import-dialog'
-import { downloadCsvTemplate } from '@/lib/utils/csv-parser'
+import { downloadCsvTemplate } from '@/lib/csv/csv-parser'
 
 export type ConfirmRow = {
   email: string

@@ -10,6 +10,7 @@ import { customSession, openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { emailService } from '../services/email.service.ts'
+import { COLLECTIONS } from './collection-names.ts'
 import { firestore } from './firestore.ts'
 
 const trustedOrigins = [
@@ -95,10 +96,10 @@ export const auth = betterAuth({
     firestore,
     namingStrategy: 'default',
     collections: {
-      users: 'users',
-      sessions: 'sessions',
-      accounts: 'accounts',
-      verificationTokens: 'verification_tokens',
+      users: COLLECTIONS.USERS,
+      sessions: COLLECTIONS.SESSIONS,
+      accounts: COLLECTIONS.ACCOUNTS,
+      verificationTokens: COLLECTIONS.VERIFICATION_TOKENS,
     },
   }),
   user: {

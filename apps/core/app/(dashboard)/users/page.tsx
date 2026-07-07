@@ -2,7 +2,7 @@
 
 import type { BulkUserResult, UserDTO } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/shared'
@@ -13,10 +13,11 @@ import { BulkImportDialog, type ConfirmRow } from '@/components/users/bulk-impor
 import { UserDetailsDrawer } from '@/components/users/user-details-drawer'
 import MobileDatagrid from '@/components/users/user-mobile-datagrid'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useToastOnError } from '@/hooks/use-toast-on-error'
 import { useBulkCreateUsers, useBulkUpdateUsers } from '@/lib/api/mutations/userMutations'
 import { useUsers } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
-import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/utils/csv-parser'
+import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/csv/csv-parser'
 
 export default function UsersPage() {
   const isMobile = useIsMobile()
@@ -43,11 +44,7 @@ export default function UsersPage() {
 
   const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message)
-    }
-  }, [isError, error])
+  useToastOnError(isError, error)
 
   const handleOpenDetails = (user: UserDTO) => {
     setSelectedUser(user)
@@ -72,8 +69,7 @@ export default function UsersPage() {
 
   // Step 1: parse CSV and show the confirmation step
   const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById) {
+    if (!sessionData?.user?.id) {
       toast.error('Session expired. Please sign in again.')
       return
     }
@@ -102,8 +98,7 @@ export default function UsersPage() {
 
   // Step 2: after the admin confirms, run the mutation
   const handleConfirm = () => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+    if (!sessionData?.user?.id || !pendingRowsRef.current || !bulkMode) {
       return
     }
 
@@ -130,13 +125,10 @@ export default function UsersPage() {
     }
 
     if (bulkMode === 'create') {
-      bulkCreateMutation.mutate({ users: rows, requestedById }, { onSuccess, onError })
+      bulkCreateMutation.mutate({ users: rows }, { onSuccess, onError })
     } else {
       bulkUpdateMutation.mutate(
-        {
-          users: rows as Parameters<typeof bulkUpdateMutation.mutate>[0]['users'],
-          requestedById,
-        },
+        { users: rows as Parameters<typeof bulkUpdateMutation.mutate>[0]['users'] },
         { onSuccess, onError }
       )
     }

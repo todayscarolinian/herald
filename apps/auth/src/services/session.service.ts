@@ -4,7 +4,6 @@ export class SessionService {
   async verifySession(headers: Headers) {
     const session = await auth.api.getSession({
       headers,
-      query: { disableCookieCache: true },
     })
 
     return session
