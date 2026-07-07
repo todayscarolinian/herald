@@ -1,10 +1,13 @@
 import type { APIResponse, VerifySessionResponse } from '@herald/types'
+import { createAdminFirebaseUserRepository } from '@herald/utils'
 import { Hono } from 'hono'
 
 import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
+import { firestore } from '../../lib/firestore.ts'
 import { sessionService } from '../../services/session.service.ts'
 
 const verifySessionRoutes = new Hono()
+const userRepository = createAdminFirebaseUserRepository(firestore)
 
 const getErrorStatus = (error: unknown): number | null => {
   if (!error || typeof error !== 'object') {
@@ -37,7 +40,22 @@ verifySessionRoutes.get('/verify-session', async (c) => {
       )
     }
 
-    if (user.disabled) {
+    // The session cache can serve a signed snapshot of `user` up to 5 minutes
+    // stale, so a disable/delete taking effect elsewhere wouldn't be reflected
+    // in it yet. Re-check disabled status with a direct (cheap) Firestore doc
+    // read rather than trusting the cached value.
+    const liveUser = await userRepository.findById(user.id)
+    if (!liveUser) {
+      return c.json<APIResponse<VerifySessionResponse>>(
+        {
+          success: false,
+          error: { code: 'SESSION_INVALID', message: 'Invalid or expired session' },
+        },
+        401
+      )
+    }
+
+    if (liveUser.disabled) {
       return c.json<APIResponse<VerifySessionResponse>>(
         {
           success: false,
