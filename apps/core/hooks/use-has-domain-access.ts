@@ -1,5 +1,7 @@
 'use client'
 
+import type { AuthUserPayload } from '@herald/types'
+
 import { useSession } from '@/lib/auth-client'
 
 // This app's own domain. Copying this hook into another TC app? Change this
@@ -11,7 +13,7 @@ const REQUIRED_DOMAIN = 'TC Herald'
 export function useHasDomainAccess() {
   const { data: session, isPending } = useSession()
 
-  const domains = (session?.user as { domains?: string[] } | undefined)?.domains ?? []
+  const domains = (session?.user as AuthUserPayload | undefined)?.domains ?? []
   const hasAccess = domains.includes(REQUIRED_DOMAIN)
 
   return { hasAccess, isPending }

@@ -223,6 +223,8 @@ export function createFirebaseUserRepository(
       }
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async findByPosition(/*positionId*/) {
       throw new Error('Not implemented: findByPosition')
     },
@@ -504,14 +506,20 @@ export function createFirebaseUserRepository(
       }
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async getPositionDistribution() {
       throw new Error('Not implemented: getPositionDistribution')
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async exists(/*id*/) {
       throw new Error('Not implemented: exists')
     },
 
+    // Intentionally unimplemented: part of the IUserRepository port contract
+    // but has zero callers anywhere in apps/auth or apps/core as of writing.
     async emailExists(/*email*/) {
       throw new Error('Not implemented: emailExists')
     },
