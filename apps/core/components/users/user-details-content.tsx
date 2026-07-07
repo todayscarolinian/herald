@@ -168,6 +168,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.firstName}
             onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -177,6 +178,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             className="border-tc_grayscale-500 h-[36px] w-full border-[1px] bg-white text-[14px]"
             value={form.middleName}
             onChange={(e) => setForm((prev) => ({ ...prev, middleName: e.target.value }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -191,6 +193,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.lastName}
             onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -205,6 +208,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -221,6 +225,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
                 setTouched((t) => ({ ...t, positions: true }))
                 setForm((prev) => ({ ...prev, positions: value }))
               }}
+              disabled={!canEdit}
             />
           </div>
         </div>

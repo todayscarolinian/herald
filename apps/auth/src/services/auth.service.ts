@@ -57,9 +57,15 @@ export class AuthService {
         .join(' ')
         .trim()
 
+      const coreUrl = process.env.NEXT_PUBLIC_CORE_URL
+      if (!coreUrl) {
+        console.error('[send-welcome-email] NEXT_PUBLIC_CORE_URL is not configured')
+        return { success: false, code: 'INTERNAL_ERROR' }
+      }
+
       const ctx = await auth.$context
       const token = await createEmailVerificationToken(ctx.secret, existingUserData.email)
-      const callbackURL = encodeURIComponent(`${process.env.HERALD_CORE_URL}/login`)
+      const callbackURL = encodeURIComponent(`${coreUrl}/login`)
       const verificationUrl = `${ctx.baseURL}/verify-email?token=${token}&callbackURL=${callbackURL}`
 
       const emailResult = await emailService.sendWelcomeEmail(

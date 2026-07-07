@@ -12,6 +12,7 @@ export const ENDPOINTS = {
     login: '/api/login',
     forgotPassword: '/api/forgot-password',
     resetPassword: '/api/reset-password',
+    changePassword: '/api/change-password',
     users: '/api/users',
     usersBulk: '/api/users/bulk',
     positions: '/api/positions',

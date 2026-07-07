@@ -105,7 +105,7 @@ export const auth = betterAuth({
     additionalFields: {
       firstName: { type: 'string' },
       lastName: { type: 'string' },
-      middleName: { type: 'string', required: false },
+      middleName: { type: 'string', required: true, defaultValue: '' },
       positions: { type: 'string[]', defaultValue: [], required: true },
       disabled: { type: 'boolean', defaultValue: false, required: true },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true },

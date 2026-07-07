@@ -71,5 +71,5 @@ export function resetPassword(
 export function changePassword(
   request: ChangePasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.changePassword, request)
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.changePassword, request)
 }

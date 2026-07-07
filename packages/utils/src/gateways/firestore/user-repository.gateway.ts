@@ -272,7 +272,7 @@ export function createFirebaseUserRepository(
         const docRef = userId
           ? doc(firestore, COLLECTION_NAME, userId)
           : doc(collection(firestore, COLLECTION_NAME))
-        await setDoc(docRef, userDoc)
+        await setDoc(docRef, userDoc, { merge: true })
 
         const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positions)
 
