@@ -37,6 +37,16 @@ verifySessionRoutes.get('/verify-session', async (c) => {
       )
     }
 
+    if (user.disabled) {
+      return c.json<APIResponse<VerifySessionResponse>>(
+        {
+          success: false,
+          error: { code: 'ACCOUNT_DISABLED', message: 'This account has been disabled' },
+        },
+        403
+      )
+    }
+
     return c.json<APIResponse<VerifySessionResponse>>({
       success: true,
       data: {
