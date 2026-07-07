@@ -76,17 +76,17 @@ jobs:
             --title "Merge conflict syncing main into develop" \
             --body "Automated sync of \`main\` into \`develop\` (triggered by commit \`${GITHUB_SHA}\`) hit a merge conflict and was **not** applied.
 
-Please resolve manually before the next weekly \`develop\` -> \`main\` promotion:
+          Please resolve manually before the next weekly \`develop\` -> \`main\` promotion:
 
-\`\`\`
-git checkout develop
-git pull
-git merge main
-# resolve conflicts
-git commit
-git push
-\`\`\`
-"
+          \`\`\`
+          git checkout develop
+          git pull
+          git merge main
+          # resolve conflicts
+          git commit
+          git push
+          \`\`\`
+          "
 
       - name: Fail job if conflicted
         if: steps.merge.outputs.conflict == 'true'
