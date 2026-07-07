@@ -4,7 +4,7 @@ import type { BulkPositionResult } from '@herald/types'
 import { PositionDTO } from '@herald/types'
 import { DEFAULT_PAGINATION } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useToastOnError } from '@/hooks/use-toast-on-error'
 import {
   useBulkCreatePositions,
   useBulkUpdatePositions,
@@ -54,11 +55,7 @@ export default function PositionsPage() {
 
   const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message)
-    }
-  }, [isError, error])
+  useToastOnError(isError, error)
 
   const handleOpenDetails = (position: PositionDTO) => {
     setSelectedPosition(position)

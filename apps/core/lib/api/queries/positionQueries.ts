@@ -9,3 +9,10 @@ export function usePositions(params: ListPositionsInput) {
     queryFn: () => fetchPositions(params),
   })
 }
+
+// Shared "all positions" lookup used anywhere a full options list is needed
+// (create forms, tables, drawers) instead of each call site re-declaring the
+// same filters/pagination.
+export function useAllPositionsOptions() {
+  return usePositions({ filters: {}, pagination: { page: 1, limit: 200 } })
+}

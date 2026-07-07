@@ -2,8 +2,7 @@
 
 import { AuditLogDTO } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 
 import { columns, DataTable, MobileDatagrid } from '@/components/audit-logs'
 import { AuditLogDetailsDrawer } from '@/components/audit-logs/audit-log-details-drawer'
@@ -11,6 +10,7 @@ import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useToastOnError } from '@/hooks/use-toast-on-error'
 import { useAuditLogs } from '@/lib/api/queries/auditLogQueries'
 
 export default function AuditLogsPage() {
@@ -23,11 +23,7 @@ export default function AuditLogsPage() {
     pagination: { page: 1, limit: 200 },
   })
 
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message)
-    }
-  }, [isError, error])
+  useToastOnError(isError, error)
 
   const handleOpenDetails = (auditLog: AuditLogDTO) => {
     setSelectedAuditLog(auditLog)

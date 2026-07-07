@@ -2,7 +2,7 @@
 
 import type { BulkUserResult, UserDTO } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/shared'
@@ -13,6 +13,7 @@ import { BulkImportDialog, type ConfirmRow } from '@/components/users/bulk-impor
 import { UserDetailsDrawer } from '@/components/users/user-details-drawer'
 import MobileDatagrid from '@/components/users/user-mobile-datagrid'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useToastOnError } from '@/hooks/use-toast-on-error'
 import { useBulkCreateUsers, useBulkUpdateUsers } from '@/lib/api/mutations/userMutations'
 import { useUsers } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
@@ -43,11 +44,7 @@ export default function UsersPage() {
 
   const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message)
-    }
-  }, [isError, error])
+  useToastOnError(isError, error)
 
   const handleOpenDetails = (user: UserDTO) => {
     setSelectedUser(user)

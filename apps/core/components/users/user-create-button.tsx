@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useCreateUser } from '@/lib/api/mutations/userMutations'
-import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
 
 import { PositionsCombobox } from './user-positions-combobox'
@@ -39,10 +39,7 @@ export function CreateButton() {
 
   const { data: session } = useSession()
   const { mutate: createUser, isPending } = useCreateUser()
-  const { data: positionsData } = usePositions({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
-  })
+  const { data: positionsData } = useAllPositionsOptions()
 
   const positionOptions = (positionsData?.items ?? []).map((p) => ({
     id: p.id,

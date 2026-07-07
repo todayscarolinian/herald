@@ -4,7 +4,7 @@ import { UserDTO, UserFilters, UserListDTO, UserSortField } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 
 import { UserCard } from './user-card'
 import { MobileToolbar } from './user-mobile-toolbar'
@@ -24,10 +24,7 @@ export default function MobileDatagrid({ users, onClick }: MobileDatagridProps) 
   const [selectedSortDirection, setSelectedSortDirection] = useState<'asc' | 'desc'>('desc')
   const [mobilePage, setMobilePage] = useState(0)
 
-  const { data: positionsData } = usePositions({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
-  })
+  const { data: positionsData } = useAllPositionsOptions()
 
   const availablePositions = useMemo(
     () => (positionsData?.items ?? []).map((p) => ({ id: p.id, label: p.name })),
