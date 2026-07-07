@@ -1,6 +1,7 @@
 import type { RateLimitContext, RateLimitResponse, RateLimitRule } from '@herald/types'
 import { RATE_LIMIT_ERROR_CODES } from '@herald/types'
 
+import { COLLECTIONS } from './collection-names.ts'
 import { firestore } from './firestore.ts'
 
 type RateLimitScope = NonNullable<RateLimitRule['methodScope']>
@@ -20,7 +21,7 @@ type RateLimitStateDoc = {
   expiresAt: FirestoreDateLike
 }
 
-const COLLECTION_NAME = 'rate_limit_states'
+const COLLECTION_NAME = COLLECTIONS.RATE_LIMIT_STATES
 const CLEANUP_SAMPLE_RATE = 0.01
 const CLEANUP_BATCH_SIZE = 200
 

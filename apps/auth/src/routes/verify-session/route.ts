@@ -1,6 +1,7 @@
 import type { APIResponse, VerifySessionResponse } from '@herald/types'
 import { Hono } from 'hono'
 
+import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
 import { sessionService } from '../../services/session.service.ts'
 
 const verifySessionRoutes = new Hono()
@@ -81,7 +82,7 @@ verifySessionRoutes.get('/verify-session', async (c) => {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
-          message: 'An unexpected error occurred',
+          message: UNEXPECTED_ERROR_MESSAGE,
         },
       },
       500

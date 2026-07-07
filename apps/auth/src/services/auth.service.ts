@@ -14,29 +14,19 @@ type WelcomeEmailResult = {
 }
 
 export class AuthService {
-  async isUserExists(email: string): Promise<boolean> {
-    try {
-      const existingUserData = await userRepository.findByEmail(email)
-
-      return !!existingUserData
-    } catch (error) {
-      console.error('[user-exists]', error)
-      return false
-    }
-  }
-
-  async isUserActive(email: string): Promise<boolean> {
+  async checkUserExistsAndActive(email: string): Promise<{ exists: boolean; active: boolean }> {
     try {
       const existingUserData = await userRepository.findByEmail(email)
 
       if (!existingUserData) {
-        return false
+        return { exists: false, active: false }
       }
 
-      return !existingUserData.disabled
+      return { exists: true, active: !existingUserData.disabled }
     } catch (error) {
+      console.error('[user-exists]', error)
       console.error('[user-is-active]', error)
-      return false
+      return { exists: false, active: false }
     }
   }
 
@@ -88,7 +78,6 @@ export class AuthService {
 
   async resetPassword(token: string, newPassword: string) {
     try {
-      const { auth } = await import('../lib/auth.ts')
       await auth.api.resetPassword({
         body: { token, newPassword },
       })

@@ -1,10 +1,10 @@
 import type { APIResponse } from '@herald/types'
-import { createAdminAuditLogService, SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
+import { SESSION_COOKIE_NAME, SESSION_TOKEN_FIELD } from '@herald/utils'
 import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 
+import { adminAuditLogService } from '../../lib/audit-log.ts'
 import { auth } from '../../lib/auth.ts'
-import { firestore } from '../../lib/firestore.ts'
 
 const logout = new Hono()
 
@@ -21,7 +21,7 @@ logout.post('/logout', async (c) => {
     })
 
     if (currentSession?.user.id) {
-      createAdminAuditLogService(firestore).log('USER_LOGOUT', null, currentSession.user.id)
+      adminAuditLogService.log('USER_LOGOUT', null, currentSession.user.id)
     }
   } catch (err) {
     if (isAPIError(err)) {

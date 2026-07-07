@@ -1,6 +1,5 @@
 import type { APIResponse, LoginResponse } from '@herald/types'
 import {
-  createAdminAuditLogService,
   createAdminFirebaseUserRepository,
   getPositionsByIdsAdmin,
   loginSchema,
@@ -14,8 +13,11 @@ import { isAPIError } from 'better-auth/api'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
+import { adminAuditLogService } from '../../lib/audit-log.ts'
 import { auth } from '../../lib/auth.js'
+import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
 import { firestore } from '../../lib/firestore.ts'
+import { parseAndValidateBody } from '../../lib/parse-body.ts'
 import { authService } from '../../services/auth.service.ts'
 const loginRouter = new Hono()
 
@@ -26,7 +28,7 @@ const loginRouter = new Hono()
 async function logFailedLoginAttempt(email: string): Promise<void> {
   const existingUser = await createAdminFirebaseUserRepository(firestore).findByEmail(email)
   if (existingUser) {
-    createAdminAuditLogService(firestore).log('USER_LOGIN_FAILED', null, existingUser.id)
+    adminAuditLogService.log('USER_LOGIN_FAILED', null, existingUser.id)
   }
 }
 
@@ -34,36 +36,12 @@ async function logFailedLoginAttempt(email: string): Promise<void> {
 // POST /auth/login/credentials
 // ---------------------------------------------------------------------------
 loginRouter.post('/credentials', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, loginSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
 
-  // Validate request body
-  const parsed = loginSchema.safeParse(body)
-  if (!parsed.success) {
-    const errorDetails = parsed.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-
-    return c.json<APIResponse<typeof errorDetails>>(
-      {
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message },
-        data: errorDetails,
-      },
-      422
-    )
-  }
-
-  const { email, password, rememberMe } = parsed.data
+  const { email, password, rememberMe } = parsedBody.data
 
   // Authenticate via BetterAuth -- passes rememberMe so BetterAuth sets the
   // correct cookie duration (REMEMBERED_SESSION_MAX_AGE_SECONDS when true,
@@ -124,14 +102,15 @@ loginRouter.post('/credentials', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        error: { code: 'INTERNAL_ERROR', message: UNEXPECTED_ERROR_MESSAGE },
       },
       500
     )
   }
 
-  const isUserExists = await authService.isUserExists(signInResult.user.email)
-  const isUserActive = await authService.isUserActive(signInResult.user.email)
+  const { exists: isUserExists, active: isUserActive } = await authService.checkUserExistsAndActive(
+    signInResult.user.email
+  )
 
   if (!isUserExists) {
     // This should never happen since the user was just authenticated successfully via BetterAuth,
@@ -164,7 +143,7 @@ loginRouter.post('/credentials', async (c) => {
       console.error('[login/credentials] Failed to revoke session for disabled user:', revokeErr)
     }
 
-    createAdminAuditLogService(firestore).log('USER_LOGIN_FAILED', null, signInResult.user.id)
+    adminAuditLogService.log('USER_LOGIN_FAILED', null, signInResult.user.id)
 
     return c.json<APIResponse>(
       {
@@ -186,7 +165,7 @@ loginRouter.post('/credentials', async (c) => {
     ? Date.now() + REMEMBERED_SESSION_MAX_AGE_SECONDS * 1000
     : Date.now() + NOT_REMEMBERED_SESSION_MAX_AGE_SECONDS * 1000
 
-  createAdminAuditLogService(firestore).log('USER_LOGIN_SUCCESS', null, user.id)
+  adminAuditLogService.log('USER_LOGIN_SUCCESS', null, user.id)
 
   const positions = await getPositionsByIdsAdmin(
     firestore,
@@ -232,39 +211,16 @@ const googleGuardSchema = z.object({
 })
 
 loginRouter.post('/google', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, googleGuardSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
 
-  const parsed = googleGuardSchema.safeParse(body)
-  if (!parsed.success) {
-    const errorDetails = parsed.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-
-    return c.json<APIResponse<typeof errorDetails>>(
-      {
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message },
-        data: errorDetails,
-      },
-      422
-    )
-  }
-
-  const { email } = parsed.data
+  const { email } = parsedBody.data
 
   // Look up user in Firestore by email
-  const isUserExists = await authService.isUserExists(email)
-  const isUserActive = await authService.isUserActive(email)
+  const { exists: isUserExists, active: isUserActive } =
+    await authService.checkUserExistsAndActive(email)
 
   if (!isUserExists) {
     // Return generic 401 instead of 404 to avoid leaking email existence

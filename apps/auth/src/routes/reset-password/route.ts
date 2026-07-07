@@ -3,39 +3,17 @@ import { resetPasswordSchema } from '@herald/utils'
 import { isValidPassword, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
 import { Hono } from 'hono'
 
+import { parseAndValidateBody } from '../../lib/parse-body.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
 app.post('/reset-password', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, resetPasswordSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
 
-  const result = resetPasswordSchema.safeParse(body)
-
-  if (!result.success) {
-    const errorDetails = result.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-    return c.json<APIResponse>(
-      {
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message },
-        data: errorDetails,
-      },
-      422
-    )
-  }
-
-  const { token, newPassword } = result.data
+  const { token, newPassword } = parsedBody.data
 
   /* Validate password strength  */
   if (!isValidPassword(newPassword)) {
