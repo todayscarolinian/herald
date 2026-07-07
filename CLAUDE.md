@@ -49,8 +49,9 @@ npm run typecheck
 - `turbo.json`
 - `lefthook.yaml`
 - `apps/auth/src/lib/auth.ts`
-- `apps/auth/src/index.ts`
+- `apps/auth/src/hono-app.ts`
 - `apps/auth/src/server.ts`
+- `apps/auth/index.js`
 - `apps/core/lib/auth-client.ts`
 - `packages/types/src/index.ts`
 - `packages/utils/src/constants.ts`

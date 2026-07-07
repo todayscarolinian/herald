@@ -2,7 +2,7 @@ import 'dotenv/config'
 
 import { serve } from '@hono/node-server'
 
-import app from './index.ts'
+import app from './hono-app.ts'
 
 const port = Number(process.env.PORT ?? 3001)
 

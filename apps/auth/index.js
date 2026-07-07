@@ -1,1 +1,3 @@
-export { default } from './dist/index.js'
+import 'hono'
+
+export { default } from './dist/hono-app.js'

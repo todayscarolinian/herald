@@ -9,7 +9,7 @@ Specialist for `apps/auth` (Hono + BetterAuth + Firestore + Resend).
 1. `CLAUDE.md`
 2. `.agents/CONTEXT.md`
 3. `apps/auth/src/lib/auth.ts`
-4. `apps/auth/src/index.ts`
+4. `apps/auth/src/hono-app.ts`
 5. `apps/auth/src/server.ts`
 
 ## Scope
