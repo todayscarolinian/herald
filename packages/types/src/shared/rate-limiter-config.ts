@@ -40,4 +40,24 @@ export const RATE_LIMIT_THRESHOLDS = {
     windowSeconds: 300,
     maxRequests: 1,
   },
+  RESET_PASSWORD: {
+    windowSeconds: 300,
+    maxRequests: 5,
+  },
+  CHANGE_PASSWORD: {
+    windowSeconds: 300,
+    maxRequests: 5,
+  },
+  SEND_WELCOME_EMAIL: {
+    windowSeconds: 60,
+    maxRequests: 100,
+  },
+  VERIFY_SESSION: {
+    windowSeconds: 60,
+    maxRequests: 60,
+  },
+  LOGOUT: {
+    windowSeconds: 60,
+    maxRequests: 20,
+  },
 } as const
