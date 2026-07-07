@@ -37,7 +37,7 @@ app.post('/reset-password', async (c) => {
           message: res.code === 'AUTH_INVALID' ? 'Invalid or expired link' : 'Something went wrong',
         },
       },
-      res.code === 'INTERNAL_ERROR' ? 500 : 400
+      res.code === 'AUTH_INVALID' ? 400 : 500
     )
   }
 
