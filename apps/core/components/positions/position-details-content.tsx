@@ -110,6 +110,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -125,6 +126,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
             value={form.abbreviation}
             onChange={(e) => setForm((prev) => ({ ...prev, abbreviation: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, abbreviation: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -148,6 +150,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
                         setTouched((t) => ({ ...t, domains: true }))
                         setForm((prev) => ({ ...prev, domains: value ? [...DOMAINS] : [] }))
                       }}
+                      disabled={!canEdit}
                       aria-label="Select all domains"
                     />
                   </TableHead>
@@ -172,6 +175,7 @@ export function PositionDetailsContent({ position, onClose }: Props) {
                                 : prev.domains.filter((d: Domain) => d !== domain),
                             }))
                           }}
+                          disabled={!canEdit}
                           aria-label={`Select ${domain}`}
                         />
                       </TableCell>

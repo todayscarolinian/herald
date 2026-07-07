@@ -65,6 +65,10 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await emailService.sendVerificationEmail(user, url)
     },
+    // The initial verification link is sent as part of the merged welcome
+    // email (see AuthService.sendWelcomeEmail) instead of automatically here,
+    // since this hook has no access to the newly generated temp password.
+    sendOnSignUp: false,
     requireEmailVerification: true,
   },
   advanced: {
@@ -101,7 +105,7 @@ export const auth = betterAuth({
     additionalFields: {
       firstName: { type: 'string' },
       lastName: { type: 'string' },
-      middleName: { type: 'string', required: false },
+      middleName: { type: 'string', required: true, defaultValue: '' },
       positions: { type: 'string[]', defaultValue: [], required: true },
       disabled: { type: 'boolean', defaultValue: false, required: true },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true },

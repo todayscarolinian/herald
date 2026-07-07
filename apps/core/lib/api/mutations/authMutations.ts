@@ -18,7 +18,7 @@ import {
 } from '@/lib/api/services/authService'
 
 export function useCredentialsSignIn() {
-  return useMutation<void, Error, LoginRequest>({
+  return useMutation<{ mustChangePassword: boolean }, Error, LoginRequest>({
     mutationFn: credentialsSignIn,
   })
 }

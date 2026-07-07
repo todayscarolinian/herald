@@ -16,7 +16,7 @@ export interface AuthSessionPayload {
 export interface LoginResponse {
   success: boolean
   session: AuthSessionPayload
-  user: UserDTO & { domains: Domain[] }
+  user: UserDTO & { domains: Domain[]; mustChangePassword: boolean }
 }
 
 export interface VerifySessionRequest {

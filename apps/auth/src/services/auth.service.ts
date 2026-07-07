@@ -1,6 +1,6 @@
 import { UUID } from '@herald/types'
 import { createAdminAuditLogService, createAdminFirebaseUserRepository } from '@herald/utils'
-import { isAPIError } from 'better-auth/api'
+import { createEmailVerificationToken, isAPIError } from 'better-auth/api'
 
 import { auth } from '../lib/auth.ts'
 import { firestore } from '../lib/firestore.ts'
@@ -57,10 +57,22 @@ export class AuthService {
         .join(' ')
         .trim()
 
+      const coreUrl = process.env.NEXT_PUBLIC_CORE_URL
+      if (!coreUrl) {
+        console.error('[send-welcome-email] NEXT_PUBLIC_CORE_URL is not configured')
+        return { success: false, code: 'INTERNAL_ERROR' }
+      }
+
+      const ctx = await auth.$context
+      const token = await createEmailVerificationToken(ctx.secret, existingUserData.email)
+      const callbackURL = encodeURIComponent(`${coreUrl}/login`)
+      const verificationUrl = `${ctx.baseURL}/verify-email?token=${token}&callbackURL=${callbackURL}`
+
       const emailResult = await emailService.sendWelcomeEmail(
         existingUserData.email,
         temporaryPassword,
-        fullName
+        fullName,
+        verificationUrl
       )
 
       if ((emailResult as { error?: unknown })?.error) {
@@ -103,6 +115,11 @@ export class AuthService {
 
       await auth.api.changePassword({
         body: { currentPassword, newPassword, revokeOtherSessions: true },
+        headers,
+      })
+
+      await auth.api.updateUser({
+        body: { mustChangePassword: false },
         headers,
       })
 

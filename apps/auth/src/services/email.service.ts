@@ -15,8 +15,13 @@ type VerificationEmailUser = {
 export class EmailService {
   private fromEmail = 'Herald <noreply@todayscarolinian.com>'
 
-  async sendWelcomeEmail(to: string, tempPassword: string, userName: string): Promise<unknown> {
-    const html = await renderEmail(WelcomeEmail({ name: userName, tempPassword }))
+  async sendWelcomeEmail(
+    to: string,
+    tempPassword: string,
+    userName: string,
+    verificationUrl: string
+  ): Promise<unknown> {
+    const html = await renderEmail(WelcomeEmail({ name: userName, tempPassword, verificationUrl }))
     const emailResult = await sendEmail(
       {
         from: this.fromEmail,

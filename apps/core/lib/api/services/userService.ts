@@ -138,6 +138,7 @@ export async function signUpInBetterAuth(params: {
       password: params.password,
       name: params.name,
       callbackURL: `${normalizedCoreUrl}/login`,
+      mustChangePassword: true,
     }),
   })
 

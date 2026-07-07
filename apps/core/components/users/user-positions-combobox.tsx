@@ -26,6 +26,7 @@ type PositionsComboboxProps = {
   value?: UUID[]
   defaultValue?: UUID[]
   onValueChange?: (value: UUID[]) => void
+  disabled?: boolean
 }
 
 export function PositionsCombobox({
@@ -33,6 +34,7 @@ export function PositionsCombobox({
   value,
   defaultValue,
   onValueChange,
+  disabled,
 }: PositionsComboboxProps = {}) {
   const anchor = useComboboxAnchor()
   const ids = options.map((option) => option.id)
@@ -49,6 +51,7 @@ export function PositionsCombobox({
       defaultValue={fallbackDefaultValue}
       onValueChange={(nextValues) => onValueChange?.(nextValues as UUID[])}
       itemToStringLabel={(id) => labelById.get(id as UUID) ?? ''}
+      disabled={disabled}
     >
       <ComboboxChips ref={anchor} className="w-full">
         <ComboboxValue>

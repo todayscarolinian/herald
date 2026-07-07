@@ -12,7 +12,7 @@ import {
 import { resetPassword } from '../../services/authService'
 
 export function useCredentialsSignIn() {
-  return useMutation<void, Error, LoginRequest>({
+  return useMutation<{ mustChangePassword: boolean }, Error, LoginRequest>({
     mutationFn: credentialsSignIn,
   })
 }
