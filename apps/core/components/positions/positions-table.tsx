@@ -66,14 +66,14 @@ export function PositionsTable<TData, TValue>({
         pageSize: 10,
       },
       columnVisibility: {
-        permissions: false,
+        domains: false,
       },
     },
   })
 
   const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as PositionSortField) : 'name'
   const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
-  const selectedPermissions = (table.getColumn('permissions')?.getFilterValue() ?? []) as string[]
+  const selectedDomains = (table.getColumn('domains')?.getFilterValue() ?? []) as string[]
 
   const applySort = (field: string, direction: 'asc' | 'desc') => {
     if (!table.getColumn(field)) {
@@ -89,8 +89,8 @@ export function PositionsTable<TData, TValue>({
     table.setPageIndex(0)
   }
 
-  const applyPermissionsFilter = (permissions: string[]) => {
-    table.getColumn('permissions')?.setFilterValue(permissions)
+  const applyDomainsFilter = (domains: string[]) => {
+    table.getColumn('domains')?.setFilterValue(domains)
     table.setPageIndex(0)
   }
 
@@ -100,8 +100,8 @@ export function PositionsTable<TData, TValue>({
         title="Positions"
         search={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
         onSearchChange={(search) => table.getColumn('name')?.setFilterValue(search)}
-        selectedFilters={selectedPermissions}
-        onApplyFilters={applyPermissionsFilter}
+        selectedFilters={selectedDomains}
+        onApplyFilters={applyDomainsFilter}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
         onApplySort={applySort}

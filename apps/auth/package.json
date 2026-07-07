@@ -3,6 +3,7 @@
     "type": "module",
     "scripts": {
         "dev": "tsx watch src/server.ts",
+        "email:dev": "email dev --dir src/emails --port 3010",
         "postinstall": "cd ../.. && patch-package --patch-dir apps/auth/patches",
         "prebuild": "cd ../.. && patch-package --patch-dir apps/auth/patches",
         "build": "tsc -b",
@@ -11,6 +12,8 @@
     },
     "dependencies": {
         "@hono/node-server": "^1.19.11",
+        "@react-email/components": "^1.0.12",
+        "@react-email/render": "^2.0.9",
         "better-auth": "^1.6.1",
         "better-auth-firestore": "^1.1.2",
         "bullmq": "^5.73.4",
@@ -19,6 +22,8 @@
         "firebase-admin": "^13.7.0",
         "hono": "^4.12.7",
         "ioredis": "^5.10.1",
+        "react": "19.2.3",
+        "react-dom": "19.2.3",
         "resend": "^6.12.2",
         "zod": "^4.3.6"
     },
@@ -27,7 +32,11 @@
         "@herald/utils": "*",
         "@repo/eslint-config": "*",
         "@types/node": "^20.11.17",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "@react-email/ui": "^6.6.5",
         "patch-package": "^8.0.1",
+        "react-email": "^6.6.5",
         "tsx": "^4.7.1",
         "typescript": "^5.8.3"
     }

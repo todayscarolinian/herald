@@ -20,7 +20,7 @@ const robotoCondensed = Roboto_Condensed({
 export const metadata: Metadata = {
   title: 'Herald',
   description:
-    "Today's Carolinian identity control center for users, roles, permissions, and audit history.",
+    "Today's Carolinian identity control center for users, roles, domains, and audit history.",
 }
 
 export default function RootLayout({

@@ -14,9 +14,9 @@ export interface IPositionRepository {
   findById(id: GetPositionByIdInput): Promise<PositionDTO | null>
   findAll(params: ListPositionsInput): Promise<PositionListDTO>
 
-  create(position: CreatePositionInput): Promise<PositionDTO>
-  update(position: UpdatePositionInput): Promise<PositionDTO>
-  delete(input: DeletePositionInput): Promise<void>
+  create(position: CreatePositionInput, performedById: UUID): Promise<PositionDTO>
+  update(position: UpdatePositionInput, performedById: UUID): Promise<PositionDTO>
+  delete(input: DeletePositionInput, performedById: UUID): Promise<void>
 
   getTotalCount(): Promise<TotalPositionsDTO>
 

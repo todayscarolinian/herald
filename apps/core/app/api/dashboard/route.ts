@@ -1,20 +1,28 @@
 import type { APIResponse, DashboardStatsDTO } from '@herald/types'
 import {
   createFirebaseAuditLogRepository,
-  createFirebasePermissionRepository,
   createFirebasePositionRepository,
   createFirebaseUserRepository,
 } from '@herald/utils'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
+import { verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const firestore = getServerFirestore()
     const userRepository = createFirebaseUserRepository(firestore)
     const positionRepository = createFirebasePositionRepository(firestore)
-    const permissionRepository = createFirebasePermissionRepository(firestore)
     const auditLogRepository = createFirebaseAuditLogRepository(firestore)
 
     const now = new Date()
@@ -28,7 +36,6 @@ export async function GET(): Promise<NextResponse> {
       newUsersResult,
       unverifiedResult,
       totalPositionsResult,
-      totalPermissionsResult,
       totalAuditLogsResult,
       logins30DaysResult,
       failedLogins24hResult,
@@ -45,7 +52,6 @@ export async function GET(): Promise<NextResponse> {
         pagination: { page: 1, limit: 1 },
       }),
       positionRepository.getTotalCount(),
-      permissionRepository.getTotalCount(),
       auditLogRepository.getTotalCount(),
       auditLogRepository.findAll({
         filters: { action: 'USER_LOGIN_SUCCESS', since: thirtyDaysAgo.toISOString() },
@@ -70,7 +76,6 @@ export async function GET(): Promise<NextResponse> {
       totalUsers: totalUsersResult.totalUsers,
       newUsersThisMonth: newUsersResult.total,
       totalPositions: totalPositionsResult.totalPositions,
-      totalPermissions: totalPermissionsResult.totalPermissions,
       totalAuditLogs: totalAuditLogsResult.totalAuditLogs,
       logins30Days: logins30DaysResult.total,
       failedLogins24h: failedLogins24hResult.total,

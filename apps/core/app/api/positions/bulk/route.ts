@@ -5,27 +5,42 @@ import type {
   BulkPositionResult,
   BulkUpdatePositionRowInput,
   CreatePositionInput,
+  Domain,
   PositionDTO,
   UpdatePositionInput,
 } from '@herald/types'
-import { createFirebasePositionRepository, MAX_BULK_BATCH_SIZE } from '@herald/utils'
+import { createFirebasePositionRepository, isValidDomain, MAX_BULK_BATCH_SIZE } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { buildNameToIdMap } from '@/lib/api/services/firebase/firestore/collection-lookup'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const POSITIONS_COLLECTION = 'positions'
-const PERMISSIONS_COLLECTION = 'permissions'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = req.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const body = (await req.json()) as {
       mode?: string
       positions?: unknown[]
-      requestedById?: string
     }
 
-    const { mode, positions, requestedById } = body
+    const { mode, positions } = body
 
     if (mode !== 'create' && mode !== 'update') {
       return NextResponse.json<APIResponse>(
@@ -60,22 +75,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!requestedById || typeof requestedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"requestedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     const firestore = getServerFirestore()
     const positionRepository = createFirebasePositionRepository(firestore)
-
-    // Fetch all permissions once to validate referenced permission names
-    const permissionNameToId = await buildNameToIdMap(firestore, PERMISSIONS_COLLECTION)
-    const permissionNameSet = new Set(permissionNameToId.keys())
 
     // Fetch all positions once to build a name→id lookup map
     const positionNameToId = await buildNameToIdMap(firestore, POSITIONS_COLLECTION)
@@ -111,18 +112,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             continue
           }
 
-          const permissionNames = resolvePermissionNames(
-            row.permissionNames ?? [],
-            permissionNameSet
-          )
-          if (permissionNames === null) {
-            const unknownNames = (row.permissionNames ?? []).filter(
-              (n) => !permissionNameSet.has(n.toLowerCase())
-            )
+          const domains = validateDomains(row.domains ?? [])
+          if (domains === null) {
+            const unknownDomains = (row.domains ?? []).filter((d) => !isValidDomain(d))
             failed.push({
               row: rowNumber,
               name: row.name,
-              error: `Unknown permission(s): ${unknownNames.join(', ')}`,
+              error: `Unknown domain(s): ${unknownDomains.join(', ')}`,
             })
             continue
           }
@@ -130,11 +126,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           const createData: CreatePositionInput = {
             name: row.name,
             abbreviation: row.abbreviation,
-            permissions: permissionNames,
-            createdById: requestedById,
+            domains,
           }
 
-          const position = await positionRepository.create(createData)
+          const position = await positionRepository.create(createData, sessionUser.id)
           claimedNames.add(normalizedName)
 
           succeeded.push(position)
@@ -173,18 +168,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             continue
           }
 
-          const permissionNames = resolvePermissionNames(
-            row.permissionNames ?? [],
-            permissionNameSet
-          )
-          if (permissionNames === null) {
-            const unknownNames = (row.permissionNames ?? []).filter(
-              (n) => !permissionNameSet.has(n.toLowerCase())
-            )
+          const domains = validateDomains(row.domains ?? [])
+          if (domains === null) {
+            const unknownDomains = (row.domains ?? []).filter((d) => !isValidDomain(d))
             failed.push({
               row: rowNumber,
               name: row.name,
-              error: `Unknown permission(s): ${unknownNames.join(', ')}`,
+              error: `Unknown domain(s): ${unknownDomains.join(', ')}`,
             })
             continue
           }
@@ -193,11 +183,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             id: existingId,
             name: row.name,
             abbreviation: row.abbreviation,
-            permissions: permissionNames,
-            updatedById: requestedById,
+            domains,
           }
 
-          const updatedPosition = await positionRepository.update(updateData)
+          const updatedPosition = await positionRepository.update(updateData, sessionUser.id)
           succeeded.push(updatedPosition)
         } catch (error) {
           failed.push({
@@ -228,14 +217,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-function resolvePermissionNames(
-  permissionNames: string[],
-  permissionNameSet: Set<string>
-): string[] | null {
-  for (const name of permissionNames) {
-    if (!permissionNameSet.has(name.toLowerCase())) {
-      return null
-    }
-  }
-  return permissionNames
+function validateDomains(domains: string[]): Domain[] | null {
+  return domains.every(isValidDomain) ? domains : null
 }

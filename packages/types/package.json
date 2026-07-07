@@ -35,10 +35,10 @@
             "import": "./dist/auditLog/index.js",
             "default": "./dist/auditLog/index.js"
         },
-        "./permission": {
-            "types": "./dist/permission/index.d.ts",
-            "import": "./dist/permission/index.js",
-            "default": "./dist/permission/index.js"
+        "./domain": {
+            "types": "./dist/domain/index.d.ts",
+            "import": "./dist/domain/index.js",
+            "default": "./dist/domain/index.js"
         },
         "./shared": {
             "types": "./dist/shared/index.d.ts",

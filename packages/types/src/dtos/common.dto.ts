@@ -32,14 +32,3 @@ export interface SortInput<T extends string = string> {
   field: T
   direction: SortDirection
 }
-
-export interface BatchOperationResult<T> {
-  successful: T[]
-  failed: Array<{
-    item: T
-    error: string
-  }>
-  totalProcessed: number
-  successCount: number
-  failureCount: number
-}

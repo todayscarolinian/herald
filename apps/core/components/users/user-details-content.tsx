@@ -17,8 +17,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useDeleteUser, useDisableUser, useUpdateUser } from '@/lib/api/mutations/userMutations'
-import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
 
 import { PositionsCombobox } from './user-positions-combobox'
@@ -51,11 +52,10 @@ export function UserDetailsContent({ user, onClose }: Props) {
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser()
   const { mutate: disableUser, isPending: isDisabling } = useDisableUser()
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+  const canEdit = !isCheckingAccess && hasAccess
 
-  const { data: positionsData } = usePositions({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
-  })
+  const { data: positionsData } = useAllPositionsOptions()
 
   const positionOptions = (positionsData?.items ?? []).map((p) => ({
     id: p.id,
@@ -95,7 +95,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         positions: form.positions,
-        updatedById: session.user.id,
       },
       {
         onSuccess: () => {
@@ -115,7 +114,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     disableUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User disabled successfully')
@@ -136,7 +135,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     }
 
     deleteUser(
-      { id: user.id, deletedById: session.user.id },
+      { id: user.id },
       {
         onSuccess: () => {
           toast.success('User deleted successfully')
@@ -165,6 +164,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.firstName}
             onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -174,6 +174,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             className="border-tc_grayscale-500 h-[36px] w-full border-[1px] bg-white text-[14px]"
             value={form.middleName}
             onChange={(e) => setForm((prev) => ({ ...prev, middleName: e.target.value }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -188,6 +189,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.lastName}
             onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -202,6 +204,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            readOnly={!canEdit}
           />
         </div>
 
@@ -218,41 +221,44 @@ export function UserDetailsContent({ user, onClose }: Props) {
                 setTouched((t) => ({ ...t, positions: true }))
                 setForm((prev) => ({ ...prev, positions: value }))
               }}
+              disabled={!canEdit}
             />
           </div>
         </div>
       </div>
 
-      <div className="bg-background mt-auto flex gap-[10px] pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isMutating}
-          onClick={() => setShowDisableConfirm(true)}
-          className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
-        >
-          Disable
-        </Button>
+      {canEdit && (
+        <div className="bg-background mt-auto flex gap-[10px] pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isMutating}
+            onClick={() => setShowDisableConfirm(true)}
+            className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 box-border h-[40px] flex-1 rounded-[8px] border bg-white px-4 py-0 text-[14px] leading-none hover:text-white"
+          >
+            Disable
+          </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isMutating}
-          onClick={() => setShowDeleteConfirm(true)}
-          className="box-border h-[40px] flex-1 rounded-[8px] border border-red-500 bg-white px-4 py-0 text-[14px] leading-none text-red-500 hover:bg-red-500 hover:text-white"
-        >
-          Delete
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isMutating}
+            onClick={() => setShowDeleteConfirm(true)}
+            className="box-border h-[40px] flex-1 rounded-[8px] border border-red-500 bg-white px-4 py-0 text-[14px] leading-none text-red-500 hover:bg-red-500 hover:text-white"
+          >
+            Delete
+          </Button>
 
-        <Button
-          type="button"
-          disabled={!isFormValid || isMutating}
-          onClick={handleSave}
-          className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isUpdating ? 'Saving...' : 'Save'}
-        </Button>
-      </div>
+          <Button
+            type="button"
+            disabled={!isFormValid || isMutating}
+            onClick={handleSave}
+            className="bg-tc_primary-500 hover:bg-tc_primary-600 box-border h-[40px] flex-1 rounded-[8px] border border-transparent px-4 py-0 text-[14px] leading-none text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUpdating ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      )}
 
       {/* Disable confirmation */}
       <AlertDialog open={showDisableConfirm} onOpenChange={setShowDisableConfirm}>

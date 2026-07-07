@@ -1,20 +1,5 @@
-import type {
-  AuditLog,
-  AuditLogPerformerSnapshot,
-  AuditLogPositionSnapshot,
-  AuditLogTargetSnapshot,
-  AuditLogUserSnapshot,
-} from '../auditLog/index.ts'
+import type { AuditLog } from '../auditLog/index.ts'
 import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.ts'
-
-// =============================================================================
-// SNAPSHOT TYPE ALIASES (preserved for backward-compat with existing consumers)
-// =============================================================================
-
-export type AuditLogTargetUserDTO = AuditLogUserSnapshot
-export type AuditLogTargetPositionDTO = AuditLogPositionSnapshot
-export type AuditLogTargetDTO = AuditLogTargetSnapshot
-export type AuditLogPerformerDTO = AuditLogPerformerSnapshot
 
 // =============================================================================
 // INPUT DTOs

@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { usePositions } from '@/lib/api/queries/positionQueries'
+import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 
 import { DesktopToolbar } from './user-desktop-toolbar'
 
@@ -52,10 +52,7 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [userFilters, setUserFilters] = React.useState<UserFilters>({})
 
-  const { data: positionsData } = usePositions({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
-  })
+  const { data: positionsData } = useAllPositionsOptions()
 
   const availablePositions = (positionsData?.items ?? []).map((p) => ({
     id: p.id,

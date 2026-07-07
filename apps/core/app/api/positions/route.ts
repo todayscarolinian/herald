@@ -1,20 +1,31 @@
 import type {
   APIResponse,
   CreatePositionInput,
+  Domain,
   PositionDTO,
   PositionFilters,
   PositionSortField,
 } from '@herald/types'
 import { DEFAULT_PAGINATION, type SortDirection, type SortInput } from '@herald/types'
-import { createFirebasePositionRepository } from '@herald/utils'
+import { createFirebasePositionRepository, isValidDomain } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const ALLOWED_SORT_FIELDS: PositionSortField[] = ['name', 'createdAt', 'updatedAt']
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const url = new URL(request.url)
     const filters = parseFilters(url.searchParams)
     const pagination = parsePagination(url.searchParams)
@@ -31,6 +42,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const body = (await request.json()) as Partial<CreatePositionInput>
 
     if (!body.name || typeof body.name !== 'string') {
@@ -50,21 +76,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!Array.isArray(body.permissions)) {
+    if (!Array.isArray(body.domains) || !body.domains.every(isValidDomain)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"permissions" must be an array' },
-        },
-        { status: 422 }
-      )
-    }
-
-    if (!body.createdById || typeof body.createdById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"createdById" is required' },
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '"domains" must be an array of valid Domain values',
+          },
         },
         { status: 422 }
       )
@@ -73,12 +92,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const createData: CreatePositionInput = {
       name: body.name,
       abbreviation: body.abbreviation,
-      permissions: body.permissions,
-      createdById: body.createdById,
+      domains: body.domains,
     }
 
     const repository = createFirebasePositionRepository(getServerFirestore())
-    const createdPosition = await repository.create(createData)
+    const createdPosition = await repository.create(createData, sessionUser.id)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: createdPosition },
@@ -90,10 +108,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 function parseFilters(searchParams: URLSearchParams): PositionFilters {
-  const permissions = parseListParam(searchParams, 'permissions')
+  const domains = parseListParam(searchParams, 'domains').filter(isValidDomain) as Domain[]
 
   return {
-    ...(permissions.length ? { permissions } : {}),
+    ...(domains.length ? { domains } : {}),
   }
 }
 

@@ -4,7 +4,10 @@ import { Position, UserDTO } from '@herald/types'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDate } from '@/lib/utils'
+
+const MAX_VISIBLE_POSITIONS = 3
 
 export const columns: ColumnDef<UserDTO>[] = [
   {
@@ -38,9 +41,12 @@ export const columns: ColumnDef<UserDTO>[] = [
     },
     cell: ({ row }) => {
       const positions: Position[] = row.getValue('positions')
+      const visible = positions.slice(0, MAX_VISIBLE_POSITIONS)
+      const overflow = positions.slice(MAX_VISIBLE_POSITIONS)
+
       return (
-        <div className="flex w-full flex-wrap gap-2">
-          {positions.map((p) => (
+        <div className="flex w-full flex-nowrap items-center gap-2">
+          {visible.map((p) => (
             <Badge
               key={p.id}
               className="bg-tc_primary-500 inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium text-white"
@@ -48,6 +54,18 @@ export const columns: ColumnDef<UserDTO>[] = [
               {p.abbreviation}
             </Badge>
           ))}
+          {overflow.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Badge className="bg-muted text-muted-foreground inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium" />
+                }
+              >
+                +{overflow.length}
+              </TooltipTrigger>
+              <TooltipContent>{overflow.map((p) => p.name).join(', ')}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       )
     },

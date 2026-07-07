@@ -1,21 +1,13 @@
 'use client'
 
-import { ChevronDown, Plus } from 'lucide-react'
+import type { Domain } from '@herald/types'
+import { DOMAINS } from '@herald/utils'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-} from '@/components/ui/combobox'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogClose,
@@ -28,21 +20,23 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
 import { useCreatePosition } from '@/lib/api/mutations/positionMutations'
-import { usePermissions } from '@/lib/api/queries/permissionQueries'
-import { useSession } from '@/lib/auth-client'
 
 export function CreatePositionButton() {
-  const { data: permissionsData, isLoading: permissionsLoading } = usePermissions({
-    filters: {},
-    pagination: { page: 1, limit: 100 },
-  })
-  const permissionNames = permissionsData?.items.map((p) => p.name) ?? []
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
     abbreviation: '',
-    permissions: [] as string[],
+    domains: [] as Domain[],
   })
 
   const [touched, setTouched] = useState({
@@ -50,15 +44,19 @@ export function CreatePositionButton() {
     abbreviation: false,
   })
 
-  const { data: session } = useSession()
   const createPosition = useCreatePosition()
+  const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
+
+  if (isCheckingAccess || !hasAccess) {
+    return null
+  }
 
   const nameError = touched.name && form.name.trim() === ''
   const abbrError = touched.abbreviation && form.abbreviation.trim() === ''
   const isFormValid = form.name.trim() !== '' && form.abbreviation.trim() !== ''
 
   const handleReset = () => {
-    setForm({ name: '', abbreviation: '', permissions: [] })
+    setForm({ name: '', abbreviation: '', domains: [] })
     setTouched({ name: false, abbreviation: false })
   }
 
@@ -73,8 +71,7 @@ export function CreatePositionButton() {
       {
         name: form.name.trim(),
         abbreviation: form.abbreviation.trim(),
-        permissions: form.permissions,
-        createdById: session?.user.id ?? '',
+        domains: form.domains,
       },
       {
         onSuccess: () => {
@@ -145,53 +142,53 @@ export function CreatePositionButton() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label className="font-bold">Permissions</Label>
-              <Combobox
-                items={permissionNames}
-                multiple
-                value={form.permissions}
-                onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, permissions: value }))
-                }}
-              >
-                <ComboboxChips className="border-tc_grayscale-500 relative flex h-auto min-h-[36px] flex-wrap items-center gap-x-2 gap-y-2 rounded-md border bg-white py-1 !pr-10 pl-3">
-                  <ComboboxValue>
-                    {form.permissions.map((item) => (
-                      <ComboboxChip
-                        key={item}
-                        className="bg-tc_primary-500 flex h-6 items-center rounded-full border-none px-3 text-[12px] text-white"
-                      >
-                        {item}
-                      </ComboboxChip>
-                    ))}
-                  </ComboboxValue>
-                  <ComboboxChipsInput
-                    placeholder={
-                      permissionsLoading
-                        ? 'Loading permissions...'
-                        : form.permissions.length === 0
-                          ? 'Select permissions...'
-                          : ''
-                    }
-                    className="h-6 flex-1 bg-transparent text-base outline-none"
-                    disabled={permissionsLoading}
-                  />
-                  <div className="pointer-events-none absolute top-2.5 right-3 text-black/50">
-                    <ChevronDown size={16} />
-                  </div>
-                </ComboboxChips>
+              <Label className="font-bold">Domains</Label>
+              <div className="border-tc_grayscale-500 overflow-hidden rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Domain</TableHead>
+                      <TableHead className="w-16 text-center">
+                        <Checkbox
+                          checked={form.domains.length === DOMAINS.length}
+                          indeterminate={
+                            form.domains.length > 0 && form.domains.length < DOMAINS.length
+                          }
+                          onCheckedChange={(value) => {
+                            setForm((prev) => ({ ...prev, domains: value ? [...DOMAINS] : [] }))
+                          }}
+                          aria-label="Select all domains"
+                        />
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {DOMAINS.map((domain) => {
+                      const checked = form.domains.includes(domain)
 
-                <ComboboxContent className="w-[--radix-popover-trigger-width]">
-                  <ComboboxEmpty className="w-full">No permissions found.</ComboboxEmpty>
-                  <ComboboxList>
-                    {(item) => (
-                      <ComboboxItem key={item} value={item}>
-                        {item}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+                      return (
+                        <TableRow key={domain}>
+                          <TableCell>{domain}</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(value) => {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  domains: value
+                                    ? [...prev.domains, domain]
+                                    : prev.domains.filter((d: Domain) => d !== domain),
+                                }))
+                              }}
+                              aria-label={`Select ${domain}`}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
 

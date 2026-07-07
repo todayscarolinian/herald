@@ -3,21 +3,29 @@ import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  LoginResponse,
   ResetPasswordRequest,
 } from '@herald/types'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
-import { signIn } from '@/lib/auth-client'
+import { signIn, signOut as authClientSignOut } from '@/lib/auth-client'
 
-export async function credentialsSignIn(credentials: LoginRequest): Promise<void> {
-  await post<APIResponse>(ENDPOINTS.api.login, credentials)
+export async function credentialsSignIn(
+  credentials: LoginRequest
+): Promise<{ mustChangePassword: boolean }> {
+  const result = await post<APIResponse<Omit<LoginResponse, 'success'>>>(
+    ENDPOINTS.api.login,
+    credentials
+  )
 
-  signIn.email({
+  await signIn.email({
     email: credentials.email,
     password: credentials.password,
     rememberMe: credentials.rememberMe,
   })
+
+  return { mustChangePassword: result.data?.user.mustChangePassword ?? false }
 }
 
 export async function googleSignIn(): Promise<void> {
@@ -41,6 +49,11 @@ export async function googleGuardCheck(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await post<void>(ENDPOINTS.auth.logout, {})
+
+  // The custom endpoint above invalidates the session server-side, but only
+  // going through the better-auth client updates its session store, so
+  // useSession() picks up the logout without a page refresh.
+  await authClientSignOut()
 }
 
 export function forgotPassword(
@@ -58,5 +71,5 @@ export function resetPassword(
 export function changePassword(
   request: ChangePasswordRequest
 ): Promise<APIResponse<{ message: string }>> {
-  return post<APIResponse<{ message: string }>>(ENDPOINTS.auth.changePassword, request)
+  return post<APIResponse<{ message: string }>>(ENDPOINTS.api.changePassword, request)
 }

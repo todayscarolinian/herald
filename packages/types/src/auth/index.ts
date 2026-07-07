@@ -1,4 +1,6 @@
+import type { Domain } from '../domain/index.ts'
 import { UserDTO } from '../dtos/user.dto.ts'
+import type { Position } from '../user/index.ts'
 
 export interface LoginRequest {
   email: string
@@ -14,7 +16,7 @@ export interface AuthSessionPayload {
 export interface LoginResponse {
   success: boolean
   session: AuthSessionPayload
-  user: UserDTO
+  user: UserDTO & { domains: Domain[]; mustChangePassword: boolean }
 }
 
 export interface VerifySessionRequest {
@@ -29,6 +31,8 @@ export interface AuthUserPayload {
   lastName: string
   emailVerified: boolean
   disabled: boolean
+  positions: Position[]
+  domains: Domain[]
   createdAt: string
   updatedAt: string
 }

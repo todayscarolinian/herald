@@ -17,7 +17,6 @@ export interface DashboardStatsDTO {
   totalUsers: number
   newUsersThisMonth: number
   totalPositions: number
-  totalPermissions: number
   totalAuditLogs: number
   logins30Days: number
   failedLogins24h: number

@@ -6,35 +6,19 @@ import {
 } from '@herald/utils'
 import { Hono } from 'hono'
 
+import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
+import { parseAndValidateBody } from '../../lib/parse-body.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
 
 app.post('/change-password', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, changePasswordSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
 
-  const result = changePasswordSchema.safeParse(body)
-  if (!result.success) {
-    const errorDetails = result.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'VALIDATION_ERROR', message }, data: errorDetails },
-      422
-    )
-  }
-
-  const { currentPassword, newPassword } = result.data
+  const { currentPassword, newPassword } = parsedBody.data
 
   if (!isValidPassword(newPassword)) {
     return c.json<APIResponse>(
@@ -66,7 +50,7 @@ app.post('/change-password', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        error: { code: 'INTERNAL_ERROR', message: UNEXPECTED_ERROR_MESSAGE },
       },
       500
     )

@@ -88,7 +88,7 @@ export function buildPositionSnapshots(
       id: p.id,
       name: p.name,
       abbreviation: p.abbreviation,
-      permissions: p.permissions,
+      domains: p.domains,
       createdAt: p.createdAt,
     }))
 }

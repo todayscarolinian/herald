@@ -9,7 +9,7 @@ import { checkRateLimit, isLimited } from '../lib/rate-limiter.ts'
 
 type RateLimitPolicy = {
   rule: RateLimitRule
-  status: 400 | 403 | 429
+  status: 429
   code: string
   message: string
 }
@@ -85,7 +85,7 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
   if (normalizedMethod === 'POST' && normalizedPath === '/auth/login/credentials') {
     return {
       rule: { ...RATE_LIMIT_THRESHOLDS.LOGIN, methodScope: 'perIP', keyPrefix: 'login' },
-      status: 403,
+      status: 429,
       code: 'RATE_LIMIT_LOGIN',
       message: 'Too many login attempts. Please try again later',
     }
@@ -94,7 +94,7 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
   if (normalizedMethod === 'POST' && normalizedPath === '/auth/login/google') {
     return {
       rule: { ...RATE_LIMIT_THRESHOLDS.LOGIN, methodScope: 'perIP', keyPrefix: 'login-google' },
-      status: 403,
+      status: 429,
       code: 'RATE_LIMIT_LOGIN_GOOGLE',
       message: 'Too many login attempts. Please try again later',
     }
@@ -107,8 +107,69 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
         methodScope: 'perIP',
         keyPrefix: 'forgot-password',
       },
-      status: 400,
+      status: 429,
       code: 'RATE_LIMIT_FORGOT_PASSWORD',
+      message: 'Too many requests - please try again later',
+    }
+  }
+
+  if (normalizedMethod === 'POST' && normalizedPath === '/auth/reset-password') {
+    return {
+      rule: {
+        ...RATE_LIMIT_THRESHOLDS.RESET_PASSWORD,
+        methodScope: 'perIP',
+        keyPrefix: 'reset-password',
+      },
+      status: 429,
+      code: 'RATE_LIMIT_RESET_PASSWORD',
+      message: 'Too many requests - please try again later',
+    }
+  }
+
+  if (normalizedMethod === 'POST' && normalizedPath === '/auth/change-password') {
+    return {
+      rule: {
+        ...RATE_LIMIT_THRESHOLDS.CHANGE_PASSWORD,
+        methodScope: 'perUser',
+        keyPrefix: 'change-password',
+      },
+      status: 429,
+      code: 'RATE_LIMIT_CHANGE_PASSWORD',
+      message: 'Too many requests - please try again later',
+    }
+  }
+
+  if (normalizedMethod === 'POST' && normalizedPath === '/auth/send-welcome-email') {
+    return {
+      rule: {
+        ...RATE_LIMIT_THRESHOLDS.SEND_WELCOME_EMAIL,
+        methodScope: 'global',
+        keyPrefix: 'send-welcome-email',
+      },
+      status: 429,
+      code: 'RATE_LIMIT_SEND_WELCOME_EMAIL',
+      message: 'Too many requests - please try again later',
+    }
+  }
+
+  if (normalizedMethod === 'GET' && normalizedPath === '/auth/verify-session') {
+    return {
+      rule: {
+        ...RATE_LIMIT_THRESHOLDS.VERIFY_SESSION,
+        methodScope: 'perUser',
+        keyPrefix: 'verify-session',
+      },
+      status: 429,
+      code: 'RATE_LIMIT_VERIFY_SESSION',
+      message: 'Too many requests - please try again later',
+    }
+  }
+
+  if (normalizedMethod === 'POST' && normalizedPath === '/auth/logout') {
+    return {
+      rule: { ...RATE_LIMIT_THRESHOLDS.LOGOUT, methodScope: 'perUser', keyPrefix: 'logout' },
+      status: 429,
+      code: 'RATE_LIMIT_LOGOUT',
       message: 'Too many requests - please try again later',
     }
   }
@@ -141,7 +202,7 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
 }
 
 export default async function rateLimiterMiddleware(c: Context, next: Next) {
-  if (process.env.ENABLE_RATE_LIMITER !== 'true') {
+  if (process.env.ENABLE_RATE_LIMITER === 'false') {
     await next()
     return
   }
@@ -177,9 +238,6 @@ export default async function rateLimiterMiddleware(c: Context, next: Next) {
       message: 'Unable to apply rate limiting at this time. Please try again later.',
     })
   }
-
-  c.set('rateLimitContext', context)
-  c.set('rateLimitResult', result)
 
   if (isLimited(result)) {
     throw new RateLimitException(result, {

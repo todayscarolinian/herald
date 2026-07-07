@@ -27,6 +27,7 @@ const endpoints = {
   resetPassword: '/auth/reset-password',
   changePassword: '/auth/change-password',
   sendVerificationEmail: '/auth/send-verification-email',
+  sendWelcomeEmail: '/auth/send-welcome-email',
 }
 
 app.get('/', (c) => {

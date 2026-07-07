@@ -1,0 +1,95 @@
+name: Sync main into develop
+
+# Squash-merging develop -> main each week leaves main with a commit that
+# develop's history never sees. Left alone, the next weekly promotion computes
+# its merge-base against a stale ancestor and produces spurious conflicts.
+# This workflow merges main back into develop (a real merge commit, not a
+# squash) right after every change to main, so the merge-base stays current.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main into develop and push
+        id: merge
+        run: |
+          set -e
+          conflict=false
+
+          for attempt in 1 2 3; do
+            git fetch origin main develop
+            git checkout -B develop origin/develop
+
+            if git merge origin/main --no-edit -m "chore: sync main into develop"; then
+              if git push origin develop; then
+                echo "Pushed sync merge on attempt $attempt."
+                break
+              elif [ "$attempt" -eq 3 ]; then
+                echo "::error::Push to develop kept getting rejected (concurrent pushes). Giving up after 3 attempts."
+                exit 1
+              else
+                echo "Push rejected, retrying with a fresh fetch..."
+              fi
+            else
+              git merge --abort
+              conflict=true
+              break
+            fi
+          done
+
+          echo "conflict=$conflict" >> "$GITHUB_OUTPUT"
+
+      - name: Open issue on conflict
+        if: steps.merge.outputs.conflict == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          EXISTING=$(gh issue list --search "\"Merge conflict syncing main into develop\" in:title" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Conflict issue #$EXISTING already open, not duplicating."
+            exit 0
+          fi
+
+          gh issue create \
+            --title "Merge conflict syncing main into develop" \
+            --body "Automated sync of \`main\` into \`develop\` (triggered by commit \`${GITHUB_SHA}\`) hit a merge conflict and was **not** applied.
+
+Please resolve manually before the next weekly \`develop\` -> \`main\` promotion:
+
+\`\`\`
+git checkout develop
+git pull
+git merge main
+# resolve conflicts
+git commit
+git push
+\`\`\`
+"
+
+      - name: Fail job if conflicted
+        if: steps.merge.outputs.conflict == 'true'
+        run: |
+          echo "::error::main could not be merged into develop due to conflicts. See the issue just opened for resolution steps."
+          exit 1

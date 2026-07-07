@@ -81,11 +81,7 @@ export function useDeleteUser() {
 export function useBulkCreateUsers() {
   const queryClient = useQueryClient()
 
-  return useMutation<
-    APIResponse<BulkUserResult>,
-    Error,
-    { users: BulkCreateUserRowInput[]; requestedById: string }
-  >({
+  return useMutation<APIResponse<BulkUserResult>, Error, { users: BulkCreateUserRowInput[] }>({
     mutationFn: bulkCreateUsers,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -96,11 +92,7 @@ export function useBulkCreateUsers() {
 export function useBulkUpdateUsers() {
   const queryClient = useQueryClient()
 
-  return useMutation<
-    APIResponse<BulkUserResult>,
-    Error,
-    { users: BulkUpdateUserRowInput[]; requestedById: string }
-  >({
+  return useMutation<APIResponse<BulkUserResult>, Error, { users: BulkUpdateUserRowInput[] }>({
     mutationFn: bulkUpdateUsers,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] })

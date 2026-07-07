@@ -18,19 +18,19 @@ export const columns: ColumnDef<PositionDTO>[] = [
     cell: ({ row }) => formatDate(row.getValue('updatedAt')),
   },
   {
-    id: 'permissions',
-    accessorKey: 'permissions',
+    id: 'domains',
+    accessorKey: 'domains',
     enableHiding: true,
     enableSorting: false,
     filterFn: (row, _columnId, filterValue) => {
-      const selectedPermissions = Array.isArray(filterValue) ? (filterValue as string[]) : []
+      const selectedDomains = Array.isArray(filterValue) ? (filterValue as string[]) : []
 
-      if (selectedPermissions.length === 0) {
+      if (selectedDomains.length === 0) {
         return true
       }
 
-      const rowPermissions = (row.getValue('permissions') as string[] | undefined) ?? []
-      return selectedPermissions.some((permission) => rowPermissions.includes(permission))
+      const rowDomains = (row.getValue('domains') as string[] | undefined) ?? []
+      return selectedDomains.some((domain) => rowDomains.includes(domain))
     },
   },
 ]

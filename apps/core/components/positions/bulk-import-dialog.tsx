@@ -1,17 +1,17 @@
 'use client'
 
-import type { BulkPositionOperationFailure, BulkPositionResult } from '@herald/types'
+import type { BulkPositionOperationFailure, BulkPositionResult, Domain } from '@herald/types'
 
 import {
   BulkImportDialog as SharedBulkImportDialog,
   type Mode,
 } from '@/components/shared/bulk-import-dialog'
-import { downloadPositionsCsvTemplate } from '@/lib/utils/csv-parser'
+import { downloadPositionsCsvTemplate } from '@/lib/csv/csv-parser'
 
 export type ConfirmRow = {
   name: string
   abbreviation: string
-  permissionNames: string[]
+  domains: Domain[]
 }
 
 type Props = {
@@ -31,8 +31,8 @@ const FIELDS = [
   { name: 'name', description: "Required. The position's name." },
   { name: 'abbreviation', description: "Required. The position's abbreviation." },
   {
-    name: 'permissions',
-    description: 'Optional. Permission names separated by | (e.g. Editor|Manage Users).',
+    name: 'domains',
+    description: 'Optional. Domains separated by | (e.g. TC Herald|TC Official Website).',
   },
 ]
 
@@ -48,8 +48,8 @@ export function BulkImportDialog(props: Props) {
           <p className="text-sm font-medium text-black">
             {row.name} ({row.abbreviation})
           </p>
-          {row.permissionNames.length > 0 && (
-            <p className="mt-0.5 text-xs text-gray-400">{row.permissionNames.join(', ')}</p>
+          {row.domains.length > 0 && (
+            <p className="mt-0.5 text-xs text-gray-400">{row.domains.join(', ')}</p>
           )}
         </>
       )}

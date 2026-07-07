@@ -2,6 +2,8 @@ import type { APIResponse } from '@herald/types'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
+import { UNEXPECTED_ERROR_MESSAGE } from '../../lib/error-messages.ts'
+import { parseAndValidateBody } from '../../lib/parse-body.ts'
 import { authService } from '../../services/auth.service.ts'
 
 const app = new Hono()
@@ -12,35 +14,12 @@ const sendWelcomeEmailSchema = z.object({
 })
 
 app.post('/send-welcome-email', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json<APIResponse>(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body' } },
-      400
-    )
+  const parsedBody = await parseAndValidateBody(c, sendWelcomeEmailSchema)
+  if (!parsedBody.ok) {
+    return parsedBody.response
   }
 
-  const parsed = sendWelcomeEmailSchema.safeParse(body)
-  if (!parsed.success) {
-    const errorDetails = parsed.error.issues.map((i) => ({
-      field: i.path.join('.'),
-      message: i.message,
-    }))
-    const message = errorDetails.map((d) => `${d.field}: ${d.message}`).join(', ')
-
-    return c.json<APIResponse<typeof errorDetails>>(
-      {
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message },
-        data: errorDetails,
-      },
-      422
-    )
-  }
-
-  const { userId, temporaryPassword } = parsed.data
+  const { userId, temporaryPassword } = parsedBody.data
   const result = await authService.sendWelcomeEmail(userId, temporaryPassword)
 
   if (!result.success) {
@@ -60,7 +39,7 @@ app.post('/send-welcome-email', async (c) => {
     return c.json<APIResponse>(
       {
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        error: { code: 'INTERNAL_ERROR', message: UNEXPECTED_ERROR_MESSAGE },
       },
       500
     )

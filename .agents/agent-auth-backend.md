@@ -27,7 +27,7 @@ Specialist for `apps/auth` (Hono + BetterAuth + Firestore + Resend).
 ## Current Auth Facts
 
 - Google social provider configured from env vars.
-- Email/password enabled with password reset email through shared `sendEmail` utility.
+- Email/password enabled with password reset email sent via `EmailService` (`apps/auth/src/services/email.service.ts`), rendering React Email templates from `apps/auth/src/emails/`.
 - Cookie behavior includes cross-subdomain cookies for `todayscarolinian.com`.
 - Session defaults:
   - expiresIn: 5 days

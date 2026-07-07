@@ -3,12 +3,22 @@ import { DEFAULT_PAGINATION, type SortDirection, type SortInput } from '@herald/
 import { createFirebaseAuditLogRepository } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 const ALLOWED_SORT_FIELDS: AuditLogSortField[] = ['action', 'timestamp']
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+
     const url = new URL(request.url)
     const filters = parseFilters(url.searchParams)
     const pagination = parsePagination(url.searchParams)

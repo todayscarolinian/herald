@@ -1,11 +1,16 @@
-import type { UserProfile } from '@herald/types'
-import { createAdminAuditLogService, SESSION_COOKIE_NAME } from '@herald/utils'
+import {
+  createAdminAuditLogService,
+  getPositionsByIdsAdmin,
+  REMEMBERED_SESSION_MAX_AGE_SECONDS,
+  resolveDomainsForPositions,
+  SESSION_COOKIE_NAME,
+} from '@herald/utils'
 import { betterAuth } from 'better-auth'
-import { Session } from 'better-auth'
-import { openAPI } from 'better-auth/plugins'
+import { customSession, openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { emailService } from '../services/email.service.ts'
+import { COLLECTIONS } from './collection-names.ts'
 import { firestore } from './firestore.ts'
 
 const trustedOrigins = [
@@ -14,6 +19,18 @@ const trustedOrigins = [
     ? ['http://localhost:3000', 'http://localhost:3001']
     : []),
 ]
+
+// Shape of the additionalFields configured below, layered onto BetterAuth's
+// base user record -- these aren't part of BetterAuth's own generic typing,
+// so consumers of the session/user object must cast to this shape to reach them.
+type CustomUserFields = {
+  firstName: string
+  lastName: string
+  middleName?: string
+  positions: string[]
+  disabled: boolean
+  mustChangePassword: boolean
+}
 
 export const auth = betterAuth({
   socialProviders: {
@@ -49,6 +66,10 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await emailService.sendVerificationEmail(user, url)
     },
+    // The initial verification link is sent as part of the merged welcome
+    // email (see AuthService.sendWelcomeEmail) instead of automatically here,
+    // since this hook has no access to the newly generated temp password.
+    sendOnSignUp: false,
     requireEmailVerification: true,
   },
   advanced: {
@@ -65,41 +86,30 @@ export const auth = betterAuth({
       maxAge: 60 * 5,
       strategy: 'compact',
     },
-    expiresIn: 60 * 60 * 24 * 5,
+    // Applies when the user checks "Remember Me" at login. When unchecked,
+    // BetterAuth ignores this and hardcodes the session to a 1-day TTL instead
+    // (see internalAdapter.createSession's dontRememberMe branch).
+    expiresIn: REMEMBERED_SESSION_MAX_AGE_SECONDS,
     updateAge: 60 * 60 * 24,
   },
   database: firestoreAdapter({
     firestore,
     namingStrategy: 'default',
     collections: {
-      users: 'users',
-      sessions: 'sessions',
-      accounts: 'accounts',
-      verificationTokens: 'verification_tokens',
+      users: COLLECTIONS.USERS,
+      sessions: COLLECTIONS.SESSIONS,
+      accounts: COLLECTIONS.ACCOUNTS,
+      verificationTokens: COLLECTIONS.VERIFICATION_TOKENS,
     },
   }),
   user: {
     additionalFields: {
       firstName: { type: 'string' },
       lastName: { type: 'string' },
-      middleName: { type: 'string', required: false },
+      middleName: { type: 'string', required: true, defaultValue: '' },
       positions: { type: 'string[]', defaultValue: [], required: true },
       disabled: { type: 'boolean', defaultValue: false, required: true },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true },
-    },
-  },
-  callbacks: {
-    session({ session, user }: { session: Session; user: UserProfile }) {
-      const middle = user.middleName ? ` ${user.middleName}` : ''
-      const fullName = `${user.firstName}${middle} ${user.lastName}`.trim()
-
-      return {
-        ...session,
-        user: {
-          ...user,
-          name: fullName,
-        },
-      }
     },
   },
   rateLimit: {
@@ -111,5 +121,26 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [openAPI()],
+  plugins: [
+    openAPI(),
+    customSession(async ({ session, user }) => {
+      const customFields = user as unknown as CustomUserFields
+      const middle = customFields.middleName ? ` ${customFields.middleName}` : ''
+      const fullName = `${customFields.firstName}${middle} ${customFields.lastName}`.trim()
+
+      const positions = await getPositionsByIdsAdmin(firestore, customFields.positions ?? [])
+      const domains = resolveDomainsForPositions(positions)
+
+      return {
+        session,
+        user: {
+          ...user,
+          ...customFields,
+          name: fullName,
+          positions,
+          domains,
+        },
+      }
+    }),
+  ],
 })

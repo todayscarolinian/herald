@@ -4,7 +4,7 @@ import type { BulkPositionResult } from '@herald/types'
 import { PositionDTO } from '@herald/types'
 import { DEFAULT_PAGINATION } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -21,13 +21,14 @@ import { PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useToastOnError } from '@/hooks/use-toast-on-error'
 import {
   useBulkCreatePositions,
   useBulkUpdatePositions,
 } from '@/lib/api/mutations/positionMutations'
 import { usePositions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
-import { parseCreatePositionsCsv, parseUpdatePositionsCsv } from '@/lib/utils/csv-parser'
+import { parseCreatePositionsCsv, parseUpdatePositionsCsv } from '@/lib/csv/csv-parser'
 
 export default function PositionsPage() {
   const isMobile = useIsMobile()
@@ -54,11 +55,7 @@ export default function PositionsPage() {
 
   const isBulkLoading = bulkCreateMutation.isPending || bulkUpdateMutation.isPending
 
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message)
-    }
-  }, [isError, error])
+  useToastOnError(isError, error)
 
   const handleOpenDetails = (position: PositionDTO) => {
     setSelectedPosition(position)
@@ -83,8 +80,7 @@ export default function PositionsPage() {
 
   // Step 1: parse CSV and show the confirmation step
   const handleBulkSubmit = async (file: File, mode: 'create' | 'update') => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById) {
+    if (!sessionData?.user?.id) {
       toast.error('Session expired. Please sign in again.')
       return
     }
@@ -112,8 +108,7 @@ export default function PositionsPage() {
 
   // Step 2: after the admin confirms, run the mutation
   const handleConfirm = () => {
-    const requestedById = sessionData?.user?.id
-    if (!requestedById || !pendingRowsRef.current || !bulkMode) {
+    if (!sessionData?.user?.id || !pendingRowsRef.current || !bulkMode) {
       return
     }
 
@@ -140,9 +135,9 @@ export default function PositionsPage() {
     }
 
     if (bulkMode === 'create') {
-      bulkCreateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+      bulkCreateMutation.mutate({ positions: rows }, { onSuccess, onError })
     } else {
-      bulkUpdateMutation.mutate({ positions: rows, requestedById }, { onSuccess, onError })
+      bulkUpdateMutation.mutate({ positions: rows }, { onSuccess, onError })
     }
   }
 

@@ -1,12 +1,8 @@
-import type {
-  APIResponse,
-  DeletePositionInput,
-  PositionDTO,
-  UpdatePositionInput,
-} from '@herald/types'
-import { createFirebasePositionRepository } from '@herald/utils'
+import type { APIResponse, PositionDTO, UpdatePositionInput } from '@herald/types'
+import { createFirebasePositionRepository, isValidDomain } from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
 import { getServerFirestore } from '@/lib/api/services/firebase/firestore/server'
 
 export async function PUT(
@@ -14,6 +10,21 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {
@@ -42,41 +53,31 @@ export async function PUT(
       )
     }
 
-    if (body.permissions !== undefined && !Array.isArray(body.permissions)) {
+    if (body.domains !== undefined && !Array.isArray(body.domains)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"permissions" must be an array' },
+          error: { code: 'VALIDATION_ERROR', message: '"domains" must be an array' },
         },
         { status: 422 }
       )
     }
 
-    if (body.permissions && !body.permissions.every((item) => typeof item === 'string')) {
+    if (body.domains && !body.domains.every(isValidDomain)) {
       return NextResponse.json<APIResponse>(
         {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: '"permissions" must be an array of strings',
+            message: '"domains" must be an array of valid Domain values',
           },
         },
         { status: 422 }
       )
     }
 
-    if (!body.updatedById || typeof body.updatedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"updatedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     const hasNoUpdatableFields =
-      body.name === undefined && body.abbreviation === undefined && body.permissions === undefined
+      body.name === undefined && body.abbreviation === undefined && body.domains === undefined
 
     if (hasNoUpdatableFields) {
       return NextResponse.json<APIResponse>(
@@ -84,7 +85,7 @@ export async function PUT(
           success: false,
           error: {
             code: 'BAD_REQUEST',
-            message: 'At least one of "name", "abbreviation", or "permissions" must be provided',
+            message: 'At least one of "name", "abbreviation", or "domains" must be provided',
           },
         },
         { status: 400 }
@@ -95,12 +96,11 @@ export async function PUT(
       id,
       name: body.name ?? '',
       abbreviation: body.abbreviation ?? '',
-      permissions: body.permissions ?? [],
-      updatedById: body.updatedById,
+      domains: body.domains ?? [],
     }
 
     const repository = createFirebasePositionRepository(getServerFirestore())
-    const updatedPosition = await repository.update(updateData)
+    const updatedPosition = await repository.update(updateData, sessionUser.id)
 
     return NextResponse.json<APIResponse<PositionDTO>>(
       { success: true, data: updatedPosition },
@@ -116,6 +116,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    const sessionUser = await verifySessionFromCookie(cookieHeader)
+    if (!sessionUser) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No valid session' } },
+        { status: 401 }
+      )
+    }
+    if (!hasHeraldWriteAccess(sessionUser.domains)) {
+      return NextResponse.json<APIResponse>(
+        { success: false, error: { code: 'FORBIDDEN', message: 'TC Herald access required' } },
+        { status: 403 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {
@@ -125,21 +140,8 @@ export async function DELETE(
       )
     }
 
-    const text = await request.text()
-    const body = (text ? JSON.parse(text) : {}) as Partial<DeletePositionInput>
-
-    if (!body.deletedById || typeof body.deletedById !== 'string') {
-      return NextResponse.json<APIResponse>(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '"deletedById" is required' },
-        },
-        { status: 422 }
-      )
-    }
-
     const repository = createFirebasePositionRepository(getServerFirestore())
-    await repository.delete({ id, deletedById: body.deletedById })
+    await repository.delete({ id }, sessionUser.id)
 
     return NextResponse.json<APIResponse<{ message: string }>>(
       { success: true, data: { message: `Position ${id} has been deleted` } },

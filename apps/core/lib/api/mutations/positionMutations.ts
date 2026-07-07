@@ -57,7 +57,7 @@ export function useBulkCreatePositions() {
   return useMutation<
     APIResponse<BulkPositionResult>,
     Error,
-    { positions: BulkCreatePositionRowInput[]; requestedById: string }
+    { positions: BulkCreatePositionRowInput[] }
   >({
     mutationFn: bulkCreatePositions,
     onSuccess: () => {
@@ -72,7 +72,7 @@ export function useBulkUpdatePositions() {
   return useMutation<
     APIResponse<BulkPositionResult>,
     Error,
-    { positions: BulkUpdatePositionRowInput[]; requestedById: string }
+    { positions: BulkUpdatePositionRowInput[] }
   >({
     mutationFn: bulkUpdatePositions,
     onSuccess: () => {
