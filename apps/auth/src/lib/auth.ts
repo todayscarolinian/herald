@@ -119,6 +119,21 @@ export const auth = betterAuth({
         window: 60, // time in seconds
         max: 2, // max requests per window
       },
+      // BetterAuth's default special rule caps /sign-up/* at 3 req/10s per
+      // IP, which our own server hits repeatedly during bulk-create. Trusted
+      // internal calls (already gated by the internal API key and bounded by
+      // MAX_BULK_BATCH_SIZE + our own rate-limiter middleware) skip this
+      // check entirely; public callers keep the strict default.
+      '/sign-up/email': (request: Request, currentRule: { window: number; max: number }) => {
+        const configuredSecret = process.env.HERALD_INTERNAL_API_KEY
+        const providedKey = request.headers.get('x-herald-internal-api-key')
+
+        if (configuredSecret && providedKey === configuredSecret) {
+          return false
+        }
+
+        return currentRule
+      },
     },
   },
   plugins: [

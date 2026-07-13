@@ -54,6 +54,15 @@ function getClientIp(c: Context): string | undefined {
   return c.req.header('x-real-ip') ?? undefined
 }
 
+function hasValidInternalApiKey(c: Context): boolean {
+  const configuredSecret = process.env.HERALD_INTERNAL_API_KEY
+  if (!configuredSecret) {
+    return false
+  }
+
+  return c.req.header('x-herald-internal-api-key') === configuredSecret
+}
+
 function getUserId(c: Context): string | undefined {
   const fromHeader = c.req.header('x-user-id') || c.req.header('x-auth-user-id')
   if (fromHeader) {
@@ -78,7 +87,7 @@ function getUserId(c: Context): string | undefined {
   return undefined
 }
 
-function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy | null {
+function resolveRateLimitPolicy(path: string, method: string, c: Context): RateLimitPolicy | null {
   const normalizedPath = normalizePath(path)
   const normalizedMethod = method.toUpperCase()
 
@@ -176,6 +185,22 @@ function resolveRateLimitPolicy(path: string, method: string): RateLimitPolicy |
 
   // BetterAuth-style endpoints handled by auth.handler.
   if (normalizedMethod === 'POST' && normalizedPath === BETTER_AUTH_SIGN_UP_PATH) {
+    // `/api/auth/*` is allowlisted from internal-key enforcement (needed for
+    // public OAuth/browser flows), so a trusted caller must be identified
+    // here instead, keeping bulk-create from sharing the public abuse bucket.
+    if (hasValidInternalApiKey(c)) {
+      return {
+        rule: {
+          ...RATE_LIMIT_THRESHOLDS.SIGNUP_INTERNAL,
+          methodScope: 'perIP',
+          keyPrefix: 'signup-internal',
+        },
+        status: 429,
+        code: 'RATE_LIMIT_SIGNUP_INTERNAL',
+        message: 'Too many sign up attempts. Please try again later',
+      }
+    }
+
     return {
       rule: { ...RATE_LIMIT_THRESHOLDS.LOGIN, methodScope: 'perIP', keyPrefix: 'signup' },
       status: 429,
@@ -208,7 +233,7 @@ export default async function rateLimiterMiddleware(c: Context, next: Next) {
   }
 
   const normalizedPath = normalizePath(c.req.path)
-  const policy = resolveRateLimitPolicy(normalizedPath, c.req.method)
+  const policy = resolveRateLimitPolicy(normalizedPath, c.req.method, c)
   if (!policy) {
     await next()
     return

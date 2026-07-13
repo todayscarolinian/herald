@@ -60,4 +60,8 @@ export const RATE_LIMIT_THRESHOLDS = {
     windowSeconds: 60,
     maxRequests: 20,
   },
+  SIGNUP_INTERNAL: {
+    windowSeconds: 60,
+    maxRequests: 60,
+  },
 } as const
