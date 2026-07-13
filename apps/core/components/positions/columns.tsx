@@ -22,15 +22,5 @@ export const columns: ColumnDef<PositionDTO>[] = [
     accessorKey: 'domains',
     enableHiding: true,
     enableSorting: false,
-    filterFn: (row, _columnId, filterValue) => {
-      const selectedDomains = Array.isArray(filterValue) ? (filterValue as string[]) : []
-
-      if (selectedDomains.length === 0) {
-        return true
-      }
-
-      const rowDomains = (row.getValue('domains') as string[] | undefined) ?? []
-      return selectedDomains.some((domain) => rowDomains.includes(domain))
-    },
   },
 ]

@@ -35,9 +35,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 function parseFilters(searchParams: URLSearchParams): AuditLogFilters {
   const action = searchParams.get('action')?.trim()
+  const search = searchParams.get('search')?.trim()
 
   return {
     ...(action ? { action } : {}),
+    ...(search ? { search } : {}),
   }
 }
 

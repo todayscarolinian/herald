@@ -13,7 +13,7 @@ export interface PaginationInput {
 
 export const DEFAULT_PAGINATION: PaginationInput = {
   page: 1,
-  limit: 20,
+  limit: 10,
 }
 
 export interface PaginatedResult<T> {

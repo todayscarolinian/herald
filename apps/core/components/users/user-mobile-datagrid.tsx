@@ -1,139 +1,88 @@
 'use client'
 
-import { UserDTO, UserFilters, UserListDTO, UserSortField } from '@herald/types'
+import { UserDTO, UserFilters, UserSortField } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
 
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 
 import { UserCard } from './user-card'
 import { MobileToolbar } from './user-mobile-toolbar'
 
-const MOBILE_PAGE_SIZE = 10
 const USER_SORT_FIELDS: UserSortField[] = ['name', 'email', 'createdAt', 'updatedAt']
 
 type MobileDatagridProps = {
-  users: UserListDTO
+  users: UserDTO[]
+  total: number
+  pageIndex: number
+  pageSize: number
+  onPageChange: (pageIndex: number) => void
+  isLoadingRows: boolean
+  search: string
+  onSearchChange: (value: string) => void
+  selectedFilters: UserFilters
+  onApplyFilters: (filters: UserFilters) => void
+  selectedSortField: UserSortField
+  selectedSortDirection: 'asc' | 'desc'
+  onApplySort: (field: UserSortField, direction: 'asc' | 'desc') => void
   onClick: (user: UserDTO) => void
 }
 
-export default function MobileDatagrid({ users, onClick }: MobileDatagridProps) {
-  const [search, setSearch] = useState('')
-  const [selectedFilters, setSelectedFilters] = useState<UserFilters>({})
-  const [selectedSortField, setSelectedSortField] = useState<UserSortField>('createdAt')
-  const [selectedSortDirection, setSelectedSortDirection] = useState<'asc' | 'desc'>('desc')
-  const [mobilePage, setMobilePage] = useState(0)
-
+export default function MobileDatagrid({
+  users,
+  total,
+  pageIndex,
+  pageSize,
+  onPageChange,
+  isLoadingRows,
+  search,
+  onSearchChange,
+  selectedFilters,
+  onApplyFilters,
+  selectedSortField,
+  selectedSortDirection,
+  onApplySort,
+  onClick,
+}: MobileDatagridProps) {
   const { data: positionsData } = useAllPositionsOptions()
 
-  const availablePositions = useMemo(
-    () => (positionsData?.items ?? []).map((p) => ({ id: p.id, label: p.name })),
-    [positionsData?.items]
-  )
+  const availablePositions = (positionsData?.items ?? []).map((p) => ({
+    id: p.id,
+    label: p.name,
+  }))
 
-  const processedUsers = useMemo(() => {
-    const loweredSearch = search.trim().toLowerCase()
-
-    const filtered = users.items.filter((user) => {
-      if (loweredSearch && !user.name.toLowerCase().includes(loweredSearch)) {
-        return false
-      }
-
-      if (
-        selectedFilters.positionIds?.length &&
-        !user.positions.some((position) => selectedFilters.positionIds?.includes(position.id))
-      ) {
-        return false
-      }
-
-      if (selectedFilters.disabled !== undefined && user.disabled !== selectedFilters.disabled) {
-        return false
-      }
-
-      if (
-        selectedFilters.emailVerified !== undefined &&
-        user.emailVerified !== selectedFilters.emailVerified
-      ) {
-        return false
-      }
-
-      return true
-    })
-
-    return filtered.sort((a, b) => {
-      const aValue = a[selectedSortField]
-      const bValue = b[selectedSortField]
-
-      if (aValue < bValue) {
-        return selectedSortDirection === 'asc' ? -1 : 1
-      }
-      if (aValue > bValue) {
-        return selectedSortDirection === 'asc' ? 1 : -1
-      }
-
-      return 0
-    })
-  }, [search, selectedFilters, selectedSortDirection, selectedSortField, users.items])
-
-  const mobileTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(processedUsers.length / MOBILE_PAGE_SIZE)),
-    [processedUsers.length]
-  )
-
-  const mobilePaginated = useMemo(() => {
-    const start = mobilePage * MOBILE_PAGE_SIZE
-    return processedUsers.slice(start, start + MOBILE_PAGE_SIZE)
-  }, [mobilePage, processedUsers])
-
-  if (mobilePage > mobileTotalPages - 1) {
-    setMobilePage(Math.max(0, mobileTotalPages - 1))
-  }
-
-  const handleSearchChange = (val: string) => {
-    setSearch(val)
-    setMobilePage(0)
-  }
-
-  const applyFilters = (filters: UserFilters) => {
-    setSelectedFilters(filters)
-    setMobilePage(0)
-  }
-
-  const applySort = (field: UserSortField, direction: 'asc' | 'desc') => {
-    setSelectedSortField(field)
-    setSelectedSortDirection(direction)
-    setMobilePage(0)
-  }
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1
+  const canPreviousPage = pageIndex > 0
+  const canNextPage = pageIndex + 1 < totalPages
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 px-0 py-3 sm:grid-cols-2">
-        {mobilePaginated.map((u) => (
-          <UserCard key={u.id} user={u} onClick={() => onClick(u)} />
-        ))}
+        {isLoadingRows
+          ? Array.from({ length: pageSize }, (_, i) => `loading-card-${i}`).map((key) => (
+              <Skeleton key={key} className="h-24 w-full rounded-md" />
+            ))
+          : users.map((u) => <UserCard key={u.id} user={u} onClick={() => onClick(u)} />)}
       </div>
 
       <div className="mt-4 mb-12 flex items-center justify-between px-0 py-3">
         <button
-          onClick={() => setMobilePage((p) => Math.max(p - 1, 0))}
-          disabled={mobilePage === 0}
+          onClick={() => onPageChange(pageIndex - 1)}
+          disabled={!canPreviousPage || isLoadingRows}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
         >
           <ChevronLeft className="h-6 w-6 text-black/60" strokeWidth={1.5} />
         </button>
 
         <div className="text-sm text-black">
-          {processedUsers.length === 0
+          {total === 0
             ? '0 of 0'
-            : `${mobilePage * MOBILE_PAGE_SIZE + 1}-${Math.min(
-                (mobilePage + 1) * MOBILE_PAGE_SIZE,
-                processedUsers.length
-              )} of ${processedUsers.length}`}
+            : `${pageIndex * pageSize + 1}-${Math.min((pageIndex + 1) * pageSize, total)} of ${total}`}
         </div>
 
         <button
-          onClick={() => setMobilePage((p) => Math.min(p + 1, mobileTotalPages - 1))}
-          disabled={mobilePage >= mobileTotalPages - 1}
+          onClick={() => onPageChange(pageIndex + 1)}
+          disabled={!canNextPage || isLoadingRows}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
         >
           <ChevronRight className="h-6 w-6 text-black/60" strokeWidth={1.5} />
@@ -143,14 +92,14 @@ export default function MobileDatagrid({ users, onClick }: MobileDatagridProps) 
       <MobileToolbar
         title="Users"
         search={search}
-        onSearchChange={handleSearchChange}
+        onSearchChange={onSearchChange}
         availablePositions={availablePositions}
         selectedFilters={selectedFilters}
         availableSortFields={USER_SORT_FIELDS}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
-        onApplyFilters={applyFilters}
-        onApplySort={applySort}
+        onApplyFilters={onApplyFilters}
+        onApplySort={onApplySort}
       />
     </>
   )

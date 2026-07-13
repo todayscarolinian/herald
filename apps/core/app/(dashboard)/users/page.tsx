@@ -1,8 +1,9 @@
 'use client'
 
-import type { BulkUserResult, UserDTO } from '@herald/types'
+import type { BulkUserResult, UserDTO, UserFilters, UserSortField } from '@herald/types'
+import { DEFAULT_PAGINATION } from '@herald/types'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/shared'
@@ -15,9 +16,11 @@ import MobileDatagrid from '@/components/users/user-mobile-datagrid'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useToastOnError } from '@/hooks/use-toast-on-error'
 import { useBulkCreateUsers, useBulkUpdateUsers } from '@/lib/api/mutations/userMutations'
-import { useUsers } from '@/lib/api/queries/userQueries'
+import { useUsersInfinite } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
 import { parseCreateUsersCsv, parseUpdateUsersCsv } from '@/lib/csv/csv-parser'
+
+const SEARCH_DEBOUNCE_MS = 300
 
 export default function UsersPage() {
   const isMobile = useIsMobile()
@@ -29,15 +32,81 @@ export default function UsersPage() {
   const [bulkResult, setBulkResult] = useState<BulkUserResult | null>(null)
   const [confirmRows, setConfirmRows] = useState<ConfirmRow[] | null>(null)
 
+  // Table page (0-based) and page size are independent from the server's
+  // fetch batch size (see USERS_SERVER_BATCH_SIZE) — useUsersInfinite
+  // accumulates server batches and we window into them here.
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGINATION.limit)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState<UserFilters>({})
+  const [sortField, setSortField] = useState<UserSortField>('createdAt')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
+
+  // Reset to the first page whenever the query itself changes. Adjusting
+  // state during render (rather than in a useEffect) avoids an extra
+  // cascading render pass — see https://react.dev/learn/you-might-not-need-an-effect.
+  const queryKey = JSON.stringify({ search, filters, sortField, sortDirection, pageSize })
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey)
+  if (queryKey !== prevQueryKey) {
+    setPrevQueryKey(queryKey)
+    setPageIndex(0)
+  }
+
   // Holds the strongly-typed parsed rows between the confirm step and mutation call
   const pendingRowsRef = useRef<Parameters<typeof bulkCreateMutation.mutate>[0]['users'] | null>(
     null
   )
 
-  const { data, isLoading, isError, error, refetch } = useUsers({
-    filters: {},
-    pagination: { page: 1, limit: 200 },
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useUsersInfinite({
+    filters: { ...filters, search: search || undefined },
+    sort: { field: sortField, direction: sortDirection },
   })
+
+  const allItems = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data])
+  const total = data?.pages[0]?.total ?? 0
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1
+  const pageReady = allItems.length >= Math.min(total, (pageIndex + 1) * pageSize)
+
+  // Keep the cache topped up: the page being viewed always takes priority
+  // (that's what pageReady/isLoadingRows gate on). Once it's satisfied, keep
+  // going and silently prefetch one page ahead in the background, so
+  // clicking "next" is instant instead of waiting on a fresh request. Runs
+  // again after each fetch resolves until both are satisfied or the server
+  // is exhausted.
+  useEffect(() => {
+    const target = pageReady ? (pageIndex + 2) * pageSize : (pageIndex + 1) * pageSize
+    if (allItems.length < target && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage()
+    }
+  }, [
+    pageIndex,
+    pageSize,
+    pageReady,
+    allItems.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ])
+
+  const pageItems = useMemo(
+    () => allItems.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize),
+    [allItems, pageIndex, pageSize]
+  )
 
   const bulkCreateMutation = useBulkCreateUsers()
   const bulkUpdateMutation = useBulkUpdateUsers()
@@ -134,6 +203,13 @@ export default function UsersPage() {
     }
   }
 
+  // isLoading is only true before the very first batch has ever resolved —
+  // there's nothing to show a shell for yet. Once that first batch has
+  // landed, further page-to-page fetches (pageReady false) keep the table
+  // shell (headers/toolbar/pager) mounted and show a loading state scoped to
+  // just the row area instead of replacing the whole table.
+  const isLoadingRows = !isLoading && !pageReady
+
   const renderTable = () => {
     if (isLoading) {
       return (
@@ -160,9 +236,7 @@ export default function UsersPage() {
       )
     }
 
-    const users = data?.items ?? []
-
-    if (users.length === 0) {
+    if (total === 0) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
           <span className="bg-tc_primary-500/10 text-tc_primary-600 dark:text-tc_primary-400 flex size-12 items-center justify-center rounded-full">
@@ -175,11 +249,52 @@ export default function UsersPage() {
     }
 
     if (isMobile) {
-      return <MobileDatagrid users={data!} onClick={handleOpenDetails} />
+      return (
+        <MobileDatagrid
+          users={pageItems}
+          total={total}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          onPageChange={setPageIndex}
+          isLoadingRows={isLoadingRows}
+          search={searchInput}
+          onSearchChange={setSearchInput}
+          selectedFilters={filters}
+          onApplyFilters={setFilters}
+          selectedSortField={sortField}
+          selectedSortDirection={sortDirection}
+          onApplySort={(field, direction) => {
+            setSortField(field)
+            setSortDirection(direction)
+          }}
+          onClick={handleOpenDetails}
+        />
+      )
     }
 
     return (
-      <DataTable<UserDTO, unknown> columns={columns} data={users} onRowClick={handleOpenDetails} />
+      <DataTable<UserDTO, unknown>
+        columns={columns}
+        data={pageItems}
+        onRowClick={handleOpenDetails}
+        total={total}
+        pageIndex={pageIndex}
+        pageSize={pageSize}
+        pageCount={totalPages}
+        onPageChange={setPageIndex}
+        onPageSizeChange={setPageSize}
+        isLoadingRows={isLoadingRows}
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        selectedFilters={filters}
+        onApplyFilters={setFilters}
+        selectedSortField={sortField}
+        selectedSortDirection={sortDirection}
+        onApplySort={(field, direction) => {
+          setSortField(field)
+          setSortDirection(direction)
+        }}
+      />
     )
   }
 

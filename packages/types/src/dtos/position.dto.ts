@@ -46,6 +46,7 @@ export interface ListPositionsInput {
 
 export interface PositionFilters {
   domains?: Domain[]
+  search?: string
 }
 
 export type PositionSortField = 'name' | 'createdAt' | 'updatedAt'

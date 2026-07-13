@@ -1,19 +1,8 @@
 'use client'
 
 import type { UserFilters, UserSortField } from '@herald/types'
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -25,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -41,17 +31,41 @@ type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onRowClick?: (row: TData) => void
+  total: number
+  pageIndex: number
+  pageSize: number
+  pageCount: number
+  onPageChange: (pageIndex: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  isLoadingRows: boolean
+  search: string
+  onSearchChange: (value: string) => void
+  selectedFilters: UserFilters
+  onApplyFilters: (filters: UserFilters) => void
+  selectedSortField: UserSortField
+  selectedSortDirection: 'asc' | 'desc'
+  onApplySort: (field: UserSortField, direction: 'asc' | 'desc') => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onRowClick,
+  total,
+  pageIndex,
+  pageSize,
+  pageCount,
+  onPageChange,
+  onPageSizeChange,
+  isLoadingRows,
+  search,
+  onSearchChange,
+  selectedFilters,
+  onApplyFilters,
+  selectedSortField,
+  selectedSortDirection,
+  onApplySort,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [userFilters, setUserFilters] = React.useState<UserFilters>({})
-
   const { data: positionsData } = useAllPositionsOptions()
 
   const availablePositions = (positionsData?.items ?? []).map((p) => ({
@@ -63,16 +77,12 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: { sorting, columnFilters },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
+    manualPagination: true,
+    manualFiltering: true,
+    manualSorting: true,
+    pageCount,
+    state: {
+      pagination: { pageIndex, pageSize },
       columnVisibility: {
         disabled: false,
         emailVerified: false,
@@ -80,68 +90,23 @@ export function DataTable<TData, TValue>({
     },
   })
 
-  const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as UserSortField) : 'createdAt'
-  const selectedSortDirection: 'asc' | 'desc' = sorting[0]
-    ? sorting[0].desc
-      ? 'desc'
-      : 'asc'
-    : 'desc'
-  const searchValue = (table.getColumn('name')?.getFilterValue() as string) ?? ''
-
-  const applySort = (field: UserSortField, direction: 'asc' | 'desc') => {
-    if (!table.getColumn(field)) {
-      return
-    }
-
-    table.setSorting([
-      {
-        id: field,
-        desc: direction === 'desc',
-      },
-    ])
-    table.setPageIndex(0)
-  }
-
-  const applyFilters = (filters: UserFilters) => {
-    setUserFilters(filters)
-    table.setPageIndex(0)
-
-    if (filters.positionIds) {
-      table.getColumn('positions')?.setFilterValue(filters.positionIds)
-    } else {
-      table.getColumn('positions')?.setFilterValue(undefined)
-    }
-
-    if (filters.disabled !== undefined) {
-      table.getColumn('disabled')?.setFilterValue(filters.disabled)
-    } else {
-      table.getColumn('disabled')?.setFilterValue(undefined)
-    }
-
-    if (filters.emailVerified !== undefined) {
-      table.getColumn('emailVerified')?.setFilterValue(filters.emailVerified)
-    } else {
-      table.getColumn('emailVerified')?.setFilterValue(undefined)
-    }
-
-    table.setPageIndex(0)
-  }
+  const rangeStart = total === 0 ? 0 : pageIndex * pageSize + 1
+  const rangeEnd = Math.min((pageIndex + 1) * pageSize, total)
+  const canPreviousPage = pageIndex > 0
+  const canNextPage = pageIndex + 1 < pageCount
 
   return (
     <div className="overflow-hidden">
       <DesktopToolbar
         title="Users"
-        search={searchValue}
-        onSearchChange={(value) => {
-          table.getColumn('name')?.setFilterValue(value)
-          table.setPageIndex(0)
-        }}
-        selectedFilters={userFilters}
+        search={search}
+        onSearchChange={onSearchChange}
+        selectedFilters={selectedFilters}
         availablePositions={availablePositions}
-        onApplyFilters={applyFilters}
+        onApplyFilters={onApplyFilters}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
-        onApplySort={applySort}
+        onApplySort={onApplySort}
       />
       <div className="rounded-md">
         <Table>
@@ -161,7 +126,15 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoadingRows ? (
+              Array.from({ length: pageSize }, (_, i) => `loading-row-${i}`).map((key) => (
+                <TableRow key={key}>
+                  <TableCell colSpan={columns.length} className="px-4 py-[18px]">
+                    <Skeleton className="h-6 w-full rounded-md" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -189,7 +162,7 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center justify-end space-x-2 py-4">
         <Field orientation="horizontal" className="w-fit">
           <FieldLabel htmlFor="select-rows-per-page">Rows per page</FieldLabel>
-          <Select defaultValue="10" onValueChange={(value) => table.setPageSize(Number(value))}>
+          <Select value={`${pageSize}`} onValueChange={(value) => onPageSizeChange(Number(value))}>
             <SelectTrigger className="w-20" id="select-rows-per-page">
               <SelectValue />
             </SelectTrigger>
@@ -205,27 +178,28 @@ export function DataTable<TData, TValue>({
         </Field>
         <div className="flex items-center space-x-2">
           <span className="text-muted-foreground text-sm">
-            {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            of {table.getFilteredRowModel().rows.length}
+            {total > 0 ? (
+              <>
+                {rangeStart}–{rangeEnd} of {total}
+              </>
+            ) : (
+              '0 of 0'
+            )}
           </span>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          onClick={() => onPageChange(pageIndex - 1)}
+          disabled={!canPreviousPage || isLoadingRows}
         >
           <ChevronLeft />
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          onClick={() => onPageChange(pageIndex + 1)}
+          disabled={!canNextPage || isLoadingRows}
         >
           <ChevronRight />
         </Button>

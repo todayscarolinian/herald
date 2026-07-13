@@ -1,104 +1,68 @@
 'use client'
 
-import { AuditLogDTO, AuditLogFilters, AuditLogListDTO, AuditLogSortField } from '@herald/types'
+import { AuditLogDTO, AuditLogFilters, AuditLogSortField } from '@herald/types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+
+import { Skeleton } from '@/components/ui/skeleton'
 
 import { AuditLogCard } from './audit-log-card'
 import { MobileToolbar } from './audit-log-mobile-toolbar'
 
-const MOBILE_PAGE_SIZE = 10
 const AUDIT_LOG_SORT_FIELDS: AuditLogSortField[] = ['action', 'timestamp']
 
 type MobileDatagridProps = {
-  auditLogs: AuditLogListDTO
+  auditLogs: AuditLogDTO[]
+  total: number
+  pageIndex: number
+  pageSize: number
+  onPageChange: (pageIndex: number) => void
+  isLoadingRows: boolean
+  search: string
+  onSearchChange: (value: string) => void
+  selectedFilters: AuditLogFilters
+  onApplyFilters: (filters: AuditLogFilters) => void
+  selectedSortField: AuditLogSortField
+  selectedSortDirection: 'asc' | 'desc'
+  onApplySort: (field: AuditLogSortField, direction: 'asc' | 'desc') => void
   onClick: (auditLog: AuditLogDTO) => void
 }
 
-export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
-  const [search, setSearch] = useState('')
-  const [selectedFilters, setSelectedFilters] = useState<AuditLogFilters>({})
-  const [selectedSortField, setSelectedSortField] = useState<AuditLogSortField>('action')
-  const [selectedSortDirection, setSelectedSortDirection] = useState<'asc' | 'desc'>('asc')
-  const [mobilePage, setMobilePage] = useState(0)
-
-  const processedAuditLogs = useMemo(() => {
-    const loweredSearch = search.trim().toLowerCase()
-
-    const filtered = auditLogs.items.filter((auditLog) => {
-      if (loweredSearch) {
-        const matchesSearch =
-          auditLog.action.toLowerCase().includes(loweredSearch) ||
-          auditLog.timestamp.toLowerCase().includes(loweredSearch)
-
-        if (!matchesSearch) {
-          return false
-        }
-      }
-
-      if (selectedFilters.action && auditLog.action !== selectedFilters.action) {
-        return false
-      }
-
-      return true
-    })
-
-    return filtered.sort((a, b) => {
-      const aValue = a[selectedSortField]
-      const bValue = b[selectedSortField]
-
-      if (aValue < bValue) {
-        return selectedSortDirection === 'asc' ? -1 : 1
-      }
-      if (aValue > bValue) {
-        return selectedSortDirection === 'asc' ? 1 : -1
-      }
-
-      return 0
-    })
-  }, [search, selectedFilters, selectedSortDirection, selectedSortField, auditLogs.items])
-
-  const mobileTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(processedAuditLogs.length / MOBILE_PAGE_SIZE)),
-    [processedAuditLogs.length]
-  )
-
-  const maxMobilePage = mobileTotalPages - 1
-  const mobileCurrentPage = Math.min(mobilePage, maxMobilePage)
-
-  const mobilePaginated = useMemo(() => {
-    const start = mobileCurrentPage * MOBILE_PAGE_SIZE
-    return processedAuditLogs.slice(start, start + MOBILE_PAGE_SIZE)
-  }, [mobileCurrentPage, processedAuditLogs])
-
-  const handleSearchChange = (val: string) => {
-    setSearch(val)
-    setMobilePage(0)
-  }
-
-  const applyFilters = (filters: AuditLogFilters) => {
-    setSelectedFilters(filters)
-    setMobilePage(0)
-  }
-
-  const applySort = (field: AuditLogSortField, direction: 'asc' | 'desc') => {
-    setSelectedSortField(field)
-    setSelectedSortDirection(direction)
-    setMobilePage(0)
-  }
+export function MobileDatagrid({
+  auditLogs,
+  total,
+  pageIndex,
+  pageSize,
+  onPageChange,
+  isLoadingRows,
+  search,
+  onSearchChange,
+  selectedFilters,
+  onApplyFilters,
+  selectedSortField,
+  selectedSortDirection,
+  onApplySort,
+  onClick,
+}: MobileDatagridProps) {
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1
+  const canPreviousPage = pageIndex > 0
+  const canNextPage = pageIndex + 1 < totalPages
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 px-0 py-3 sm:grid-cols-2">
-        {mobilePaginated.map((u) => (
-          <AuditLogCard key={u.id} auditLog={u} onClick={() => onClick(u)} />
-        ))}
+        {isLoadingRows
+          ? Array.from({ length: pageSize }, (_, i) => `loading-card-${i}`).map((key) => (
+              <Skeleton key={key} className="h-24 w-full rounded-md" />
+            ))
+          : auditLogs.map((u) => (
+              <AuditLogCard key={u.id} auditLog={u} onClick={() => onClick(u)} />
+            ))}
       </div>
 
       <div className="mt-4 mb-12 flex items-center justify-between px-0 py-3">
         <button
-          onClick={() => setMobilePage(Math.max(mobileCurrentPage - 1, 0))}
-          disabled={mobileCurrentPage === 0}
+          onClick={() => onPageChange(pageIndex - 1)}
+          disabled={!canPreviousPage || isLoadingRows}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
           aria-label="Previous Page"
         >
@@ -106,17 +70,14 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
         </button>
 
         <div className="text-sm text-black">
-          {processedAuditLogs.length === 0
+          {total === 0
             ? '0 of 0'
-            : `${mobileCurrentPage * MOBILE_PAGE_SIZE + 1}-${Math.min(
-                (mobileCurrentPage + 1) * MOBILE_PAGE_SIZE,
-                processedAuditLogs.length
-              )} of ${processedAuditLogs.length}`}
+            : `${pageIndex * pageSize + 1}-${Math.min((pageIndex + 1) * pageSize, total)} of ${total}`}
         </div>
 
         <button
-          onClick={() => setMobilePage(Math.min(mobileCurrentPage + 1, maxMobilePage))}
-          disabled={mobileCurrentPage >= maxMobilePage}
+          onClick={() => onPageChange(pageIndex + 1)}
+          disabled={!canNextPage || isLoadingRows}
           className="flex h-6 w-6 items-center justify-center text-black/60 disabled:opacity-30"
           aria-label="Next Page"
         >
@@ -127,13 +88,13 @@ export function MobileDatagrid({ auditLogs, onClick }: MobileDatagridProps) {
       <MobileToolbar
         title="Audit Logs"
         search={search}
-        onSearchChange={handleSearchChange}
+        onSearchChange={onSearchChange}
         selectedFilters={selectedFilters}
         availableSortFields={AUDIT_LOG_SORT_FIELDS}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
-        onApplyFilters={applyFilters}
-        onApplySort={applySort}
+        onApplyFilters={onApplyFilters}
+        onApplySort={onApplySort}
       />
     </>
   )

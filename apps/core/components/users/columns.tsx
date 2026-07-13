@@ -32,13 +32,6 @@ export const columns: ColumnDef<UserDTO>[] = [
     id: 'positions',
     accessorFn: (row) => row.positions,
     header: 'Position',
-    filterFn: (row, columnId, filterValue: string[]) => {
-      if (!filterValue?.length) {
-        return true
-      }
-      const positions: Position[] = row.getValue(columnId)
-      return positions.some((p) => filterValue.includes(p.id))
-    },
     cell: ({ row }) => {
       const positions: Position[] = row.getValue('positions')
       const visible = positions.slice(0, MAX_VISIBLE_POSITIONS)
@@ -78,15 +71,9 @@ export const columns: ColumnDef<UserDTO>[] = [
   {
     accessorKey: 'disabled',
     enableHiding: true,
-    filterFn: (row, columnId, filterValue: boolean) => {
-      return row.getValue(columnId) === filterValue
-    },
   },
   {
     accessorKey: 'emailVerified',
     enableHiding: true,
-    filterFn: (row, columnId, filterValue: boolean) => {
-      return row.getValue(columnId) === filterValue
-    },
   },
 ]

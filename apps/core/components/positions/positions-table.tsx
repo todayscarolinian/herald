@@ -1,18 +1,6 @@
 'use client'
-import type { PositionSortField } from '@herald/types'
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
 
 import { DesktopToolbar } from '@/components/positions'
 import { Button } from '@/components/ui/button'
@@ -23,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -36,6 +25,20 @@ interface PositionsTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onRowClick?: (data: TData) => void
+  total: number
+  pageIndex: number
+  pageSize: number
+  pageCount: number
+  onPageChange: (pageIndex: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  isLoadingRows: boolean
+  search: string
+  onSearchChange: (value: string) => void
+  selectedDomains: string[]
+  onApplyDomains: (domains: string[]) => void
+  selectedSortField: string
+  selectedSortDirection: 'asc' | 'desc'
+  onApplySort: (field: string, direction: 'asc' | 'desc') => void
 }
 
 const pageSizes = [5, 10, 20, 50]
@@ -44,67 +47,54 @@ export function PositionsTable<TData, TValue>({
   data,
   columns,
   onRowClick,
+  total,
+  pageIndex,
+  pageSize,
+  pageCount,
+  onPageChange,
+  onPageSizeChange,
+  isLoadingRows,
+  search,
+  onSearchChange,
+  selectedDomains,
+  onApplyDomains,
+  selectedSortField,
+  selectedSortDirection,
+  onApplySort,
 }: PositionsTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
+    manualPagination: true,
+    manualFiltering: true,
+    manualSorting: true,
+    pageCount,
     state: {
-      columnFilters,
-      sorting,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
+      pagination: { pageIndex, pageSize },
       columnVisibility: {
         domains: false,
       },
     },
   })
 
-  const selectedSortField = sorting[0]?.id ? (sorting[0]?.id as PositionSortField) : 'name'
-  const selectedSortDirection = sorting[0]?.desc ? 'desc' : 'asc'
-  const selectedDomains = (table.getColumn('domains')?.getFilterValue() ?? []) as string[]
+  const canPreviousPage = pageIndex > 0
+  const canNextPage = pageIndex + 1 < pageCount
 
-  const applySort = (field: string, direction: 'asc' | 'desc') => {
-    if (!table.getColumn(field)) {
-      return
-    }
-
-    table.setSorting([
-      {
-        id: field,
-        desc: direction === 'desc',
-      },
-    ])
-    table.setPageIndex(0)
-  }
-
-  const applyDomainsFilter = (domains: string[]) => {
-    table.getColumn('domains')?.setFilterValue(domains)
-    table.setPageIndex(0)
-  }
+  const rangeStart = total === 0 ? 0 : pageIndex * pageSize + 1
+  const rangeEnd = Math.min((pageIndex + 1) * pageSize, total)
 
   return (
     <div className="w-full">
       <DesktopToolbar
         title="Positions"
-        search={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
-        onSearchChange={(search) => table.getColumn('name')?.setFilterValue(search)}
+        search={search}
+        onSearchChange={onSearchChange}
         selectedFilters={selectedDomains}
-        onApplyFilters={applyDomainsFilter}
+        onApplyFilters={onApplyDomains}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
-        onApplySort={applySort}
+        onApplySort={onApplySort}
       />
       <div className="rounded-none border-b">
         <Table>
@@ -123,7 +113,15 @@ export function PositionsTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {isLoadingRows ? (
+              Array.from({ length: pageSize }, (_, i) => `loading-row-${i}`).map((key) => (
+                <TableRow key={key}>
+                  <TableCell colSpan={columns.length} className="px-4 py-[18px]">
+                    <Skeleton className="h-6 w-full rounded-md" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -152,18 +150,18 @@ export function PositionsTable<TData, TValue>({
         <div className="flex items-center space-x-2">
           <p className="mr-[10px] text-sm">Rows per page</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${pageSize}`}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              onPageSizeChange(Number(value))
             }}
           >
             <SelectTrigger className="mr-0 h-[44px] w-[104px] border border-black/40 px-4 py-[10px] text-[14px]">
-              <SelectValue placeholder={`${table.getState().pagination.pageSize}`} />
+              <SelectValue placeholder={`${pageSize}`} />
             </SelectTrigger>
             <SelectContent align="end">
-              {pageSizes.map((pageSize: number) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
+              {pageSizes.map((size: number) => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -171,14 +169,9 @@ export function PositionsTable<TData, TValue>({
         </div>
 
         <div className="text-muted-foreground flex items-center justify-center text-sm !text-black">
-          {table.getFilteredRowModel().rows.length > 0 ? (
+          {total > 0 ? (
             <>
-              {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                table.getFilteredRowModel().rows.length
-              )}{' '}
-              of {table.getFilteredRowModel().rows.length}
+              {rangeStart}–{rangeEnd} of {total}
             </>
           ) : (
             '0 of 0'
@@ -189,8 +182,8 @@ export function PositionsTable<TData, TValue>({
           <Button
             variant="ghost"
             className="hover:bg-muted mr-0 h-8 w-8 p-0"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => onPageChange(pageIndex - 1)}
+            disabled={!canPreviousPage || isLoadingRows}
           >
             <span className="sr-only">Go to previous page</span>
             <ChevronLeft className="!h-6 !w-6 text-black/60" strokeWidth={1.5} />
@@ -198,8 +191,8 @@ export function PositionsTable<TData, TValue>({
           <Button
             variant="ghost"
             className="hover:bg-muted ml-0 h-8 w-8 p-0"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => onPageChange(pageIndex + 1)}
+            disabled={!canNextPage || isLoadingRows}
           >
             <span className="sr-only">Go to next page</span>
             <ChevronRight className="!h-6 !w-6 text-black/60" strokeWidth={1.5} />

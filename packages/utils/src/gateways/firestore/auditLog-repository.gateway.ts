@@ -22,22 +22,19 @@ import {
   getCountFromServer,
   getDoc,
   getDocs,
-  limit,
   orderBy,
   type Query,
   query,
   type QueryConstraint,
-  type QueryDocumentSnapshot,
   setDoc,
-  startAfter,
   Timestamp,
   where,
 } from 'firebase/firestore'
 
 import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
+import { fetchPaginatedDocs } from './pagination.ts'
 
-const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: AuditLogSortField = 'timestamp'
 const DEFAULT_SORT_DIRECTION = 'desc'
 const AUDIT_LOGS_COLLECTION = 'audit-logs'
@@ -64,6 +61,7 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
     async findAll(params) {
       try {
         const { page, limit: pageLimit } = normalizePagination(params.pagination)
+        const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
 
@@ -74,6 +72,16 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
           sortField,
           sortDirection
         )
+
+        if (search) {
+          const { auditLogs, total } = await fetchSearchAuditLogs(
+            baseQuery,
+            search,
+            page,
+            pageLimit
+          )
+          return createPaginatedResult(auditLogs, total, { page, limit: pageLimit })
+        }
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
@@ -158,14 +166,20 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
     : DEFAULT_PAGINATION.page
 
   const parsedLimit = Number(pagination?.limit)
-  const normalizedLimit = Number.isFinite(parsedLimit)
+  const limit = Number.isFinite(parsedLimit)
     ? Math.max(1, Math.floor(parsedLimit))
     : DEFAULT_PAGINATION.limit
 
-  return {
-    page,
-    limit: Math.min(MAX_PAGE_LIMIT, normalizedLimit),
+  return { page, limit }
+}
+
+function normalizeSearchTerm(search: unknown): string | undefined {
+  if (typeof search !== 'string') {
+    return undefined
   }
+
+  const normalizedSearch = search.trim().toLowerCase()
+  return normalizedSearch.length > 0 ? normalizedSearch : undefined
 }
 
 function validateSortField(field: unknown): AuditLogSortField {
@@ -214,49 +228,57 @@ async function fetchPaginatedAuditLogs(
   page: number,
   pageLimit: number
 ): Promise<AuditLogDTO[]> {
-  if (page === 1) {
-    const snapshot = await getDocs(query(baseQuery, limit(pageLimit)))
-    return snapshot.docs.map((docSnap) => mapAuditLogDoc(docSnap.id, docSnap.data()))
-  }
-
-  const cursor = await getPageCursor(baseQuery, page, pageLimit)
-  if (!cursor) {
-    return []
-  }
-
-  const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
-  const snapshot = await getDocs(pageQuery)
-  return snapshot.docs.map((docSnap) => mapAuditLogDoc(docSnap.id, docSnap.data()))
+  const docs = await fetchPaginatedDocs(baseQuery, page, pageLimit)
+  return docs.map((docSnap) => mapAuditLogDoc(docSnap.id, docSnap.data()))
 }
 
-async function getPageCursor(
+async function fetchSearchAuditLogs(
   baseQuery: Query<DocumentData>,
+  search: string,
   page: number,
   pageLimit: number
-): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
-  let cursor: QueryDocumentSnapshot<DocumentData> | undefined
-  let remaining = (page - 1) * pageLimit
+): Promise<{ auditLogs: AuditLogDTO[]; total: number }> {
+  const snapshot = await getDocs(baseQuery)
+  const matching = snapshot.docs
+    .map((docSnap) => mapAuditLogDoc(docSnap.id, docSnap.data()))
+    .filter((auditLog) => matchesSearch(auditLog, search))
 
-  while (remaining > 0) {
-    const step = Math.min(pageLimit, remaining)
-    const cursorQuery = cursor
-      ? query(baseQuery, startAfter(cursor), limit(step))
-      : query(baseQuery, limit(step))
+  const startIndex = (page - 1) * pageLimit
+  const auditLogs = matching.slice(startIndex, startIndex + pageLimit)
 
-    const snapshot = await getDocs(cursorQuery)
-    if (snapshot.empty) {
-      return undefined
-    }
+  return { auditLogs, total: matching.length }
+}
 
-    cursor = snapshot.docs[snapshot.docs.length - 1]
-    remaining -= snapshot.docs.length
+// Free-text search matches the performer and target of the log entry —
+// `action` already has its own exact-match filter (see buildAuditLogQuery),
+// so search is more useful surfacing "who did this" / "what did it touch".
+function matchesSearch(auditLog: AuditLog, search: string): boolean {
+  const performer = auditLog.performer
+  if (performer) {
+    const performerMatch =
+      performer.firstName.toLowerCase().includes(search) ||
+      performer.lastName.toLowerCase().includes(search) ||
+      performer.email.toLowerCase().includes(search)
 
-    if (snapshot.docs.length < step) {
-      return undefined
+    if (performerMatch) {
+      return true
     }
   }
 
-  return cursor
+  const target = auditLog.target
+  if (target?.type === 'user') {
+    return (
+      target.data.firstName.toLowerCase().includes(search) ||
+      target.data.lastName.toLowerCase().includes(search) ||
+      target.data.email.toLowerCase().includes(search)
+    )
+  }
+
+  if (target?.type === 'position') {
+    return target.data.name.toLowerCase().includes(search)
+  }
+
+  return false
 }
 
 function mapAuditLogDoc(id: string, docSnap: DocumentData): AuditLog {

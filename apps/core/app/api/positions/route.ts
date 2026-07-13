@@ -109,9 +109,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 function parseFilters(searchParams: URLSearchParams): PositionFilters {
   const domains = parseListParam(searchParams, 'domains').filter(isValidDomain) as Domain[]
+  const search = searchParams.get('search')?.trim()
 
   return {
     ...(domains.length ? { domains } : {}),
+    ...(search ? { search } : {}),
   }
 }
 

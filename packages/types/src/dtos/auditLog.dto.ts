@@ -21,6 +21,7 @@ export interface AuditLogFilters {
   action?: string
   since?: string
   until?: string
+  search?: string
 }
 
 export type AuditLogSortField = 'action' | 'timestamp'

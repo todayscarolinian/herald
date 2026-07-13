@@ -24,9 +24,7 @@ import {
   type Query,
   query,
   type QueryConstraint,
-  type QueryDocumentSnapshot,
   setDoc,
-  startAfter,
   Timestamp,
   updateDoc,
   where,
@@ -44,8 +42,8 @@ type StorageBucket = { file(path: string): StorageFile }
 
 import { buildPositionSnapshots, createAuditLogService } from '../../audit-log/index.ts'
 import { createPaginatedResult } from '../../dto.ts'
+import { fetchPaginatedDocs } from './pagination.ts'
 
-const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: UserSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
 
@@ -684,14 +682,11 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
     : DEFAULT_PAGINATION.page
 
   const parsedLimit = Number(pagination?.limit)
-  const normalizedLimit = Number.isFinite(parsedLimit)
+  const limit = Number.isFinite(parsedLimit)
     ? Math.max(1, Math.floor(parsedLimit))
     : DEFAULT_PAGINATION.limit
 
-  return {
-    page,
-    limit: Math.min(MAX_PAGE_LIMIT, normalizedLimit),
-  }
+  return { page, limit }
 }
 
 function validateSortField(field: unknown): UserSortField {
@@ -753,20 +748,8 @@ async function fetchPaginatedUsers(
   page: number,
   pageLimit: number
 ): Promise<RawUserDoc[]> {
-  if (page === 1) {
-    const snapshot = await getDocs(query(baseQuery, limit(pageLimit)))
-    return snapshot.docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
-  }
-
-  const cursor = await getPageCursor(baseQuery, page, pageLimit)
-  if (!cursor) {
-    return []
-  }
-
-  const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
-  const snapshot = await getDocs(pageQuery)
-
-  return snapshot.docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
+  const docs = await fetchPaginatedDocs(baseQuery, page, pageLimit)
+  return docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
 }
 
 async function fetchSearchUsers(
@@ -792,36 +775,6 @@ async function fetchSearchUsers(
     users: pageRaw.map((raw) => rawToDTO(raw, positionsMap)),
     total: matchingRaw.length,
   }
-}
-
-async function getPageCursor(
-  baseQuery: Query<DocumentData>,
-  page: number,
-  pageLimit: number
-): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
-  let cursor: QueryDocumentSnapshot<DocumentData> | undefined
-  let remaining = (page - 1) * pageLimit
-
-  while (remaining > 0) {
-    const step = Math.min(pageLimit, remaining)
-    const cursorQuery = cursor
-      ? query(baseQuery, startAfter(cursor), limit(step))
-      : query(baseQuery, limit(step))
-
-    const snapshot = await getDocs(cursorQuery)
-    if (snapshot.empty) {
-      return undefined
-    }
-
-    cursor = snapshot.docs[snapshot.docs.length - 1]
-    remaining -= snapshot.docs.length
-
-    if (snapshot.docs.length < step) {
-      return undefined
-    }
-  }
-
-  return cursor
 }
 
 // ---------------------------------------------------------------------------

@@ -1,19 +1,8 @@
 'use client'
 
 import type { AuditLogDTO, AuditLogFilters, AuditLogSortField } from '@herald/types'
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -25,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetFooter } from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -41,82 +30,70 @@ type DataTableProps = {
   columns: ColumnDef<AuditLogDTO, unknown>[]
   data: AuditLogDTO[]
   onRowClick?: (auditLog: AuditLogDTO) => void
+  total: number
+  pageIndex: number
+  pageSize: number
+  pageCount: number
+  onPageChange: (pageIndex: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  isLoadingRows: boolean
+  search: string
+  onSearchChange: (value: string) => void
+  selectedFilters: AuditLogFilters
+  onApplyFilters: (filters: AuditLogFilters) => void
+  selectedSortField: AuditLogSortField
+  selectedSortDirection: 'asc' | 'desc'
+  onApplySort: (field: AuditLogSortField, direction: 'asc' | 'desc') => void
 }
 
-export function DataTable({ columns, data, onRowClick }: DataTableProps) {
-  const [selectedRow, setSelectedRow] = React.useState<AuditLogDTO | null>(null)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [auditLogFilters, setAuditLogFilters] = React.useState<AuditLogFilters>({})
-
+export function DataTable({
+  columns,
+  data,
+  onRowClick,
+  total,
+  pageIndex,
+  pageSize,
+  pageCount,
+  onPageChange,
+  onPageSizeChange,
+  isLoadingRows,
+  search,
+  onSearchChange,
+  selectedFilters,
+  onApplyFilters,
+  selectedSortField,
+  selectedSortDirection,
+  onApplySort,
+}: DataTableProps) {
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: { sorting, columnFilters },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
+    manualPagination: true,
+    manualFiltering: true,
+    manualSorting: true,
+    pageCount,
+    state: {
+      pagination: { pageIndex, pageSize },
     },
   })
 
-  const allowedSortFields: AuditLogSortField[] = ['action', 'timestamp']
-  const activeSort = sorting.find(
-    (sort): sort is SortingState[number] & { id: AuditLogSortField } =>
-      allowedSortFields.includes(sort.id as AuditLogSortField)
-  )
-  const selectedSortField = activeSort?.id ?? 'action'
-  const selectedSortDirection = activeSort?.desc ? 'desc' : 'asc'
-
-  const searchValue = (table.getColumn('action')?.getFilterValue() as string) ?? ''
-
-  const applySort = (field: AuditLogSortField, direction: 'asc' | 'desc') => {
-    if (!table.getColumn(field)) {
-      return
-    }
-
-    table.setSorting([
-      {
-        id: field,
-        desc: direction === 'desc',
-      },
-    ])
-    table.setPageIndex(0)
-  }
-
-  const applyFilters = (filters: AuditLogFilters) => {
-    setAuditLogFilters(filters)
-    table.setPageIndex(0)
-
-    if (filters.action) {
-      table.getColumn('action')?.setFilterValue(filters.action)
-    } else {
-      table.getColumn('action')?.setFilterValue(undefined)
-    }
-
-    table.setPageIndex(0)
-  }
+  const rangeStart = total === 0 ? 0 : pageIndex * pageSize + 1
+  const rangeEnd = Math.min((pageIndex + 1) * pageSize, total)
+  const canPreviousPage = pageIndex > 0
+  const canNextPage = pageIndex + 1 < pageCount
 
   return (
     <div className="overflow-hidden">
       <DesktopToolbar
         title="Audit Logs"
-        search={searchValue}
-        onSearchChange={(value) => {
-          table.getColumn('action')?.setFilterValue(value)
-          table.setPageIndex(0)
-        }}
-        selectedFilters={auditLogFilters}
-        onApplyFilters={applyFilters}
+        search={search}
+        onSearchChange={onSearchChange}
+        selectedFilters={selectedFilters}
+        onApplyFilters={onApplyFilters}
         selectedSortField={selectedSortField}
         selectedSortDirection={selectedSortDirection}
-        onApplySort={applySort}
+        onApplySort={onApplySort}
       />
       <div className="rounded-md">
         <Table>
@@ -136,15 +113,21 @@ export function DataTable({ columns, data, onRowClick }: DataTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoadingRows ? (
+              Array.from({ length: pageSize }, (_, i) => `loading-row-${i}`).map((key) => (
+                <TableRow key={key}>
+                  <TableCell colSpan={columns.length} className="px-4 py-[18px]">
+                    <Skeleton className="h-6 w-full rounded-md" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   className="cursor-pointer"
-                  onClick={() =>
-                    onRowClick ? onRowClick(row.original) : setSelectedRow(row.original)
-                  }
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -166,7 +149,7 @@ export function DataTable({ columns, data, onRowClick }: DataTableProps) {
       <div className="flex items-center justify-end space-x-2 py-4">
         <Field orientation="horizontal" className="w-fit">
           <FieldLabel htmlFor="select-rows-per-page">Rows per page</FieldLabel>
-          <Select defaultValue="10" onValueChange={(value) => table.setPageSize(Number(value))}>
+          <Select value={`${pageSize}`} onValueChange={(value) => onPageSizeChange(Number(value))}>
             <SelectTrigger className="w-20" id="select-rows-per-page">
               <SelectValue />
             </SelectTrigger>
@@ -182,88 +165,32 @@ export function DataTable({ columns, data, onRowClick }: DataTableProps) {
         </Field>
         <div className="flex items-center space-x-2">
           <span className="text-muted-foreground text-sm">
-            {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            of {table.getFilteredRowModel().rows.length}
+            {total > 0 ? (
+              <>
+                {rangeStart}–{rangeEnd} of {total}
+              </>
+            ) : (
+              '0 of 0'
+            )}
           </span>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          onClick={() => onPageChange(pageIndex - 1)}
+          disabled={!canPreviousPage || isLoadingRows}
         >
           <ChevronLeft />
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          onClick={() => onPageChange(pageIndex + 1)}
+          disabled={!canNextPage || isLoadingRows}
         >
           <ChevronRight />
         </Button>
       </div>
-      <Sheet open={!!selectedRow} onOpenChange={(open) => !open && setSelectedRow(null)}>
-        <SheetContent className="p-4 sm:max-w-2xl">
-          {selectedRow ? (
-            <div className="mt-4 flex h-full flex-col gap-4">
-              <div>
-                <h2 className="text-2xl font-bold">{selectedRow.action}</h2>
-                <div className="text-muted-foreground mt-2 text-sm">{selectedRow.timestamp}</div>
-              </div>
-
-              <div className="border-tc_accent_black-300 border" />
-
-              <div className="grid gap-3">
-                <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Audit Log ID</FieldLabel>
-                  <span className="text-sm">{selectedRow.id}</span>
-                </Field>
-
-                <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Performer</FieldLabel>
-                  <span className="text-sm">
-                    {selectedRow.performer
-                      ? `${selectedRow.performer.firstName} ${selectedRow.performer.lastName}`.trim() ||
-                        selectedRow.performer.email
-                      : 'Unknown'}
-                  </span>
-                </Field>
-
-                <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Target</FieldLabel>
-                  <span className="text-sm">
-                    {selectedRow.target?.type === 'user'
-                      ? `${selectedRow.target.data.firstName} ${selectedRow.target.data.lastName}`.trim() ||
-                        selectedRow.target.data.email
-                      : (selectedRow.target?.data.name ?? 'Unknown')}
-                  </span>
-                </Field>
-
-                <Field orientation="horizontal" className="justify-between">
-                  <FieldLabel>Timestamp</FieldLabel>
-                  <span className="text-sm">{selectedRow.timestamp}</span>
-                </Field>
-              </div>
-
-              <SheetFooter className="mt-auto px-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setSelectedRow(null)}
-                >
-                  Close
-                </Button>
-              </SheetFooter>
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

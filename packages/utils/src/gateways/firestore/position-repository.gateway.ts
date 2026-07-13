@@ -18,14 +18,11 @@ import {
   getCountFromServer,
   getDoc,
   getDocs,
-  limit,
   orderBy,
   Query,
   query,
   QueryConstraint,
-  QueryDocumentSnapshot,
   setDoc,
-  startAfter,
   Timestamp,
   updateDoc,
   where,
@@ -39,8 +36,8 @@ import type {
 import { createAuditLogService } from '../../audit-log/index.ts'
 import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
+import { fetchPaginatedDocs } from './pagination.ts'
 
-const MAX_PAGE_LIMIT = 10
 const DEFAULT_SORT_FIELD: PositionSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
 const POSITIONS_COLLECTION = 'positions'
@@ -104,6 +101,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
     async findAll(params) {
       try {
         const { page, limit: pageLimit } = normalizePagination(params.pagination)
+        const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
 
@@ -114,6 +112,24 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           sortField,
           sortDirection
         )
+
+        if (search) {
+          const { positions, total } = await fetchSearchPositions(
+            baseQuery,
+            search,
+            page,
+            pageLimit
+          )
+
+          const positionsWithUserCount = await Promise.all(
+            positions.map(async (position) => ({
+              ...position,
+              userCount: await getPositionUserCount(firestore, USERS_COLLECTION, position.id),
+            }))
+          )
+
+          return createPaginatedResult(positionsWithUserCount, total, { page, limit: pageLimit })
+        }
 
         const totalSnapshot = await getCountFromServer(baseQuery)
         const total = totalSnapshot.data().count
@@ -127,10 +143,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           }))
         )
 
-        return createPaginatedResult(positionsWithUserCount, total, {
-          page,
-          limit: pageLimit,
-        })
+        return createPaginatedResult(positionsWithUserCount, total, { page, limit: pageLimit })
       } catch (error) {
         console.error('Error finding all positions:', error)
         throw error
@@ -362,49 +375,8 @@ async function fetchPaginatedPositions(
   page: number,
   pageLimit: number
 ): Promise<PositionDTO[]> {
-  if (page === 1) {
-    const snapshot = await getDocs(query(baseQuery, limit(pageLimit)))
-    return snapshot.docs.map((docSnap) => mapPositionDocToDTO(docSnap.id, docSnap.data()))
-  }
-
-  const cursor = await getPageCursor(baseQuery, page, pageLimit)
-  if (!cursor) {
-    return []
-  }
-
-  const pageQuery = query(baseQuery, startAfter(cursor), limit(pageLimit))
-  const snapshot = await getDocs(pageQuery)
-  return snapshot.docs.map((docSnap) => mapPositionDocToDTO(docSnap.id, docSnap.data()))
-}
-
-async function getPageCursor(
-  baseQuery: Query<DocumentData>,
-  page: number,
-  pageLimit: number
-): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
-  let cursor: QueryDocumentSnapshot<DocumentData> | undefined
-  let remaining = (page - 1) * pageLimit
-
-  while (remaining > 0) {
-    const step = Math.min(pageLimit, remaining)
-    const cursorQuery = cursor
-      ? query(baseQuery, startAfter(cursor), limit(step))
-      : query(baseQuery, limit(step))
-
-    const snapshot = await getDocs(cursorQuery)
-    if (snapshot.empty) {
-      return undefined
-    }
-
-    cursor = snapshot.docs[snapshot.docs.length - 1]
-    remaining -= snapshot.docs.length
-
-    if (snapshot.docs.length < step) {
-      return undefined
-    }
-  }
-
-  return cursor
+  const docs = await fetchPaginatedDocs(baseQuery, page, pageLimit)
+  return docs.map((docSnap) => mapPositionDocToDTO(docSnap.id, docSnap.data()))
 }
 
 function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
@@ -417,14 +389,44 @@ function normalizePagination(pagination: { page?: unknown; limit?: unknown }): {
     : DEFAULT_PAGINATION.page
 
   const parsedLimit = Number(pagination?.limit)
-  const normalizedLimit = Number.isFinite(parsedLimit)
+  const limit = Number.isFinite(parsedLimit)
     ? Math.max(1, Math.floor(parsedLimit))
     : DEFAULT_PAGINATION.limit
 
-  return {
-    page,
-    limit: Math.min(MAX_PAGE_LIMIT, normalizedLimit),
+  return { page, limit }
+}
+
+function normalizeSearchTerm(search: unknown): string | undefined {
+  if (typeof search !== 'string') {
+    return undefined
   }
+
+  const normalizedSearch = search.trim().toLowerCase()
+  return normalizedSearch.length > 0 ? normalizedSearch : undefined
+}
+
+async function fetchSearchPositions(
+  baseQuery: Query<DocumentData>,
+  search: string,
+  page: number,
+  pageLimit: number
+): Promise<{ positions: PositionDTO[]; total: number }> {
+  const snapshot = await getDocs(baseQuery)
+  const matching = snapshot.docs
+    .map((docSnap) => mapPositionDocToDTO(docSnap.id, docSnap.data()))
+    .filter((position) => matchesSearch(position, search))
+
+  const startIndex = (page - 1) * pageLimit
+  const positions = matching.slice(startIndex, startIndex + pageLimit)
+
+  return { positions, total: matching.length }
+}
+
+function matchesSearch(position: PositionDTO, search: string): boolean {
+  return (
+    position.name.toLowerCase().includes(search) ||
+    position.abbreviation.toLowerCase().includes(search)
+  )
 }
 
 function mapPositionDocToDTO(id: string, docSnap: DocumentData, userCount = 0): PositionDTO {
