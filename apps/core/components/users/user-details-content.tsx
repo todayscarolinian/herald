@@ -44,7 +44,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
   const [touched, setTouched] = useState({
     firstName: false,
     lastName: false,
-    email: false,
     positions: false,
   })
 
@@ -64,7 +63,6 @@ export function UserDetailsContent({ user, onClose }: Props) {
 
   const firstNameError = touched.firstName && form.firstName.trim() === ''
   const lastNameError = touched.lastName && form.lastName.trim() === ''
-  const emailError = touched.email && form.email.trim() === ''
   const positionsError = touched.positions && form.positions.length === 0
 
   const isFormValid =
@@ -194,17 +192,12 @@ export function UserDetailsContent({ user, onClose }: Props) {
         </div>
 
         <div className="flex flex-col gap-[10px]">
-          <Label className="text-[12px] font-bold text-black">
-            Email <span className="text-destructive">*</span>
-          </Label>
+          <Label className="text-[12px] font-bold text-black">Email</Label>
           <Input
-            className={`h-[36px] w-full border-[1px] bg-white text-[14px] ${
-              emailError ? 'border-red-500' : 'border-tc_grayscale-500'
-            }`}
+            className="border-tc_grayscale-500 h-[36px] w-full border-[1px] bg-white text-[14px]"
             value={form.email}
-            onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-            readOnly={!canEdit}
+            readOnly
+            disabled
           />
         </div>
 
