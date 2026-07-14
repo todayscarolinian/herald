@@ -1,12 +1,9 @@
 import { cors } from 'hono/cors'
 
-const origin = (process.env.ALLOWED_ORIGINS ?? '')
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean)
+import { ALLOWED_ORIGINS } from '../lib/allowed-origins.ts'
 
 const corsMiddleware = cors({
-  origin,
+  origin: ALLOWED_ORIGINS,
   allowHeaders: ['Content-Type', 'Authorization', 'x-herald-internal-api-key'],
   allowMethods: ['POST', 'GET', 'OPTIONS'],
   exposeHeaders: ['Content-Length'],

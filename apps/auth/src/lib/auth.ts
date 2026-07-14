@@ -10,15 +10,9 @@ import { customSession, openAPI } from 'better-auth/plugins'
 import { firestoreAdapter } from 'better-auth-firestore'
 
 import { emailService } from '../services/email.service.ts'
+import { ALLOWED_ORIGINS } from './allowed-origins.ts'
 import { COLLECTIONS } from './collection-names.ts'
 import { firestore } from './firestore.ts'
-
-const trustedOrigins = [
-  'https://*.todayscarolinian.com',
-  ...(process.env.NODE_ENV === 'development'
-    ? ['http://localhost:3000', 'http://localhost:3001']
-    : []),
-]
 
 // Shape of the additionalFields configured below, layered onto BetterAuth's
 // base user record -- these aren't part of BetterAuth's own generic typing,
@@ -79,7 +73,7 @@ export const auth = betterAuth({
       domain: process.env.NODE_ENV === 'production' ? '.todayscarolinian.com' : undefined,
     },
   },
-  trustedOrigins,
+  trustedOrigins: ALLOWED_ORIGINS,
   session: {
     cookieCache: {
       enabled: true,
