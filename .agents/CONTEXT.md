@@ -24,7 +24,7 @@ scripts/
 ## Runtime And Ports
 
 - `apps/auth` default port: `3001` via `PORT` fallback in `apps/auth/src/server.ts`
-- `apps/core` default port: Next.js default (`3000`)
+- `apps/core` default port: `3002` (set explicitly via `next dev --port 3002` in `apps/core/package.json`, so other TC repos can use `3000` locally)
 
 ## Main Flows
 

@@ -218,7 +218,7 @@ Fill in the required values (see [Environment Variables](#-environment-variables
 npm run dev
 
 # Or start individual apps
-npm run dev:core      # Herald Core on http://localhost:3000
+npm run dev:core      # Herald Core on http://localhost:3002
 npm run dev:auth      # Herald Auth on http://localhost:3001
 ```
 
@@ -253,10 +253,10 @@ herald-auth/
 # Start all apps in development mode (uses Turborepo)
 npm run dev
 # Runs: turbo dev --parallel
-# Starts apps/core (port 3000) and apps/auth (port 3001) concurrently
+# Starts apps/core (port 3002) and apps/auth (port 3001) concurrently
 
 # Start individual apps
-npm run dev:core          # Start Herald UI only (http://localhost:3000)
+npm run dev:core          # Start Herald UI only (http://localhost:3002)
 npm run dev:auth          # Start Auth service only (http://localhost:3001)
 ```
 
@@ -437,7 +437,7 @@ vercel --prod
 **Development:**
 
 - Firebase Project: `tc-herald-dev`
-- URLs: `localhost:3000` / `herald-dev.vercel.app`
+- URLs: `localhost:3002` / `herald-dev.vercel.app`
 
 **Staging (Optional):**
 
@@ -596,15 +596,15 @@ nvm use 18
 
 ### Development Server Issues
 
-**Problem:** Port 3000 or 3001 already in use
+**Problem:** Port 3002 or 3001 already in use
 
 ```bash
 # Solution 1: Kill the process using the port (Windows)
-netstat -ano | findstr :3000
+netstat -ano | findstr :3002
 taskkill /PID <PID> /F
 
-# Solution 2: Use different ports
-npm --filter core dev -- --port 3002
+# Solution 2: Use a different port
+npm --filter core dev -- --port 3003
 ```
 
 **Problem:** Changes not reflecting in browser
