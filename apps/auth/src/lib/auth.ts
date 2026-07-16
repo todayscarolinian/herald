@@ -131,7 +131,11 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    openAPI(),
+    // The openAPI plugin exposes both the Scalar reference page and a raw
+    // schema JSON endpoint (/api/auth/open-api/generate-schema) with no way
+    // to disable the latter independently, so it's kept out of production
+    // entirely rather than relying on disableDefaultReference.
+    ...(process.env.NODE_ENV === 'production' ? [] : [openAPI()]),
     customSession(async ({ session, user }) => {
       const customFields = user as unknown as CustomUserFields
       const middle = customFields.middleName ? ` ${customFields.middleName}` : ''
