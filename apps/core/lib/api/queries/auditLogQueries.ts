@@ -7,7 +7,7 @@ import type {
   SortInput,
 } from '@herald/types'
 import { DEFAULT_PAGINATION } from '@herald/types'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
 import { fetchAuditLogs } from '@/lib/api/services/auditLogService'
 
@@ -40,5 +40,6 @@ export function useAuditLogsInfinite({ filters, sort }: UseAuditLogsInfinitePara
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasNextPage ? lastPage.page + 1 : undefined),
+    placeholderData: keepPreviousData,
   })
 }

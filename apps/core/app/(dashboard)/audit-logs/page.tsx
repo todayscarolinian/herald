@@ -55,6 +55,7 @@ export default function AuditLogsPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isPlaceholderData,
   } = useAuditLogsInfinite({
     filters: { ...filters, search: search || undefined },
     sort: { field: sortField, direction: sortDirection },
@@ -72,6 +73,7 @@ export default function AuditLogsPage() {
   // again after each fetch resolves until both are satisfied or the server
   // is exhausted.
   useEffect(() => {
+    if (isPlaceholderData) {return}
     const target = pageReady ? (pageIndex + 2) * pageSize : (pageIndex + 1) * pageSize
     if (allItems.length < target && hasNextPage && !isFetchingNextPage) {
       void fetchNextPage()
@@ -83,6 +85,7 @@ export default function AuditLogsPage() {
     allItems.length,
     hasNextPage,
     isFetchingNextPage,
+    isPlaceholderData,
     fetchNextPage,
   ])
 
@@ -100,10 +103,12 @@ export default function AuditLogsPage() {
 
   // isLoading is only true before the very first batch has ever resolved —
   // there's nothing to show a shell for yet. Once that first batch has
-  // landed, further page-to-page fetches (pageReady false) keep the table
-  // shell (headers/toolbar/pager) mounted and show a loading state scoped to
-  // just the row area instead of replacing the whole table.
-  const isLoadingRows = !isLoading && !pageReady
+  // landed, further page-to-page fetches (pageReady false) OR a filters/
+  // sort/search change (isPlaceholderData true, since the query key changed
+  // and we're showing the previous result while the new one fetches) keep
+  // the table shell (headers/toolbar/pager) mounted and show a loading state
+  // scoped to just the row area instead of replacing the whole table.
+  const isLoadingRows = !isLoading && (isPlaceholderData || !pageReady)
 
   const renderContent = () => {
     if (isLoading) {
