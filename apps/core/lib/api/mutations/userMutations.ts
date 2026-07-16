@@ -17,6 +17,7 @@ import {
   createUser,
   deleteUser,
   disableUser,
+  resendVerificationEmail,
   updateProfile,
   UpdateProfileInput,
   updateUser,
@@ -75,6 +76,12 @@ export function useDeleteUser() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
     },
+  })
+}
+
+export function useResendVerificationEmail() {
+  return useMutation<APIResponse<{ message: string }>, Error, DeleteUserInput>({
+    mutationFn: resendVerificationEmail,
   })
 }
 

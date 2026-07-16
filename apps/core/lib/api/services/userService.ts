@@ -90,6 +90,15 @@ export function deleteUser(params: DeleteUserInput): Promise<APIResponse<{ messa
   )
 }
 
+export function resendVerificationEmail(
+  params: DeleteUserInput
+): Promise<APIResponse<{ message: string }>> {
+  return post<APIResponse<{ message: string }>, DeleteUserInput>(
+    `${ENDPOINTS.api.users}/${params.id}/resend-verification`,
+    params
+  )
+}
+
 export function bulkCreateUsers(params: {
   users: BulkCreateUserRowInput[]
 }): Promise<APIResponse<BulkUserResult>> {

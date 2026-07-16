@@ -16,7 +16,7 @@ app.post('/send-verification-email', async (c) => {
   }
 
   try {
-    const callbackURL = process.env.HERALD_CORE_URL
+    const callbackURL = process.env.NEXT_PUBLIC_CORE_URL
     if (!callbackURL) {
       return c.json<APIResponse>(
         { success: false, error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } },

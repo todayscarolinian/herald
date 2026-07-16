@@ -7,6 +7,7 @@ export const ENDPOINTS = {
     resetPassword: '/auth/reset-password',
     forgotPassword: '/auth/forgot-password',
     changePassword: '/auth/change-password',
+    sendVerificationEmail: '/auth/send-verification-email',
   },
   api: {
     login: '/api/login',

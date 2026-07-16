@@ -216,13 +216,13 @@ function FilterDrawer({
             <div className="space-y-2">
               <Label className="hover:bg-tc_grayscale-100 flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2">
                 <Checkbox
-                  checked={selectedFilters.emailVerified === true}
+                  checked={selectedFilters.emailVerified === false}
                   onCheckedChange={(checked) => {
-                    onSetBooleanFilter('emailVerified', checked === true ? true : undefined)
+                    onSetBooleanFilter('emailVerified', checked === true ? false : undefined)
                   }}
-                  aria-label="Filter email verified users"
+                  aria-label="Filter email unverified users"
                 />
-                <span className="text-xs font-semibold">Email Verified</span>
+                <span className="text-xs font-semibold">Email Unverified</span>
               </Label>
             </div>
           </div>

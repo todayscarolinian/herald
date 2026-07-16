@@ -18,7 +18,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useHasDomainAccess } from '@/hooks/use-has-domain-access'
-import { useDeleteUser, useDisableUser, useUpdateUser } from '@/lib/api/mutations/userMutations'
+import {
+  useDeleteUser,
+  useDisableUser,
+  useResendVerificationEmail,
+  useUpdateUser,
+} from '@/lib/api/mutations/userMutations'
 import { useAllPositionsOptions } from '@/lib/api/queries/positionQueries'
 import { useSession } from '@/lib/auth-client'
 
@@ -51,6 +56,8 @@ export function UserDetailsContent({ user, onClose }: Props) {
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser()
   const { mutate: disableUser, isPending: isDisabling } = useDisableUser()
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
+  const { mutate: resendVerificationEmail, isPending: isResendingVerification } =
+    useResendVerificationEmail()
   const { hasAccess, isPending: isCheckingAccess } = useHasDomainAccess()
   const canEdit = !isCheckingAccess && hasAccess
 
@@ -71,7 +78,7 @@ export function UserDetailsContent({ user, onClose }: Props) {
     form.email.trim() !== '' &&
     form.positions.length > 0
 
-  const isMutating = isUpdating || isDisabling || isDeleting
+  const isMutating = isUpdating || isDisabling || isDeleting || isResendingVerification
 
   if (!user) {
     return null
@@ -122,6 +129,20 @@ export function UserDetailsContent({ user, onClose }: Props) {
         onError: (error) => {
           toast.error(error.message)
           setShowDisableConfirm(false)
+        },
+      }
+    )
+  }
+
+  const handleResendVerificationEmail = () => {
+    resendVerificationEmail(
+      { id: user.id },
+      {
+        onSuccess: () => {
+          toast.success('Verification email sent')
+        },
+        onError: (error) => {
+          toast.error(error.message)
         },
       }
     )
@@ -199,6 +220,25 @@ export function UserDetailsContent({ user, onClose }: Props) {
             readOnly
             disabled
           />
+
+          {!user.emailVerified && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-tc_grayscale-800 text-[12px]">Email not verified</span>
+
+              {canEdit && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isMutating}
+                  onClick={handleResendVerificationEmail}
+                  className="text-tc_primary-500 border-tc_primary-500 hover:bg-tc_primary-500 h-7 px-3 text-[12px] leading-none hover:text-white"
+                >
+                  {isResendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-[10px]">
