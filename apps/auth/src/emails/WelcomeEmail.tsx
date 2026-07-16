@@ -4,6 +4,7 @@ import { Heading, Text } from '@react-email/components'
 import { AlertBox } from './components/AlertBox.tsx'
 import { EmailButton } from './components/EmailButton.tsx'
 import { EmailLayout } from './components/EmailLayout.tsx'
+import { emailTheme } from './theme.ts'
 
 type WelcomeEmailProps = {
   name: string
@@ -44,8 +45,12 @@ export function WelcomeEmail({ name, tempPassword, verificationUrl }: WelcomeEma
         first time you log in.
       </AlertBox>
 
-      <Text style={{ margin: '0 0 22px 0' }}>
+      <Text style={{ margin: '0 0 8px 0' }}>
         <EmailButton href={verificationUrl}>Verify Email</EmailButton>
+      </Text>
+
+      <Text style={{ margin: '0 0 22px 0', fontSize: 13, color: emailTheme.grayscale[600] }}>
+        This link will expire in 1 hour.
       </Text>
     </EmailLayout>
   )
