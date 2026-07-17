@@ -21,6 +21,9 @@ export function useAuditLogs(params: ListAuditLogsInput) {
   return useQuery<PaginatedResult<AuditLogDTO>>({
     queryKey: ['audit-logs', params],
     queryFn: () => fetchAuditLogs(params),
+    // Audit logs are an append-only investigative ledger -- opt out of the
+    // app-wide 30min staleTime default so recent entries always show up.
+    staleTime: 0,
   })
 }
 
@@ -41,5 +44,7 @@ export function useAuditLogsInfinite({ filters, sort }: UseAuditLogsInfinitePara
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasNextPage ? lastPage.page + 1 : undefined),
     placeholderData: keepPreviousData,
+    // See useAuditLogs -- opt out of the app-wide staleTime default.
+    staleTime: 0,
   })
 }

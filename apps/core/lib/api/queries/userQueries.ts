@@ -1,12 +1,4 @@
-import type {
-  APIResponse,
-  ListUsersInput,
-  PaginatedResult,
-  SortInput,
-  UserDTO,
-  UserFilters,
-  UserSortField,
-} from '@herald/types'
+import type { APIResponse, SortInput, UserDTO, UserFilters, UserSortField } from '@herald/types'
 import { DEFAULT_PAGINATION } from '@herald/types'
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
@@ -18,17 +10,11 @@ import { fetchMyProfile, fetchUsers } from '@/lib/api/services/userService'
 // items than are already cached.
 export const USERS_SERVER_BATCH_SIZE = DEFAULT_PAGINATION.limit
 
-export function useUsers(params: ListUsersInput) {
-  return useQuery<PaginatedResult<UserDTO>>({
-    queryKey: ['users', params],
-    queryFn: () => fetchUsers(params),
-  })
-}
-
 export function useMyProfile() {
   return useQuery<APIResponse<UserDTO>>({
     queryKey: ['myProfile'],
     queryFn: fetchMyProfile,
+    staleTime: 60 * 1000,
   })
 }
 
