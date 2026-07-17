@@ -10,26 +10,8 @@ import {
   UUID,
 } from '@herald/types'
 import type { AuditLogTargetSnapshot } from '@herald/types/auditLog'
-import {
-  collection,
-  deleteDoc,
-  doc,
-  DocumentData,
-  type Firestore,
-  getCountFromServer,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  type Query,
-  query,
-  type QueryConstraint,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
-import type { Firestore as AdminFirestore } from 'firebase-admin/firestore'
+import type { DocumentData, Firestore, Query } from 'firebase-admin/firestore'
+import { Timestamp } from 'firebase-admin/firestore'
 // Structural type for the Firebase Admin Storage bucket — avoids a direct
 // dependency on @google-cloud/storage while remaining compatible with it.
 type StorageFile = {
@@ -40,7 +22,7 @@ type StorageFile = {
 }
 type StorageBucket = { file(path: string): StorageFile }
 
-import { buildPositionSnapshots, createAuditLogService } from '../../audit-log/index.ts'
+import { buildPositionSnapshots, createAdminAuditLogService } from '../../audit-log/index.ts'
 import { createPaginatedResult } from '../../dto.ts'
 import { fetchPaginatedDocs } from './pagination.ts'
 
@@ -59,7 +41,10 @@ type AuthUserRecord = {
 // Intermediate representation with position IDs before enrichment
 type RawUserDoc = Omit<UserDTO, 'positions'> & { positionIds: string[] }
 
-export function createAdminFirebaseUserRepository(firestore: AdminFirestore) {
+// Narrow admin-SDK lookup used by services running outside the browser (e.g.
+// apps/auth's login/session/password-reset flows), where only lightweight
+// auth fields are needed rather than the full enriched UserDTO.
+export function createAdminFirebaseUserRepository(firestore: Firestore) {
   const COLLECTION_NAME = 'users'
 
   return {
@@ -132,16 +117,16 @@ export function createFirebaseUserRepository(
     async findById({ id }) {
       try {
         const validatedId = validateUserId(id)
-        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           return null
         }
 
         const positionIds = extractPositionIds(docSnap.data(), validatedId)
         const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positionIds)
-        return rawToDTO(mapRawUserDoc(docSnap.id, docSnap.data()), positionsMap)
+        return rawToDTO(mapRawUserDoc(docSnap.id, docSnap.data()!), positionsMap)
       } catch (error) {
         console.error('Error finding user by ID:', error)
         throw error
@@ -151,19 +136,18 @@ export function createFirebaseUserRepository(
     async findByEmail({ email }) {
       try {
         const validatedEmail = validateEmail(email)
-        const q = query(
-          collection(firestore, COLLECTION_NAME),
-          where('email', '==', validatedEmail),
-          limit(1)
-        )
-        const querySnapshot = await getDocs(q)
+        const querySnapshot = await firestore
+          .collection(COLLECTION_NAME)
+          .where('email', '==', validatedEmail)
+          .limit(1)
+          .get()
 
         if (querySnapshot.empty) {
           return null
         }
 
         const docSnap = querySnapshot.docs[0]
-        if (!docSnap || !docSnap.exists()) {
+        if (!docSnap || !docSnap.exists) {
           return null
         }
 
@@ -202,7 +186,7 @@ export function createFirebaseUserRepository(
           return createPaginatedResult(users, total, { page, limit: pageLimit })
         }
 
-        const totalSnapshot = await getCountFromServer(baseQuery)
+        const totalSnapshot = await baseQuery.count().get()
         const total = totalSnapshot.data().count
 
         const rawUsers = await fetchPaginatedUsers(baseQuery, page, pageLimit)
@@ -270,9 +254,9 @@ export function createFirebaseUserRepository(
         }
 
         const docRef = userId
-          ? doc(firestore, COLLECTION_NAME, userId)
-          : doc(collection(firestore, COLLECTION_NAME))
-        await setDoc(docRef, userDoc, { merge: true })
+          ? firestore.collection(COLLECTION_NAME).doc(userId)
+          : firestore.collection(COLLECTION_NAME).doc()
+        await docRef.set(userDoc, { merge: true })
 
         const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positions)
 
@@ -288,7 +272,11 @@ export function createFirebaseUserRepository(
             createdAt: now.toDate().toISOString(),
           },
         }
-        createAuditLogService(firestore).log('USER_CREATED', targetSnapshot, validatedCreatedById)
+        createAdminAuditLogService(firestore).log(
+          'USER_CREATED',
+          targetSnapshot,
+          validatedCreatedById
+        )
 
         return rawToDTO(mapRawUserDoc(docRef.id, userDoc), positionsMap)
       } catch (error) {
@@ -301,10 +289,10 @@ export function createFirebaseUserRepository(
       try {
         const validatedId = validateUserId(user.id)
         const validatedUpdatedById = validateUserId(performedById)
-        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
@@ -326,10 +314,10 @@ export function createFirebaseUserRepository(
           updatedAt: now,
         }
 
-        await updateDoc(docRef, updateData)
+        await docRef.update(updateData)
 
-        const updatedSnap = await getDoc(docRef)
-        if (!updatedSnap.exists()) {
+        const updatedSnap = await docRef.get()
+        if (!updatedSnap.exists) {
           throw new Error(`User with ID "${validatedId}" not found after update`)
         }
 
@@ -356,13 +344,13 @@ export function createFirebaseUserRepository(
                 : '',
           },
         }
-        createAuditLogService(firestore).log(
+        createAdminAuditLogService(firestore).log(
           positionsChanged ? 'USER_POSITIONS_CHANGED' : 'USER_UPDATED',
           targetSnapshot,
           validatedUpdatedById
         )
 
-        return rawToDTO(mapRawUserDoc(updatedSnap.id, updatedSnap.data()), positionsMap)
+        return rawToDTO(mapRawUserDoc(updatedSnap.id, updatedSnap.data()!), positionsMap)
       } catch (error) {
         console.error('Error updating user:', error)
         throw error
@@ -373,10 +361,10 @@ export function createFirebaseUserRepository(
       try {
         const validatedId = validateUserId(params.id)
         const validatedDeletedById = validateUserId(performedById)
-        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
@@ -403,29 +391,27 @@ export function createFirebaseUserRepository(
                 : '',
           },
         }
-        await deleteDoc(docRef)
+        await docRef.delete()
 
-        createAuditLogService(firestore).log(
+        createAdminAuditLogService(firestore).log(
           'USER_DELETED',
           deleteTargetSnapshot,
           validatedDeletedById
         )
 
-        const sessionsQuery = query(
-          collection(firestore, SESSIONS_COLLECTION),
-          where('userId', '==', validatedId)
-        )
-        const sessionsSnapshot = await getDocs(sessionsQuery)
+        const sessionsSnapshot = await firestore
+          .collection(SESSIONS_COLLECTION)
+          .where('userId', '==', validatedId)
+          .get()
 
-        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => deleteDoc(sessionDoc.ref))
+        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => sessionDoc.ref.delete())
 
-        const accountsQuery = query(
-          collection(firestore, ACCOUNTS_COLLECTION),
-          where('userId', '==', validatedId)
-        )
-        const accountsSnapshot = await getDocs(accountsQuery)
+        const accountsSnapshot = await firestore
+          .collection(ACCOUNTS_COLLECTION)
+          .where('userId', '==', validatedId)
+          .get()
 
-        deletePromises.push(...accountsSnapshot.docs.map((accountDoc) => deleteDoc(accountDoc.ref)))
+        deletePromises.push(...accountsSnapshot.docs.map((accountDoc) => accountDoc.ref.delete()))
 
         await Promise.all(deletePromises)
       } catch (error) {
@@ -438,10 +424,10 @@ export function createFirebaseUserRepository(
       try {
         const validatedId = validateUserId(params.id)
         const validatedDisabledById = validateUserId(performedById)
-        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
@@ -468,24 +454,23 @@ export function createFirebaseUserRepository(
                 : '',
           },
         }
-        await updateDoc(docRef, {
+        await docRef.update({
           disabled: true,
           updatedAt: Timestamp.now(),
         })
 
-        createAuditLogService(firestore).log(
+        createAdminAuditLogService(firestore).log(
           'USER_DISABLED',
           disableTargetSnapshot,
           validatedDisabledById
         )
 
-        const sessionsQuery = query(
-          collection(firestore, SESSIONS_COLLECTION),
-          where('userId', '==', validatedId)
-        )
-        const sessionsSnapshot = await getDocs(sessionsQuery)
+        const sessionsSnapshot = await firestore
+          .collection(SESSIONS_COLLECTION)
+          .where('userId', '==', validatedId)
+          .get()
 
-        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => deleteDoc(sessionDoc.ref))
+        const deletePromises = sessionsSnapshot.docs.map((sessionDoc) => sessionDoc.ref.delete())
         await Promise.all(deletePromises)
       } catch (error) {
         console.error('Error disabling user:', error)
@@ -495,8 +480,7 @@ export function createFirebaseUserRepository(
 
     async getTotalCount() {
       try {
-        const collectionRef = collection(firestore, COLLECTION_NAME)
-        const snapshot = await getCountFromServer(collectionRef)
+        const snapshot = await firestore.collection(COLLECTION_NAME).count().get()
         return { totalUsers: snapshot.data().count }
       } catch (error) {
         console.error('Error getting total user count:', error)
@@ -530,10 +514,10 @@ export function createFirebaseUserRepository(
     ): Promise<string> {
       try {
         const validatedId = validateUserId(userId)
-        const docRef = doc(firestore, COLLECTION_NAME, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`User with ID "${validatedId}" not found`)
         }
 
@@ -545,7 +529,7 @@ export function createFirebaseUserRepository(
         await file.makePublic()
         const publicUrl = file.publicUrl()
 
-        await updateDoc(docRef, {
+        await docRef.update({
           profilePictureURL: publicUrl,
           updatedAt: Timestamp.now(),
         })
@@ -599,13 +583,13 @@ async function buildPositionsMap(
 
   const uniqueIds = [...new Set(positionIds)]
   const positionDocs = await Promise.all(
-    uniqueIds.map((id) => getDoc(doc(firestore, positionsCollection, id)))
+    uniqueIds.map((id) => firestore.collection(positionsCollection).doc(id).get())
   )
 
   const map: Record<string, Position> = {}
   for (const docSnap of positionDocs) {
-    if (docSnap.exists()) {
-      map[docSnap.id] = mapPositionDocToPosition(docSnap.id, docSnap.data())
+    if (docSnap.exists) {
+      map[docSnap.id] = mapPositionDocToPosition(docSnap.id, docSnap.data()!)
     }
   }
   return map
@@ -616,7 +600,7 @@ async function buildPositionsMap(
 // ---------------------------------------------------------------------------
 
 // Handles both legacy full-object entries and new string-ID entries gracefully
-function extractPositionIds(docSnap: DocumentData, userId: string): string[] {
+function extractPositionIds(docSnap: DocumentData | undefined, userId: string): string[] {
   const positions = docSnap?.positions
   if (!Array.isArray(positions)) {
     throw new Error(`Invalid or missing required user field "positions" for user ${userId}`)
@@ -720,27 +704,33 @@ function buildUserQuery(
   sortField: UserSortField,
   sortDirection: 'asc' | 'desc'
 ): Query<DocumentData> {
-  const constraints: QueryConstraint[] = []
-  const usersRef = collection(firestore, collectionName)
+  let usersQuery: Query<DocumentData> = firestore.collection(collectionName)
 
   if (filters?.positionIds?.length) {
-    constraints.push(where('positions', 'array-contains-any', filters.positionIds.slice(0, 10)))
+    usersQuery = usersQuery.where(
+      'positions',
+      'array-contains-any',
+      filters.positionIds.slice(0, 10)
+    )
   }
 
   if (typeof filters?.disabled === 'boolean') {
-    constraints.push(where('disabled', '==', filters.disabled))
+    usersQuery = usersQuery.where('disabled', '==', filters.disabled)
   }
 
   if (typeof filters?.emailVerified === 'boolean') {
-    constraints.push(where('emailVerified', '==', filters.emailVerified))
+    usersQuery = usersQuery.where('emailVerified', '==', filters.emailVerified)
   }
 
   if (filters?.createdAfter) {
-    constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(filters.createdAfter))))
+    usersQuery = usersQuery.where(
+      'createdAt',
+      '>=',
+      Timestamp.fromDate(new Date(filters.createdAfter))
+    )
   }
 
-  constraints.push(orderBy(sortField, sortDirection))
-  return query(usersRef, ...constraints)
+  return usersQuery.orderBy(sortField, sortDirection)
 }
 
 async function fetchPaginatedUsers(
@@ -760,7 +750,7 @@ async function fetchSearchUsers(
   page: number,
   pageLimit: number
 ): Promise<{ users: UserDTO[]; total: number }> {
-  const snapshot = await getDocs(baseQuery)
+  const snapshot = await baseQuery.get()
   const matchingRaw = snapshot.docs
     .map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
     .filter((raw) => matchesSearch(raw, search))

@@ -1,12 +1,4 @@
-import {
-  type DocumentData,
-  getDocs,
-  limit,
-  type Query,
-  query,
-  type QueryDocumentSnapshot,
-  startAfter,
-} from 'firebase/firestore'
+import type { DocumentData, Query, QueryDocumentSnapshot } from 'firebase-admin/firestore'
 
 // Cap on how many docs are pulled from Firestore per round-trip. This is purely
 // an internal batching detail — it does NOT cap the limit a caller can request;
@@ -25,11 +17,9 @@ export async function advanceCursor(
 
   while (remaining > 0) {
     const step = Math.min(FIRESTORE_BATCH_SIZE, remaining)
-    const cursorQuery = cursor
-      ? query(baseQuery, startAfter(cursor), limit(step))
-      : query(baseQuery, limit(step))
+    const cursorQuery = cursor ? baseQuery.startAfter(cursor).limit(step) : baseQuery.limit(step)
 
-    const snapshot = await getDocs(cursorQuery)
+    const snapshot = await cursorQuery.get()
     if (snapshot.empty) {
       return undefined
     }
@@ -59,10 +49,10 @@ export async function fetchDocsInBatches(
   while (remaining > 0) {
     const step = Math.min(FIRESTORE_BATCH_SIZE, remaining)
     const batchQuery = currentCursor
-      ? query(baseQuery, startAfter(currentCursor), limit(step))
-      : query(baseQuery, limit(step))
+      ? baseQuery.startAfter(currentCursor).limit(step)
+      : baseQuery.limit(step)
 
-    const snapshot = await getDocs(batchQuery)
+    const snapshot = await batchQuery.get()
     if (snapshot.empty) {
       break
     }

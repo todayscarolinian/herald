@@ -1,4 +1,4 @@
-import { collection, type Firestore, getDocs } from 'firebase/firestore'
+import type { Firestore } from 'firebase-admin/firestore'
 
 /**
  * Fetches an entire Firestore collection once and builds a case-insensitive
@@ -10,7 +10,7 @@ export async function buildNameToIdMap(
   collectionName: string,
   nameField = 'name'
 ): Promise<Map<string, string>> {
-  const snapshot = await getDocs(collection(firestore, collectionName))
+  const snapshot = await firestore.collection(collectionName).get()
   const map = new Map<string, string>()
 
   snapshot.forEach((docSnap) => {

@@ -9,31 +9,10 @@ import {
   type PositionSortField,
 } from '@herald/types'
 import type { AuditLogTargetSnapshot } from '@herald/types/auditLog'
-import {
-  collection,
-  deleteDoc,
-  doc,
-  DocumentData,
-  type Firestore,
-  getCountFromServer,
-  getDoc,
-  getDocs,
-  orderBy,
-  Query,
-  query,
-  QueryConstraint,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-  writeBatch,
-} from 'firebase/firestore'
-import type {
-  DocumentData as AdminDocumentData,
-  Firestore as AdminFirestore,
-} from 'firebase-admin/firestore'
+import type { DocumentData, Firestore, Query, WriteBatch } from 'firebase-admin/firestore'
+import { Timestamp } from 'firebase-admin/firestore'
 
-import { createAuditLogService } from '../../audit-log/index.ts'
+import { createAdminAuditLogService } from '../../audit-log/index.ts'
 import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
 import { fetchPaginatedDocs } from './pagination.ts'
@@ -42,11 +21,11 @@ const DEFAULT_SORT_FIELD: PositionSortField = 'createdAt'
 const DEFAULT_SORT_DIRECTION = 'desc'
 const POSITIONS_COLLECTION = 'positions'
 
-// Admin-SDK counterpart used by services running outside the browser (e.g.
-// apps/auth's session/login hydration), where only a firebase-admin Firestore
-// instance is available rather than the client SDK.
+// Lightweight lookup used by services running outside the full repository
+// (e.g. apps/auth's session hydration), which only need bare Position data
+// for a known set of IDs rather than the full IPositionRepository contract.
 export async function getPositionsByIdsAdmin(
-  firestore: AdminFirestore,
+  firestore: Firestore,
   ids: string[]
 ): Promise<Position[]> {
   const uniqueIds = [...new Set(ids)]
@@ -63,7 +42,7 @@ export async function getPositionsByIdsAdmin(
     .map((snap) => mapAdminPositionDocToPosition(snap.id, snap.data()!))
 }
 
-function mapAdminPositionDocToPosition(id: string, data: AdminDocumentData): Position {
+function mapAdminPositionDocToPosition(id: string, data: DocumentData): Position {
   return {
     id,
     name: typeof data.name === 'string' ? data.name : '',
@@ -83,15 +62,15 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
     async findById({ id }) {
       try {
         const validatedId = validatePositionId(id)
-        const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(POSITIONS_COLLECTION).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           return null
         }
 
         const userCount = await getPositionUserCount(firestore, USERS_COLLECTION, validatedId)
-        return mapPositionDocToDTO(validatedId, docSnap.data(), userCount)
+        return mapPositionDocToDTO(validatedId, docSnap.data()!, userCount)
       } catch (error) {
         console.error('Error in findById:', error)
         throw error
@@ -131,7 +110,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           return createPaginatedResult(positionsWithUserCount, total, { page, limit: pageLimit })
         }
 
-        const totalSnapshot = await getCountFromServer(baseQuery)
+        const totalSnapshot = await baseQuery.count().get()
         const total = totalSnapshot.data().count
 
         const positions = await fetchPaginatedPositions(baseQuery, page, pageLimit)
@@ -179,8 +158,8 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           updatedAt: now,
         }
 
-        const docRef = doc(collection(firestore, POSITIONS_COLLECTION))
-        await setDoc(docRef, positionDoc)
+        const docRef = firestore.collection(POSITIONS_COLLECTION).doc()
+        await docRef.set(positionDoc)
 
         const targetSnapshot: AuditLogTargetSnapshot = {
           type: 'position',
@@ -192,7 +171,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             createdAt: now.toDate().toISOString(),
           },
         }
-        createAuditLogService(firestore).log('POSITION_CREATED', targetSnapshot, performedById)
+        createAdminAuditLogService(firestore).log('POSITION_CREATED', targetSnapshot, performedById)
 
         return mapPositionDocToDTO(docRef.id, positionDoc, 0)
       } catch (error) {
@@ -204,18 +183,18 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
     async update(position, performedById) {
       try {
         const validatedId = validatePositionId(position.id)
-        const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(POSITIONS_COLLECTION).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`Position with id ${validatedId} does not exist`)
         }
 
         const trimmedName = position.name.trim()
         const trimmedAbbreviation = position.abbreviation.trim()
         const now = Timestamp.now()
-        const previousDomains = Array.isArray(docSnap.data().domains)
-          ? (docSnap.data().domains as string[])
+        const previousDomains = Array.isArray(docSnap.data()?.domains)
+          ? (docSnap.data()?.domains as string[])
           : []
         const domainsChanged =
           previousDomains.length !== position.domains.length ||
@@ -227,10 +206,10 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           updatedAt: now,
         }
 
-        await updateDoc(docRef, updateData)
+        await docRef.update(updateData)
 
-        const updatedDocSnap = await getDoc(docRef)
-        if (!updatedDocSnap.exists()) {
+        const updatedDocSnap = await docRef.get()
+        if (!updatedDocSnap.exists) {
           throw new Error(`Position with id ${validatedId} was not found after update`)
         }
 
@@ -242,12 +221,12 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
             abbreviation: trimmedAbbreviation,
             domains: position.domains,
             createdAt:
-              docSnap.data().createdAt instanceof Timestamp
-                ? docSnap.data().createdAt.toDate().toISOString()
+              docSnap.data()?.createdAt instanceof Timestamp
+                ? docSnap.data()!.createdAt.toDate().toISOString()
                 : '',
           },
         }
-        createAuditLogService(firestore).log(
+        createAdminAuditLogService(firestore).log(
           domainsChanged ? 'POSITION_DOMAINS_CHANGED' : 'POSITION_UPDATED',
           targetSnapshot,
           performedById
@@ -264,14 +243,14 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
     async delete(input, performedById) {
       try {
         const validatedId = validatePositionId(input.id)
-        const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docRef = firestore.collection(POSITIONS_COLLECTION).doc(validatedId)
+        const docSnap = await docRef.get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           throw new Error(`Position with id ${validatedId} does not exist`)
         }
 
-        const data = docSnap.data()
+        const data = docSnap.data()!
         const targetSnapshot: AuditLogTargetSnapshot = {
           type: 'position',
           data: {
@@ -284,20 +263,18 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
           },
         }
 
-        await deleteDoc(docRef)
-        createAuditLogService(firestore).log('POSITION_DELETED', targetSnapshot, performedById)
+        await docRef.delete()
+        createAdminAuditLogService(firestore).log('POSITION_DELETED', targetSnapshot, performedById)
 
         // Remove this position from the positions array of any users that have it assigned
-        const usersWithPositionQuery = query(
-          collection(firestore, 'users'),
-          where('positions', 'array-contains', validatedId)
-        )
-        const usersSnapshot = await getDocs(usersWithPositionQuery)
-        const batch = writeBatch(firestore)
+        const usersSnapshot = await firestore
+          .collection('users')
+          .where('positions', 'array-contains', validatedId)
+          .get()
+        const batch: WriteBatch = firestore.batch()
         usersSnapshot.forEach((userDoc) => {
-          const userRef = doc(firestore, 'users', userDoc.id)
-          batch.update(userRef, {
-            positions: userDoc.data().positions.filter((pid: string) => pid !== validatedId),
+          batch.update(userDoc.ref, {
+            positions: (userDoc.data().positions as string[]).filter((pid) => pid !== validatedId),
           })
         })
         await batch.commit()
@@ -311,9 +288,8 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
       try {
         const validatedId = validatePositionId(id)
 
-        const docRef = doc(firestore, POSITIONS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
-        return docSnap.exists()
+        const docSnap = await firestore.collection(POSITIONS_COLLECTION).doc(validatedId).get()
+        return docSnap.exists
       } catch (error) {
         console.error('Error checking if position exists:', error)
         throw error
@@ -322,8 +298,7 @@ export function createFirebasePositionRepository(firestore: Firestore): IPositio
 
     async getTotalCount() {
       try {
-        const collectionRef = collection(firestore, POSITIONS_COLLECTION)
-        const snapshot = await getCountFromServer(collectionRef)
+        const snapshot = await firestore.collection(POSITIONS_COLLECTION).count().get()
         return { totalPositions: snapshot.data().count }
       } catch (error) {
         console.error('Error getting total position count:', error)
@@ -355,19 +330,21 @@ function buildPositionsQuery(
   sortField: PositionSortField,
   sortDirection: 'asc' | 'desc'
 ): Query<DocumentData> {
-  const constraints: QueryConstraint[] = []
-  const positionsRef = collection(firestore, collectionName)
+  let positionsQuery: Query<DocumentData> = firestore.collection(collectionName)
 
   if (Array.isArray(filters?.domains) && filters.domains.length > 0) {
     if (filters.domains.length === 1) {
-      constraints.push(where('domains', 'array-contains', filters.domains[0]))
+      positionsQuery = positionsQuery.where('domains', 'array-contains', filters.domains[0])
     } else {
-      constraints.push(where('domains', 'array-contains-any', filters.domains.slice(0, 10)))
+      positionsQuery = positionsQuery.where(
+        'domains',
+        'array-contains-any',
+        filters.domains.slice(0, 10)
+      )
     }
   }
 
-  constraints.push(orderBy(sortField, sortDirection))
-  return query(positionsRef, ...constraints)
+  return positionsQuery.orderBy(sortField, sortDirection)
 }
 
 async function fetchPaginatedPositions(
@@ -411,7 +388,7 @@ async function fetchSearchPositions(
   page: number,
   pageLimit: number
 ): Promise<{ positions: PositionDTO[]; total: number }> {
-  const snapshot = await getDocs(baseQuery)
+  const snapshot = await baseQuery.get()
   const matching = snapshot.docs
     .map((docSnap) => mapPositionDocToDTO(docSnap.id, docSnap.data()))
     .filter((position) => matchesSearch(position, search))
@@ -452,12 +429,12 @@ async function getPositionUserCount(
   usersCollection: string,
   positionId: string
 ): Promise<number> {
-  const usersWithPositionQuery = query(
-    collection(firestore, usersCollection),
-    where('positions', 'array-contains', positionId)
-  )
-  const usersCountSnapshot = await getCountFromServer(usersWithPositionQuery)
-  return usersCountSnapshot.data().count
+  const snapshot = await firestore
+    .collection(usersCollection)
+    .where('positions', 'array-contains', positionId)
+    .count()
+    .get()
+  return snapshot.data().count
 }
 
 function requireStringField(docSnap: DocumentData, field: string, positionId: string): string {

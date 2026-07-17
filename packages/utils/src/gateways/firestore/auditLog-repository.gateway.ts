@@ -14,22 +14,8 @@ import {
   type AuditLogTargetSnapshot,
   type AuditLogUserSnapshot,
 } from '@herald/types/auditLog'
-import {
-  collection,
-  doc,
-  DocumentData,
-  type Firestore,
-  getCountFromServer,
-  getDoc,
-  getDocs,
-  orderBy,
-  type Query,
-  query,
-  type QueryConstraint,
-  setDoc,
-  Timestamp,
-  where,
-} from 'firebase/firestore'
+import type { DocumentData, Firestore, Query } from 'firebase-admin/firestore'
+import { Timestamp } from 'firebase-admin/firestore'
 
 import { isValidDomain } from '../../constants.ts'
 import { createPaginatedResult } from '../../dto.ts'
@@ -44,14 +30,13 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
     async findById({ id }) {
       try {
         const validatedId = validateAuditLogId(id)
-        const docRef = doc(firestore, AUDIT_LOGS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
+        const docSnap = await firestore.collection(AUDIT_LOGS_COLLECTION).doc(validatedId).get()
 
-        if (!docSnap.exists()) {
+        if (!docSnap.exists) {
           return null
         }
 
-        return mapAuditLogDoc(docSnap.id, docSnap.data())
+        return mapAuditLogDoc(docSnap.id, docSnap.data()!)
       } catch (error) {
         console.error('Error finding audit log by ID:', error)
         throw error
@@ -83,7 +68,7 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
           return createPaginatedResult(auditLogs, total, { page, limit: pageLimit })
         }
 
-        const totalSnapshot = await getCountFromServer(baseQuery)
+        const totalSnapshot = await baseQuery.count().get()
         const total = totalSnapshot.data().count
 
         const auditLogs = await fetchPaginatedAuditLogs(baseQuery, page, pageLimit)
@@ -115,8 +100,8 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
           timestamp: now,
         }
 
-        const docRef = doc(collection(firestore, AUDIT_LOGS_COLLECTION))
-        await setDoc(docRef, stripUndefined(auditLogDoc))
+        const docRef = firestore.collection(AUDIT_LOGS_COLLECTION).doc()
+        await docRef.set(stripUndefined(auditLogDoc))
 
         return {
           id: docRef.id,
@@ -133,8 +118,7 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
 
     async getTotalCount() {
       try {
-        const auditLogsRef = collection(firestore, AUDIT_LOGS_COLLECTION)
-        const snapshot = await getCountFromServer(auditLogsRef)
+        const snapshot = await firestore.collection(AUDIT_LOGS_COLLECTION).count().get()
         return { totalAuditLogs: snapshot.data().count }
       } catch (error) {
         console.error('Error getting total audit log count:', error)
@@ -145,9 +129,8 @@ export function createFirebaseAuditLogRepository(firestore: Firestore): IAuditLo
     async exists(id) {
       try {
         const validatedId = validateAuditLogId(id)
-        const docRef = doc(firestore, AUDIT_LOGS_COLLECTION, validatedId)
-        const docSnap = await getDoc(docRef)
-        return docSnap.exists()
+        const docSnap = await firestore.collection(AUDIT_LOGS_COLLECTION).doc(validatedId).get()
+        return docSnap.exists
       } catch (error) {
         console.error('Error checking if audit log exists:', error)
         throw error
@@ -204,23 +187,29 @@ function buildAuditLogQuery(
   sortField: AuditLogSortField,
   sortDirection: 'asc' | 'desc'
 ): Query<DocumentData> {
-  const constraints: QueryConstraint[] = []
-  const auditLogsRef = collection(firestore, collectionName)
+  let auditLogsQuery: Query<DocumentData> = firestore.collection(collectionName)
 
   if (filters?.action) {
-    constraints.push(where('action', '==', filters.action.trim()))
+    auditLogsQuery = auditLogsQuery.where('action', '==', filters.action.trim())
   }
 
   if (filters?.since) {
-    constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(filters.since))))
+    auditLogsQuery = auditLogsQuery.where(
+      'timestamp',
+      '>=',
+      Timestamp.fromDate(new Date(filters.since))
+    )
   }
 
   if (filters?.until) {
-    constraints.push(where('timestamp', '<', Timestamp.fromDate(new Date(filters.until))))
+    auditLogsQuery = auditLogsQuery.where(
+      'timestamp',
+      '<',
+      Timestamp.fromDate(new Date(filters.until))
+    )
   }
 
-  constraints.push(orderBy(sortField, sortDirection))
-  return query(auditLogsRef, ...constraints)
+  return auditLogsQuery.orderBy(sortField, sortDirection)
 }
 
 async function fetchPaginatedAuditLogs(
@@ -238,7 +227,7 @@ async function fetchSearchAuditLogs(
   page: number,
   pageLimit: number
 ): Promise<{ auditLogs: AuditLogDTO[]; total: number }> {
-  const snapshot = await getDocs(baseQuery)
+  const snapshot = await baseQuery.get()
   const matching = snapshot.docs
     .map((docSnap) => mapAuditLogDoc(docSnap.id, docSnap.data()))
     .filter((auditLog) => matchesSearch(auditLog, search))
