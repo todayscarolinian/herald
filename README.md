@@ -501,7 +501,7 @@ KV_REST_API_TOKEN=
 SESSION_COOKIE_NAME=session
 SESSION_MAX_AGE=432000              # 5 days (in seconds)
 REMEMBER_ME_MAX_AGE=2592000         # 30 days (in seconds)
-ALLOWED_ORIGINS=https://todayscarolinian.com,https://archives.todayscarolinian.com,https://uscdays.todayscarolinian.com,https://herald.todayscarolinian.com
+NEXT_PUBLIC_ALLOWED_ORIGINS=https://todayscarolinian.com,https://archives.todayscarolinian.com,https://uscdays.todayscarolinian.com,https://herald.todayscarolinian.com
 ```
 
 ## 🔒 Security Best Practices

@@ -1,6 +1,6 @@
 'use client'
 
-import { loginSchema } from '@herald/utils'
+import { isSafeRedirectTarget, loginSchema, parseAllowedOrigins } from '@herald/utils'
 import { useForm } from '@tanstack/react-form'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCredentialsSignIn, useGoogleSignIn } from '@/lib/api/mutations/authMutations'
+
+const ALLOWED_REDIRECT_ORIGINS = parseAllowedOrigins(process.env.NEXT_PUBLIC_ALLOWED_ORIGINS)
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -70,8 +72,18 @@ export function LoginForm() {
               }
 
               const redirectTo = searchParams.get('redirect')
-              const isSafeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
-              router.push(isSafeRedirect ? (redirectTo ?? '/') : '/')
+              if (redirectTo && isSafeRedirectTarget(redirectTo, ALLOWED_REDIRECT_ORIGINS)) {
+                if (redirectTo.startsWith('/')) {
+                  router.push(redirectTo)
+                } else {
+                  // Cross-origin target (another TC app) -- router.push only
+                  // handles in-app routes, so a full navigation is required.
+                  window.location.href = redirectTo
+                }
+                return
+              }
+
+              router.push('/')
             },
           }
         )
@@ -251,7 +263,7 @@ export function LoginForm() {
           className="border-tc_grayscale-400 text-tc_accent_black-400 hover:bg-tc_grayscale-100 h-[42px] w-full gap-3 text-base font-medium transition-colors"
           onClick={async () => {
             try {
-              await googleLogin.mutateAsync()
+              await googleLogin.mutateAsync(searchParams.get('redirect') ?? undefined)
             } catch (error: unknown) {
               if (error instanceof Error) {
                 toast.error(error.message)

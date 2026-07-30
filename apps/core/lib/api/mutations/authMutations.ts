@@ -24,7 +24,7 @@ export function useCredentialsSignIn() {
 }
 
 export function useGoogleSignIn() {
-  return useMutation<void, Error, void>({
+  return useMutation<void, Error, string | undefined>({
     mutationFn: googleSignIn,
   })
 }

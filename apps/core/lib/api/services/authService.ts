@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   ResetPasswordRequest,
 } from '@herald/types'
+import { isSafeRedirectTarget, parseAllowedOrigins } from '@herald/utils'
 
 import { post } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
@@ -28,7 +29,7 @@ export async function credentialsSignIn(
   return { mustChangePassword: result.data?.user.mustChangePassword ?? false }
 }
 
-export async function googleSignIn(): Promise<void> {
+export async function googleSignIn(redirectTo?: string): Promise<void> {
   const callbackURL = process.env.NEXT_PUBLIC_CORE_URL
 
   if (!callbackURL) {
@@ -36,9 +37,18 @@ export async function googleSignIn(): Promise<void> {
   }
 
   const normalizedCallbackURL = callbackURL.endsWith('/') ? callbackURL.slice(0, -1) : callbackURL
+
+  const allowedOrigins = parseAllowedOrigins(process.env.NEXT_PUBLIC_ALLOWED_ORIGINS)
+  const isSafeRedirect = redirectTo && isSafeRedirectTarget(redirectTo, allowedOrigins)
+  const resolvedCallbackURL = isSafeRedirect
+    ? redirectTo.startsWith('/')
+      ? `${normalizedCallbackURL}${redirectTo}`
+      : redirectTo
+    : normalizedCallbackURL
+
   await signIn.social({
     provider: 'google',
-    callbackURL: normalizedCallbackURL,
+    callbackURL: resolvedCallbackURL,
     errorCallbackURL: `${normalizedCallbackURL}/login`,
   })
 }

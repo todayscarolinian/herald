@@ -25,6 +25,31 @@ export const DOMAINS = [
 export const isValidDomain = (value: string): value is Domain =>
   (DOMAINS as readonly string[]).includes(value)
 
+export const parseAllowedOrigins = (value: string | undefined) =>
+  (value ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+// Relative paths are always same-origin safe; absolute targets (used for
+// cross-app SSO redirects between TC properties) must match an entry in
+// allowedOrigins, mirroring the NEXT_PUBLIC_ALLOWED_ORIGINS trust boundary
+// already enforced server-side by BetterAuth's trustedOrigins (apps/auth/src/lib/auth.ts).
+export const isSafeRedirectTarget = (
+  target: string,
+  allowedOrigins: readonly string[]
+): boolean => {
+  if (target.startsWith('/') && !target.startsWith('//')) {
+    return true
+  }
+
+  try {
+    return allowedOrigins.includes(new URL(target).origin)
+  } catch {
+    return false
+  }
+}
+
 export const PASSWORD_STRENGTH_REQUIREMENTS =
   'Password must be at least 8 characters and include at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)'
 
