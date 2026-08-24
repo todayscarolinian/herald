@@ -165,10 +165,22 @@ export function createFirebaseUserRepository(
         const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
+
+        const effectiveFilters = params.filters?.domain
+          ? await resolveDomainFilter(firestore, POSITIONS_COLLECTION, params.filters)
+          : params.filters
+
+        if (params.filters?.domain && effectiveFilters?.positionIds?.length === 0) {
+          const emptyPagination = params.pagination
+            ? normalizePagination(params.pagination)
+            : { page: 1, limit: 1 }
+          return createPaginatedResult([], 0, emptyPagination)
+        }
+
         const baseQuery = buildUserQuery(
           firestore,
           COLLECTION_NAME,
-          params.filters,
+          effectiveFilters,
           sortField,
           sortDirection
         )
@@ -720,6 +732,49 @@ function normalizeSearchTerm(search: unknown): string | undefined {
 
   const normalizedSearch = search.trim().toLowerCase()
   return normalizedSearch.length > 0 ? normalizedSearch : undefined
+}
+
+// Domain access isn't stored on the user doc itself -- it's derived through
+// a user's positions, so `filters.domain` is resolved to the position IDs
+// that carry it, then intersected with any explicit `positionIds` filter so
+// both compose as AND rather than one silently overriding the other.
+async function resolveDomainFilter(
+  firestore: Firestore,
+  positionsCollection: string,
+  filters: UserFilters
+): Promise<UserFilters> {
+  if (!filters.domain) {
+    return filters
+  }
+
+  const domainPositionIds = await fetchPositionIdsForDomain(
+    firestore,
+    positionsCollection,
+    filters.domain
+  )
+
+  const positionIds = filters.positionIds?.length
+    ? filters.positionIds.filter((id) => domainPositionIds.includes(id))
+    : domainPositionIds
+
+  return { ...filters, positionIds }
+}
+
+// Capped at 10 like the existing `positionIds`/position-domains filters in
+// this codebase -- Firestore's `array-contains-any` accepts at most 10
+// values.
+async function fetchPositionIdsForDomain(
+  firestore: Firestore,
+  positionsCollection: string,
+  domain: Domain
+): Promise<string[]> {
+  const snapshot = await firestore
+    .collection(positionsCollection)
+    .where('domains', 'array-contains', domain)
+    .limit(10)
+    .get()
+
+  return snapshot.docs.map((docSnap) => docSnap.id)
 }
 
 function buildUserQuery(

@@ -34,6 +34,9 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   if (params.filters?.positionIds?.length) {
     searchParams.append('positionIds', params.filters.positionIds.join(','))
   }
+  if (params.filters?.domain) {
+    searchParams.append('domain', params.filters.domain)
+  }
   if (params.filters?.disabled !== undefined) {
     searchParams.append('disabled', String(params.filters.disabled))
   }

@@ -1,4 +1,4 @@
-import type { APIResponse, CreateUserInput, UserDTO } from '@herald/types'
+import type { APIResponse, CreateUserInput, Domain, UserDTO } from '@herald/types'
 import {
   DEFAULT_PAGINATION,
   SortDirection,
@@ -6,7 +6,11 @@ import {
   type UserFilters,
   type UserSortField,
 } from '@herald/types'
-import { createFirebaseUserRepository, PASSWORD_STRENGTH_REQUIREMENTS } from '@herald/utils'
+import {
+  createFirebaseUserRepository,
+  isValidDomain,
+  PASSWORD_STRENGTH_REQUIREMENTS,
+} from '@herald/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { hasHeraldWriteAccess, verifySessionFromCookie } from '@/lib/api/auth/verify-session'
@@ -240,12 +244,14 @@ function shuffleArray<T>(items: T[]): T[] {
 function parseFilters(searchParams: URLSearchParams): UserFilters {
   const search = searchParams.get('search')?.trim()
   const positionIds = parseListParam(searchParams, 'positionIds')
+  const domain = parseDomainParam(searchParams.get('domain'))
   const disabled = parseBooleanParam(searchParams.get('disabled'))
   const emailVerified = parseBooleanParam(searchParams.get('emailVerified'))
 
   return {
     ...(search ? { search } : {}),
     ...(positionIds.length ? { positionIds } : {}),
+    ...(domain ? { domain } : {}),
     ...(disabled !== undefined ? { disabled } : {}),
     ...(emailVerified !== undefined ? { emailVerified } : {}),
   }
@@ -282,6 +288,19 @@ function parseListParam(searchParams: URLSearchParams, key: string): string[] {
   )
 
   return [...new Set(values)]
+}
+
+function parseDomainParam(value: string | null): Domain | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  if (!isValidDomain(trimmed)) {
+    throw new Error('Invalid "domain" query parameter value')
+  }
+
+  return trimmed
 }
 
 function parseBooleanParam(value: string | null): boolean | undefined {

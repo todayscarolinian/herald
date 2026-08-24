@@ -6,6 +6,7 @@
  * The purpose of these DTOs is to provide a consistent and standardized way of handling data transfer across different parts of the application, ensuring that the data being transferred adheres to the expected structure and format.
  */
 
+import type { Domain } from '../domain/index.ts'
 import type { UUID } from '../shared/uid.ts'
 import type { UserProfile } from '../user/index.ts'
 import type { PaginatedResult, PaginationInput, SortInput } from './common.dto.ts'
@@ -57,6 +58,7 @@ export interface ListUsersInput {
 export interface UserFilters {
   search?: string
   positionIds?: UUID[]
+  domain?: Domain
   disabled?: boolean
   emailVerified?: boolean
   createdAfter?: string
