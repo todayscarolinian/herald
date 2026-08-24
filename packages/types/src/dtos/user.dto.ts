@@ -50,7 +50,7 @@ export interface GetUserByEmailInput {
 
 export interface ListUsersInput {
   filters: UserFilters
-  pagination: PaginationInput
+  pagination?: PaginationInput
   sort?: SortInput<UserSortField>
 }
 

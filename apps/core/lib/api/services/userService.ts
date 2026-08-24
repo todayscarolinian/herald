@@ -42,8 +42,12 @@ export function fetchUsers(params: ListUsersInput): Promise<PaginatedResult<User
   }
 
   // Add pagination
-  searchParams.append('page', String(params.pagination.page))
-  searchParams.append('limit', String(params.pagination.limit))
+  if (params.pagination) {
+    searchParams.append('page', String(params.pagination.page))
+    searchParams.append('limit', String(params.pagination.limit))
+  } else {
+    searchParams.append('paginated', 'false')
+  }
 
   // Add sort if provided
   if (params.sort?.field) {

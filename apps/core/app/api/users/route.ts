@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url)
     const filters = parseFilters(url.searchParams)
-    const pagination = parsePagination(url.searchParams)
+    const paginated = parseBooleanParam(url.searchParams.get('paginated')) ?? true
+    const pagination = paginated ? parsePagination(url.searchParams) : undefined
     const sort = parseSort(url.searchParams)
 
     const repository = createFirebaseUserRepository(getServerFirestore())

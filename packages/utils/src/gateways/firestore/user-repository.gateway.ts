@@ -162,7 +162,6 @@ export function createFirebaseUserRepository(
 
     async findAll(params) {
       try {
-        const { page, limit: pageLimit } = normalizePagination(params.pagination)
         const search = normalizeSearchTerm(params.filters?.search)
         const sortField = validateSortField(params.sort?.field)
         const sortDirection = validateSortDirection(params.sort?.direction)
@@ -173,6 +172,32 @@ export function createFirebaseUserRepository(
           sortField,
           sortDirection
         )
+
+        if (!params.pagination) {
+          if (search) {
+            const { users, total } = await fetchSearchUsers(
+              firestore,
+              POSITIONS_COLLECTION,
+              baseQuery,
+              search
+            )
+            return createPaginatedResult(users, total, { page: 1, limit: total || 1 })
+          }
+
+          const snapshot = await baseQuery.get()
+          const rawUsers = snapshot.docs.map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
+          const allPositionIds = [...new Set(rawUsers.flatMap((u) => u.positionIds))]
+          const positionsMap = await buildPositionsMap(
+            firestore,
+            POSITIONS_COLLECTION,
+            allPositionIds
+          )
+          const users = rawUsers.map((raw) => rawToDTO(raw, positionsMap))
+
+          return createPaginatedResult(users, users.length, { page: 1, limit: users.length || 1 })
+        }
+
+        const { page, limit: pageLimit } = normalizePagination(params.pagination)
 
         if (search) {
           const { users, total } = await fetchSearchUsers(
@@ -747,16 +772,18 @@ async function fetchSearchUsers(
   positionsCollection: string,
   baseQuery: Query<DocumentData>,
   search: string,
-  page: number,
-  pageLimit: number
+  page?: number,
+  pageLimit?: number
 ): Promise<{ users: UserDTO[]; total: number }> {
   const snapshot = await baseQuery.get()
   const matchingRaw = snapshot.docs
     .map((docSnap) => mapRawUserDoc(docSnap.id, docSnap.data()))
     .filter((raw) => matchesSearch(raw, search))
 
-  const startIndex = (page - 1) * pageLimit
-  const pageRaw = matchingRaw.slice(startIndex, startIndex + pageLimit)
+  const pageRaw =
+    page !== undefined && pageLimit !== undefined
+      ? matchingRaw.slice((page - 1) * pageLimit, (page - 1) * pageLimit + pageLimit)
+      : matchingRaw
 
   const allPositionIds = [...new Set(pageRaw.flatMap((u) => u.positionIds))]
   const positionsMap = await buildPositionsMap(firestore, positionsCollection, allPositionIds)
