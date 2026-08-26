@@ -34,7 +34,10 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { useSignOut } from '@/lib/api/mutations/authMutations'
+import { useMyProfile } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
+
+import { UserAvatar } from './user-avatar'
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -47,8 +50,10 @@ export function AppNavigation() {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
+  const { data: profileRes } = useMyProfile()
 
   const { user } = session || {}
+  const profile = profileRes?.data
 
   const signOut = useSignOut()
 
@@ -120,12 +125,10 @@ export function AppNavigation() {
 
         <DropdownMenu>
           <DropdownMenuTrigger>
-            <Image
-              src="/tc-logo-white.png"
-              alt="Profile"
-              width={80}
-              height={80}
-              className="ring-tc_white/30 h-10 min-h-10 w-10 min-w-10 flex-none rounded-full object-cover ring-2"
+            <UserAvatar
+              user={profile}
+              size={40}
+              className="ring-tc_white/30 h-10 min-h-10 w-10 min-w-10 ring-2"
             />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-40" align="start">
@@ -218,12 +221,10 @@ export function AppNavigation() {
                         tooltip="Account"
                         className="flex h-auto w-full items-center gap-3 rounded-lg bg-transparent px-0 py-2 group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center hover:bg-transparent active:bg-transparent"
                       >
-                        <Image
-                          src="/tc-logo-white.png"
-                          alt="Profile"
-                          width={80}
-                          height={80}
-                          className="ring-tc_white/30 h-10 min-h-10 w-10 min-w-10 flex-none rounded-full object-cover ring-2"
+                        <UserAvatar
+                          user={profile}
+                          size={40}
+                          className="ring-tc_white/30 h-10 min-h-10 w-10 min-w-10 ring-2"
                         />
 
                         <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">

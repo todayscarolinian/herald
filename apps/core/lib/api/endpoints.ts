@@ -21,5 +21,6 @@ export const ENDPOINTS = {
     auditLogs: '/api/audit-logs',
     dashboard: '/api/dashboard',
     updateProfile: '/api/user/update-profile',
+    uploadAvatar: '/api/user/upload-avatar',
   },
 } as const

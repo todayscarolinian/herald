@@ -11,7 +11,7 @@ import type {
   UserDTO,
 } from '@herald/types'
 
-import { del, get, post, put } from '@/lib/api/client'
+import { del, get, post, postFormData, put } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 
 const getInternalApiKeyHeader = () => {
@@ -81,6 +81,15 @@ export function fetchMyProfile(): Promise<APIResponse<UserDTO>> {
 
 export function updateProfile(params: UpdateProfileInput): Promise<APIResponse<UserDTO>> {
   return post<APIResponse<UserDTO>, UpdateProfileInput>(ENDPOINTS.api.updateProfile, params)
+}
+
+export function uploadAvatar(file: File): Promise<APIResponse<{ profilePictureURL: string }>> {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  return postFormData<APIResponse<{ profilePictureURL: string }>>(
+    ENDPOINTS.api.uploadAvatar,
+    formData
+  )
 }
 
 export function disableUser(params: DeleteUserInput): Promise<APIResponse<{ message: string }>> {

@@ -21,6 +21,7 @@ import {
   updateProfile,
   UpdateProfileInput,
   updateUser,
+  uploadAvatar,
 } from '@/lib/api/services/userService'
 
 export function useCreateUser() {
@@ -50,6 +51,18 @@ export function useUpdateProfile() {
 
   return useMutation<APIResponse<UserDTO>, Error, UpdateProfileInput>({
     mutationFn: updateProfile,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+      void queryClient.invalidateQueries({ queryKey: ['myProfile'] })
+    },
+  })
+}
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+
+  return useMutation<APIResponse<{ profilePictureURL: string }>, Error, File>({
+    mutationFn: uploadAvatar,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
       void queryClient.invalidateQueries({ queryKey: ['myProfile'] })

@@ -114,6 +114,43 @@ export async function post<TResponse, TBody = unknown>(
 }
 
 /**
+ * API POST helper for multipart/form-data bodies (e.g. file uploads). Omits
+ * the JSON `Content-Type` header so the browser sets the multipart boundary.
+ */
+export async function postFormData<TResponse>(
+  path: string,
+  formData: FormData,
+  options?: RequestOptions
+): Promise<TResponse> {
+  const baseUrl = resolveBaseUrl(path)
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...getInternalApiKeyHeader(),
+      ...(options?.headers ?? {}),
+    },
+    body: formData,
+  })
+
+  if (!res.ok) {
+    let message = `Request failed: ${res.status} ${res.statusText}`
+    try {
+      const parsed = (await res.json()) as { message?: string; error?: { message?: string } }
+      message = parsed?.error?.message ?? parsed?.message ?? message
+    } catch {
+      // Keep fallback message
+    }
+
+    throw new Error(message)
+  }
+
+  return (await res.json()) as TResponse
+}
+
+/**
  * API PUT helper with enhanced error handling and custom options.
  */
 export async function put<TResponse, TBody = unknown>(

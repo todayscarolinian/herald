@@ -101,7 +101,8 @@ type UploadProfilePicture = {
     userId: string,
     imageBuffer: Buffer,
     contentType: string,
-    bucket: StorageBucket
+    bucket: StorageBucket,
+    performedById: string
   ): Promise<string>
 }
 
@@ -547,10 +548,12 @@ export function createFirebaseUserRepository(
       userId: string,
       imageBuffer: Buffer,
       contentType: string,
-      bucket: StorageBucket
+      bucket: StorageBucket,
+      performedById: string
     ): Promise<string> {
       try {
         const validatedId = validateUserId(userId)
+        const validatedUploadedById = validateUserId(performedById)
         const docRef = firestore.collection(COLLECTION_NAME).doc(validatedId)
         const docSnap = await docRef.get()
 
@@ -584,6 +587,33 @@ export function createFirebaseUserRepository(
             )
           }
         }
+
+        const updatedSnap = await docRef.get()
+        const updatedData = updatedSnap.data()
+        const positionIds = extractPositionIds(updatedData, validatedId)
+        const positionsMap = await buildPositionsMap(firestore, POSITIONS_COLLECTION, positionIds)
+
+        const targetSnapshot: AuditLogTargetSnapshot = {
+          type: 'user',
+          data: {
+            id: docRef.id,
+            firstName: typeof updatedData?.firstName === 'string' ? updatedData.firstName : '',
+            middleName:
+              typeof updatedData?.middleName === 'string' ? updatedData.middleName : undefined,
+            lastName: typeof updatedData?.lastName === 'string' ? updatedData.lastName : '',
+            email: typeof updatedData?.email === 'string' ? updatedData.email : '',
+            positions: buildPositionSnapshots(positionIds, positionsMap),
+            createdAt:
+              updatedData?.createdAt instanceof Timestamp
+                ? updatedData.createdAt.toDate().toISOString()
+                : '',
+          },
+        }
+        createAdminAuditLogService(firestore).log(
+          'USER_AVATAR_UPDATED',
+          targetSnapshot,
+          validatedUploadedById
+        )
 
         return publicUrl
       } catch (error) {

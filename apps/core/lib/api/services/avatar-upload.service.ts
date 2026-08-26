@@ -45,5 +45,5 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
   const firestore = getServerFirestore()
   const repo = createFirebaseUserRepository(firestore)
 
-  return repo.uploadProfilePicture(userId, resizedBuffer, 'image/jpeg', bucket)
+  return repo.uploadProfilePicture(userId, resizedBuffer, 'image/jpeg', bucket, userId)
 }

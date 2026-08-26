@@ -1,20 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ChangePasswordForm } from '@/components/change-password-form'
-import { PageHeader } from '@/components/shared'
+import { PageHeader, UserAvatar } from '@/components/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useUpdateProfile } from '@/lib/api/mutations/userMutations'
+import { useUpdateProfile, useUploadAvatar } from '@/lib/api/mutations/userMutations'
 import { useMyProfile } from '@/lib/api/queries/userQueries'
 import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/utils'
+
+const VALID_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 export default function ProfilePage() {
   const { refetch: refetchSession } = useSession()
@@ -22,10 +25,53 @@ export default function ProfilePage() {
   const user = profileRes?.data
 
   const { mutate: updateProfile, isPending: isSavingName } = useUpdateProfile()
+  const { mutate: uploadAvatar, isPending: isUploadingAvatar } = useUploadAvatar()
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
 
   const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '' })
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
   const [touched, setTouched] = useState({ firstName: false, lastName: false })
+
+  const handleAvatarButtonClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!VALID_AVATAR_TYPES.includes(file.type)) {
+      toast.error('File type is not supported. Accepted types: JPEG, PNG, WEBP')
+      return
+    }
+
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      toast.error('File must be under 5 MB')
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    setAvatarPreviewUrl(objectUrl)
+
+    uploadAvatar(file, {
+      onSuccess: () => {
+        toast.success('Profile picture updated')
+        URL.revokeObjectURL(objectUrl)
+        setAvatarPreviewUrl(null)
+      },
+      onError: (error) => {
+        toast.error(error.message)
+        URL.revokeObjectURL(objectUrl)
+        setAvatarPreviewUrl(null)
+      },
+    })
+  }
 
   if (user && user.id !== loadedUserId) {
     setLoadedUserId(user.id)
@@ -83,6 +129,42 @@ export default function ProfilePage() {
                 <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[13px]">
                   {user.name}
                 </span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {avatarPreviewUrl ? (
+                  <img
+                    src={avatarPreviewUrl}
+                    alt="Avatar preview"
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 flex-none rounded-full object-cover opacity-60"
+                  />
+                ) : (
+                  <UserAvatar user={user} size={64} />
+                )}
+
+                <div className="flex flex-col gap-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingAvatar}
+                    onClick={handleAvatarButtonClick}
+                  >
+                    {isUploadingAvatar ? 'Uploading...' : 'Change Photo'}
+                  </Button>
+                  <span className="text-tc_grayscale-600 dark:text-tc_grayscale-400 text-[12px]">
+                    JPEG, PNG, or WEBP. Max 5 MB.
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-4">
