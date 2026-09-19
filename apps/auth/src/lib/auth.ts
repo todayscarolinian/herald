@@ -24,6 +24,7 @@ type CustomUserFields = {
   positions: string[]
   disabled: boolean
   mustChangePassword: boolean
+  profilePictureURL?: string
 }
 
 export const auth = betterAuth({
@@ -104,6 +105,7 @@ export const auth = betterAuth({
       positions: { type: 'string[]', defaultValue: [], required: true },
       disabled: { type: 'boolean', defaultValue: false, required: true },
       mustChangePassword: { type: 'boolean', defaultValue: false, required: true },
+      profilePictureURL: { type: 'string', required: false },
     },
   },
   rateLimit: {
