@@ -33,7 +33,7 @@
         "@herald/utils": "*",
         "@react-email/ui": "^6.6.5",
         "@repo/eslint-config": "*",
-        "@types/node": "^20.11.17",
+        "@types/node": "^24.19.2",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "patch-package": "^8.0.1",
